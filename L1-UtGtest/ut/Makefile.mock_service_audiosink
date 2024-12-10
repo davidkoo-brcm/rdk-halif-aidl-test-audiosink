@@ -2,57 +2,53 @@
 
 HAL_DIR ?= $(CURDIR)
 
-MOCK_SERVICE_SONAME := maudiosink
+AUDIOSINK_SONAME := audiosinkaidl
+AUDIODECODER_SONAME := audiodecoderaidl
 
 MOCK_SERVICE_BIN := AudioSinkService
-MOCK_SERVICE_LIB := lib$(MOCK_SERVICE_SONAME).so
-
-
-AIDL_GEN_DIR ?= $(HAL_DIR)/src/gen/hal/current
+AUDIOSINK_LIB := lib$(AUDIOSINK_SONAME).so
+AUDIODECODER_LIB := lib$(AUDIODECODER_SONAME).so
 
 MOCK_SERVICE_DIR ?= $(HAL_DIR)/audiosink_mock/src/service
 
 BUILD_DIR ?= $(HAL_DIR)/build
 
+AIDL_GEN_DIR ?= $(BUILD_DIR)/audiosink_gen
 
-$(info The value of MY_VAR is: $(MOCK_SERVICE_DIR))
+COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/AVSource.cpp
+COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/HALError.cpp
+COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/PropertyValue.cpp
+COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/State.cpp
 
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Capabilities.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/ErrorCode.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkController.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkControllerListener.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSink.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkEventListener.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkManager.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/PlatformCapabilities.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Property.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Volume.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/VolumeRamp.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Capabilities.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/ErrorCode.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkController.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkControllerListener.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSink.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkEventListener.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/IAudioSinkManager.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/PlatformCapabilities.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Property.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/Volume.cpp
+AUDIOSINK_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiosink/VolumeRamp.cpp
 
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/AVSource.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/HALError.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/PropertyValue.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/State.cpp
-
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Capabilities.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/ChannelType.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Codec.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/CSDAudioFormat.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/ErrorCode.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/FrameMetadata.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderController.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderControllerListener.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoder.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderEventListener.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderManager.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/PCMFormat.cpp
-AIDL_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Property.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Capabilities.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/ChannelType.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Codec.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/CSDAudioFormat.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/ErrorCode.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/FrameMetadata.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderController.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderControllerListener.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoder.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderEventListener.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/IAudioDecoderManager.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/PCMFormat.cpp
+AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Property.cpp
 
 
-MOCK_SERVICE_LIB_SRC := $(AIDL_GEN_SRC)
-MOCK_SERVICE_LIB_SRC += $(MOCK_SERVICE_DIR)/AudioSink.cpp
-
-MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
+MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSink.cpp
+MOCK_SERVICE_BIN_SRC += $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
 
 
 # FIXME: to be compile out of source tree
@@ -67,21 +63,29 @@ MOCK_SERVICE_LDFLAGS := -L$(BUILD_DIR)/usr/lib
 MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
 
 
+
 MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
 
-mock_service: $(MOCK_SERVICE_BIN) $(MOCK_SERVICE_LIB)
+mock_service: $(MOCK_SERVICE_BIN) $(AUDIOSINK_LIB) $(AUDIODECODER_LIB)
 
-$(MOCK_SERVICE_LIB): $(MOCK_SERVICE_LIB_SRC:%.cpp=%.o)
+
+$(AUDIODECODER_LIB): $(AUDIODECODER_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o)
 	g++ -shared $(MOCK_SERVICE_LDFLAGS) $^ -o $@ $(MOCK_SERVICE_LD_LIBS)
-	install $(MOCK_SERVICE_LIB) $(BUILD_DIR)/usr/lib
+	install $@ $(BUILD_DIR)/usr/lib
+
+$(AUDIOSINK_LIB): $(AUDIODECODER_LIB) 
+$(AUDIOSINK_LIB): $(AUDIOSINK_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o) 
+	g++ -shared $(MOCK_SERVICE_LDFLAGS) $^ -o $@ $(MOCK_SERVICE_LD_LIBS) \
+	       	-l$(AUDIODECODER_SONAME)
+	
+	install $(AUDIOSINK_LIB) $(BUILD_DIR)/usr/lib
 
 
-
-$(MOCK_SERVICE_BIN): $(MOCK_SERVICE_LIB)
+$(MOCK_SERVICE_BIN): $(AUDIODECODER_LIB) $(AUDIOSINK_LIB) 
 $(MOCK_SERVICE_BIN): $(MOCK_SERVICE_BIN_SRC:%.cpp=%.o)
 	g++ $(MOCK_SERVICE_LDFLAGS) \
 		$(MOCK_SERVICE_BIN_SRC:%.cpp=%.o) -o $@ \
-		$(MOCK_SERVICE_LD_LIBS) -l$(MOCK_SERVICE_SONAME)
+		$(MOCK_SERVICE_LD_LIBS) -l$(AUDIOSINK_SONAME) 
 	        
 	install $(MOCK_SERVICE_BIN) install $(BUILD_DIR)/usr/lib
 
