@@ -59,7 +59,7 @@ generate_audiosink_hal()
 	declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen"
 
 	if [ ! -d 'ut/hal' ]; then
-		git clone -b develop 'ssh://git@github.com/rdk-e/hal.git' ut/hal
+		git clone -b develop 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' ut/hal
 	fi
 
 	for m in audiosink audiodecoder; do
