@@ -75,7 +75,7 @@ $(AUDIODECODER_LIB): $(AUDIODECODER_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.
 
 $(AUDIOSINK_LIB): $(AUDIODECODER_LIB) 
 $(AUDIOSINK_LIB): $(AUDIOSINK_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o) 
-	g++ -shared $(MOCK_SERVICE_LDFLAGS) $^ -o $@ $(MOCK_SERVICE_LD_LIBS) \
+	g++ -shared $(MOCK_SERVICE_LDFLAGS) $(filter %.o, $^) -o $@ $(MOCK_SERVICE_LD_LIBS) \
 	       	-l$(AUDIODECODER_SONAME)
 	
 	install $(AUDIOSINK_LIB) $(BUILD_DIR)/usr/lib
