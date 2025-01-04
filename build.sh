@@ -1,15 +1,13 @@
 #!/bin/bash
 
 # Define the directory where the repository will be cloned
-declare -r UT_CORE_VER="4.1.0"
 declare -r TOP=`dirname $(realpath $0)`
-declare -r UT_DIR="${TOP}/ut"
-declare -r BUILD_DIR="${UT_DIR}/build"
+declare -r UT_CORE_DIR="${TOP}/ut/ut-core"
+declare -r BUILD_DIR="${TOP}/build"
 declare -r BUILD_INSTALL_PREFIX=${BUILD_DIR}/usr
 
 
-
-DEF_LINUX_BINDER="`realpath ${TOP}/../..`/linux_binder_idl"
+DEF_LINUX_BINDER="`realpath ${TOP}/../`/linux_binder_idl"
 # AIDL_BIN: path of aidl compiler
 AIDL_BIN=${AIDL_BIN:-${DEF_LINUX_BINDER}/out/aidl}
 # LINUX_BINDER_OUT_DIR: output installed after building linux_binder_idl
@@ -18,13 +16,9 @@ LINUX_BINDER_OUT_DIR=${LINUX_BINDER_OUT_DIR:-${DEF_LINUX_BINDER}/local}
 
 
 # Used in build audiodecoder_hal
-export HAL_DIR=${UT_DIR}
 
-
-mkdir -p $UT_DIR
 
 mkdir -p $BUILD_DIR
-
 
 
 if [ ! -x $AIDL_BIN ]; then
@@ -56,10 +50,11 @@ generate_audiosink_hal()
 {
 	declare -r HAL_BUILD_DIR=${BUILD_DIR}/audiosink_hal
 	declare -r AUDIOSINK_VERSION=current
-	declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen"
+	declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen/$AUDIOSINK_VERSION"
+	declare -r RDK_HAL_DIR=${TOP}/rdk-halif-aidl
 
-	if [ ! -d 'ut/hal' ]; then
-		git clone -b develop 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' ut/hal
+	if [ ! -d "$RDK_HAL_DIR" ]; then
+		git clone -b develop 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
 	fi
 
 	for m in audiosink audiodecoder; do
@@ -70,40 +65,48 @@ generate_audiosink_hal()
 			-DAIDL_SRC_VERSION=$AUDIOSINK_VERSION \
 			-DAIDL_TARGET=$m \
 			-B ${HAL_BUILD_DIR}/gen/build/${m}_test \
-			ut/hal
+			$RDK_HAL_DIR
 	done
-	# TODO: to do check if any error
-	pushd ${HAL_BUILD_DIR}/gen/build/audiosink_test
-	make -f ${TOP}/ut/Makefile.mock_service_audiosink
-	popd
 
 }
 
+build_vcomponent()
+{
+    # Invoke Makefile to build the mock_service target
+    make -j`nproc` \
+                -C ${TOP}/vcomponent
+}
+
+
 build_ut_core()
 {
-	if [ ! -d ${UT_DIR}/ut-core ]; then
-		git clone https://github.com/rdkcentral/ut-core.git ut/ut-core
+	if [ ! -d ${UT_CORE_DIR} ]; then
+		git clone https://github.com/rdkcentral/ut-core.git ${UT_CORE_DIR}
 		if [ $? -ne 0 ]; then
 			echo "Failed to clone the repository. Exiting."
 			exit 1
 		fi
 	fi
 
-	# Change to the cloned repository directory
-	pushd ${UT_DIR}/ut-core
+        pushd ${UT_CORE_DIR}
 
-	git checkout $UT_CORE_VER
+        git fetch -q -t origin
+        # get the latest version of ut-core
+                if [ -z "$UT_CORE_VERSION" ]; then
+                        UT_CORE_VERSION=`git tag | sort -Vr | head -n1`
+                fi
 
-	# Run the build commands
-	./build.sh TARGET=linux VARIANT=CPP
-	if [ $? -ne 0 ]; then
-		echo "Build script failed. Exiting."
-		exit 1
-	fi
+        git checkout $UT_CORE_VER
 
-	# Optional: Add any additional build commands here
-	echo "Build completed successfully."
-	popd
+        ./build.sh TARGET=linux VARIANT=CPP
+        if [ $? -ne 0 ]; then
+                echo "Build script failed. Exiting."
+                exit 1
+        fi
+
+        echo "Build completed successfully."
+        popd
+
 }
 
 install_test()
@@ -113,10 +116,12 @@ install_test()
 	install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/bin/*
 	install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/lib/*
 	install -t ${INSTALL_PATH} run.sh
+	cp -rf ${TOP}/profiles ${INSTALL_PATH}
 }
 
 install_linux_binder
 generate_audiosink_hal
+build_vcomponent
 build_ut_core
-make -C ${UT_DIR}
+make -j`nproc` -C ${TOP}
 install_test

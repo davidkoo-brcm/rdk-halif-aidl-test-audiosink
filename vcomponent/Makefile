@@ -1,19 +1,19 @@
-.PHONY: mock_service
+.PHONY: all
 
-HAL_DIR ?= $(CURDIR)
 
-AUDIOSINK_SONAME := audiosinkaidl
-AUDIODECODER_SONAME := audiodecoderaidl
+AUDIOSINK_AIDL_LIB_NAME := audiosinkaidl
+AUDIODECODER_AIDL_LIB_NAME := audiodecoderaidl
 
-MOCK_SERVICE_BIN := AudioSinkService
-AUDIOSINK_LIB := lib$(AUDIOSINK_SONAME).so
-AUDIODECODER_LIB := lib$(AUDIODECODER_SONAME).so
+EMULATE_SERVICE_BIN := EmulateAudioSinkService
+AUDIOSINK_AIDL_LIB := lib$(AUDIOSINK_AIDL_LIB_NAME).so
+AUDIODECODER_AIDL_LIB := lib$(AUDIODECODER_AIDL_LIB_NAME).so
 
-MOCK_SERVICE_DIR ?= $(HAL_DIR)/audiosink_mock/src/service
+EMULATE_SERVICE_DIR ?= $(CURDIR)/src
 
-BUILD_DIR ?= $(HAL_DIR)/build
+BUILD_DIR ?= $(CURDIR)/../build
 
-AIDL_GEN_DIR ?= $(BUILD_DIR)/audiosink_gen
+AIDL_GEN_DIR ?= $(BUILD_DIR)/audiosink_gen/current
+
 
 COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/AVSource.cpp
 COMMAN_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/HALError.cpp
@@ -47,48 +47,52 @@ AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/PCMFormat.c
 AUDIODECODER_GEN_SRC += ${AIDL_GEN_DIR}/cpp/com/rdk/hal/audiodecoder/Property.cpp
 
 
-MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSink.cpp
-MOCK_SERVICE_BIN_SRC += $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
+EMULATE_SERVICE_BIN_SRC := $(EMULATE_SERVICE_DIR)/AudioSink.cpp
+EMULATE_SERVICE_BIN_SRC += $(EMULATE_SERVICE_DIR)/AudioSinkService.cpp
 
 
 # FIXME: to be compile out of source tree
 
-MOCK_SERVICE_INC_FLAGS := -I$(AIDL_GEN_DIR)/h
-MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/usr/include
-MOCK_SERVICE_INC_FLAGS += -I$(MOCK_SERVICE_DIR)
+EMULATE_SERVICE_INC_FLAGS := -I$(AIDL_GEN_DIR)/h
+EMULATE_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/usr/include
+EMULATE_SERVICE_INC_FLAGS += -I$(EMULATE_SERVICE_DIR)
 
-MOCK_SERVICE_LD_LIBS := -lbinder -lutils
+EMULATE_SERVICE_LD_LIBS := -lbinder -lutils
 
-MOCK_SERVICE_LDFLAGS := -L$(BUILD_DIR)/usr/lib
-MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
-
-
-
-MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
-
-mock_service: $(MOCK_SERVICE_BIN) $(AUDIOSINK_LIB) $(AUDIODECODER_LIB)
+EMULATE_SERVICE_LDFLAGS := -L$(BUILD_DIR)/usr/lib
+EMULATE_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
 
 
-$(AUDIODECODER_LIB): $(AUDIODECODER_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o)
-	g++ -shared $(MOCK_SERVICE_LDFLAGS) $^ -o $@ $(MOCK_SERVICE_LD_LIBS)
-	install $@ $(BUILD_DIR)/usr/lib
 
-$(AUDIOSINK_LIB): $(AUDIODECODER_LIB) 
-$(AUDIOSINK_LIB): $(AUDIOSINK_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o) 
-	g++ -shared $(MOCK_SERVICE_LDFLAGS) $(filter %.o, $^) -o $@ $(MOCK_SERVICE_LD_LIBS) \
-	       	-l$(AUDIODECODER_SONAME)
+EMULATE_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
+
+
+AUDIOSINK_AIDL_LIB := $(BUILD_DIR)/usr/lib/$(AUDIOSINK_AIDL_LIB)
+AUDIODECODER_AIDL_LIB := $(BUILD_DIR)/usr/lib/$(AUDIODECODER_AIDL_LIB)
+EMULATE_SERVICE_BIN := $(BUILD_DIR)/usr/lib/$(EMULATE_SERVICE_BIN)
+
+
+
+all: $(EMULATE_SERVICE_BIN) $(AUDIOSINK_AIDL_LIB) $(AUDIODECODER_AIDL_LIB)
+
+
+$(AUDIODECODER_AIDL_LIB): $(AUDIODECODER_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o)
+	g++ -shared $(EMULATE_SERVICE_LDFLAGS) $^ -o $@ $(EMULATE_SERVICE_LD_LIBS)
+
+$(AUDIOSINK_AIDL_LIB): $(AUDIODECODER_AIDL_LIB) 
+$(AUDIOSINK_AIDL_LIB): $(AUDIOSINK_GEN_SRC:%.cpp=%.o) $(COMMAN_GEN_SRC:%.cpp=%.o) 
+	g++ -shared $(EMULATE_SERVICE_LDFLAGS) $(filter %.o, $^) -o $@ $(EMULATE_SERVICE_LD_LIBS) \
+	       	-l$(AUDIODECODER_AIDL_LIB_NAME)
 	
-	install $(AUDIOSINK_LIB) $(BUILD_DIR)/usr/lib
 
 
-$(MOCK_SERVICE_BIN): $(AUDIODECODER_LIB) $(AUDIOSINK_LIB) 
-$(MOCK_SERVICE_BIN): $(MOCK_SERVICE_BIN_SRC:%.cpp=%.o)
-	g++ $(MOCK_SERVICE_LDFLAGS) \
-		$(MOCK_SERVICE_BIN_SRC:%.cpp=%.o) -o $@ \
-		$(MOCK_SERVICE_LD_LIBS) -l$(AUDIOSINK_SONAME) 
-	install $(MOCK_SERVICE_BIN) $(BUILD_DIR)/usr/lib
+$(EMULATE_SERVICE_BIN): $(AUDIODECODER_AIDL_LIB) $(AUDIOSINK_AIDL_LIB) 
+$(EMULATE_SERVICE_BIN): $(EMULATE_SERVICE_BIN_SRC:%.cpp=%.o)
+	g++ $(EMULATE_SERVICE_LDFLAGS) \
+		$(EMULATE_SERVICE_BIN_SRC:%.cpp=%.o) -o $@ \
+		$(EMULATE_SERVICE_LD_LIBS) -l$(AUDIOSINK_AIDL_LIB_NAME) 
 
 # do not clash with `ut-core` by chaning the object file name to .o.1
 %.o: %.cpp
-	g++ $(MOCK_SERVICE_CFLAGS) $(MOCK_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
+	g++ $(EMULATE_SERVICE_CFLAGS) $(EMULATE_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
 

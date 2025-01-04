@@ -16,14 +16,14 @@ servicemanager_pid=$!
 # Need to wait some time for the service to be ready
 sleep 2
 
-echo "Eexecute [AudioDecoderService]"
-${RUN_DIR}/AudioDecoderService &
-AudioDecoderService_pid=$!
+echo "Eexecute [EmulateAudioSinkService]"
+${RUN_DIR}/EmulateAudioSinkService &
+AudioSinkService_pid=$!
 # Need to wait some time for the service to be ready
 sleep 2
 
-echo "Eexecute [L1_audiodecoder]"
-${RUN_DIR}/L1_audiodecoder
+echo "Eexecute [hal_test]"
+${RUN_DIR}/hal_test -p profiles/hfp-audiosink.yaml
 
 # cleanup
-kill -9 $servicemanager_pid $AudioDecoderService_pid
+kill -9 $servicemanager_pid $AudioSinkService_pid

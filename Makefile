@@ -1,14 +1,14 @@
 TARGET ?= linux
 VARIANT := CPP
 
-TARGET_EXEC := L1_audiosink
+TARGET_EXEC := hal_test
 
 ROOT_DIR := $(CURDIR)
 SRC_DIRS := $(ROOT_DIR)/src
 BIN_DIR := $(ROOT_DIR)/build/bin
 LIB_DIR := $(ROOT_DIR)/build/$(TARGET)/lib
 BUILD_DIR := $(ROOT_DIR)/build/$(TARGET)/obj
-INC_DIRS := $(ROOT_DIR)/build/audiosink_gen/h
+INC_DIRS := $(ROOT_DIR)/build/audiosink_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/usr/include
 
 
@@ -21,6 +21,8 @@ XLDFLAGS += -laudiodecoderaidl
 
 # required for std::optional
 CXXFLAGS := -std=c++17
+
+UT_CORE_DIR := $(CURDIR)/ut/ut-core
 
 export BIN_DIR
 export LIB_DIR
@@ -36,8 +38,8 @@ export CXXFLAGS
 all: $(TARGET_EXEC)
 
 $(TARGET_EXEC):
-	make -C ut-core -j $(shell nproc) TARGET=$(TARGET) VARIANT=$(VARIANT) 
+	make -C $(UT_CORE_DIR) -j $(shell nproc) TARGET=$(TARGET) VARIANT=$(VARIANT) 
 
 clean:
-	make -C ut-core -j TARGET=$(TARGET) VARIANT=$(VARIANT) clean
+	make -C $(UT_CORE_DIR) -j TARGET=$(TARGET) VARIANT=$(VARIANT) clean
 
