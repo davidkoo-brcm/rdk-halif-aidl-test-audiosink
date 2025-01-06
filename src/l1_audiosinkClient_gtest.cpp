@@ -44,7 +44,6 @@
 #include <optional>
 #include <algorithm>
 #include <unordered_set>
-#include "yaml_utils.h"
 
 #include "com/rdk/hal/audiosink/IAudioSink.h"
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
@@ -2576,14 +2575,75 @@ TEST_F(L1AudioSinkOpenTest, test_l1_audiosink_negative_4_setVolumeRamp)
 }
 
 
+std::vector<std::string> splitPath(const std::string& path, char delimiter) {
+        std::vector<std::string> segments;
+        size_t start = 0;
+        size_t end = path.find(delimiter);
+
+        while (end != std::string::npos) {
+                segments.push_back(path.substr(start, end - start));
+                start = end + 1;
+                end = path.find(delimiter, start);
+        }
+
+        segments.push_back(path.substr(start));
+        return segments;
+}
+
+
+int createComponentMap( ut_kvp_instance_t * p_instance, std::map<std::string, int> &l_compMap){
+
+        char result_kvp[UT_KVP_MAX_ELEMENT_SIZE];
+        std::string key;
+        int total_componentes = ut_kvp_getListCount(p_instance ,"components");
+        if(total_componentes == 0){
+                std::cerr << "components node not found or not a list." << std::endl;
+                return -1;
+        }
+        for(int i = 0; i < total_componentes;i++){
+                key.clear();
+                key = "components/"+ std::to_string(i) + "/name";
+                if(0 == ut_kvp_getStringField(p_instance, key.c_str(), result_kvp, UT_KVP_MAX_ELEMENT_SIZE)){
+                        l_compMap.insert({std::string(result_kvp),i});
+                }
+        }
+        return 0;
+}
+
+int updatedPath(std::string &path, const std::map<std::string, int> &l_compMap){
+
+        std::vector<std::string> segments = splitPath(path, '.');
+        // Check if we have enough segments to perform the update
+        if (segments.size() < 2) {
+                std::cerr << "Error: Path has insufficient segments for update." << std::endl;
+                return -1;
+        }
+        // Check if the componentMap contains the second segment
+        auto it = l_compMap.find(segments[1]);
+        if (it == l_compMap.end()) {
+                std::cerr << "Error: Component " << segments[1] << " not found in component map." << std::endl;
+                return -1;
+        }
+
+        std::string rtn;
+        segments[1] = std::to_string(l_compMap.at(segments[1]));
+        rtn += segments[0];
+        for(int j = 1;j< segments.size();j++){
+                rtn += "/"+ segments[j];
+        }
+        path.clear();
+        path = rtn;
+        return 0;
+}
+
 int main(int argc, char **argv) 
 {
-    std::string yaml_file;
-    int opt;
     int result1;
     int result2;
     int number_of_audiosink;
     int number_of_audiodecoders;
+    std::map<std::string , int> componentMap;
+    char result_kvp[UT_KVP_MAX_ELEMENT_SIZE];  
 
     std::string audiosinkpath = "components.IAudioSinkManager.IAudioSink";
     std::string audiodecoderpath = "components.IAudioDecoderManager.IAudioDecoder";
@@ -2591,23 +2651,25 @@ int main(int argc, char **argv)
     std::string systemMixerSampleRateHzpath = "components.IAudioSinkManager.platformCapabilities.0.systemMixerSampleRateHz";
     std::string systemMixerPCMFormatpath = "components.IAudioSinkManager.platformCapabilities.0.systemMixerPCMFormat";
     std::string supportsPlanarFormatpath = "components.IAudioSinkManager.platformCapabilities.0.supportsPlanarFormat";            
-    while ((opt = getopt(argc, argv, "p:")) != -1) 
+    
+ UT_init(argc, argv);
+    ut_kvp_instance_t *config = ut_kvp_profile_getInstance();
+    if (config != nullptr) 
     {
-        switch (opt) 
-        {
-            case 'p':
-                yaml_file = optarg;
-                break;
-            default:
-                std::cerr << "Usage: " << argv[0] << " -p <yaml_file>" << std::endl;
-                return 1;
-        }
-    }
 
-    if (!yaml_file.empty()) 
-    {
-                std::cerr << "YAML parsed excuting test " << std::endl;
-     UT_init(argc, argv);
+       if(-1 == createComponentMap(config, componentMap)){
+                return -1;
+        }
+        if(-1 == updatedPath(audiosinkpath, componentMap)){
+                std::cerr << "Error: yaml not have videodecoder config\n";
+                return -1;
+        }
+            updatedPath(audiodecoderpath, componentMap);
+            updatedPath(supportsLowLatencypath, componentMap);
+            updatedPath(systemMixerSampleRateHzpath, componentMap);
+            updatedPath(systemMixerPCMFormatpath, componentMap);
+
+            updatedPath(supportsPlanarFormatpath, componentMap);
 
     if(getService() == -1)
     {
@@ -2616,11 +2678,8 @@ int main(int argc, char **argv)
 	    return -1;
     }
 
-        try 
-        {
-            YAML::Node config = YAML::LoadFile(yaml_file);
 
-            number_of_audiodecoders = get_list_Count_from_profile(config, audiodecoderpath);
+            number_of_audiodecoders = ut_kvp_getListCount(config, audiodecoderpath.c_str());
             if(number_of_audiodecoders <= 0)
             {
                 std::cout<< " No audiodecoders find in the profile" <<std::endl;
@@ -2631,11 +2690,11 @@ int main(int argc, char **argv)
             for(int i=0; i<number_of_audiodecoders; ++i)
             {
                 std::string audiodecoderidpath = audiodecoderpath+"."+std::to_string(i) + ".id";
-                int decoder_id = get_integer_value_from_profile(config,audiodecoderidpath);
+                int decoder_id = ut_kvp_getUInt32Field(config,audiodecoderidpath.c_str());
                 _audiodecoder_ids_from_profile.push_back(decoder_id);
             }
 
-            number_of_audiosink = get_list_Count_from_profile(config, audiosinkpath);
+            number_of_audiosink = ut_kvp_getListCount(config, audiosinkpath.c_str());
             if(number_of_audiosink <= 0)
             {
                 std::cout<< " No audiosink find in the profile" <<std::endl;
@@ -2646,14 +2705,14 @@ int main(int argc, char **argv)
             for(int i=0; i<number_of_audiosink; ++i)
             {
                 std::string audiosinkidpath = audiosinkpath+"."+std::to_string(i) + ".id";
-                int id = get_integer_value_from_profile(config,audiosinkidpath);
+                int id = ut_kvp_getUInt32Field(config,audiosinkidpath.c_str());
                 _audiosink_ids_from_profile.push_back(id);
             }
 
-            supportsLowLatency_from_profile = get_boolean_value_from_profile(config,supportsLowLatencypath);
-            systemMixerSampleRateHz_from_profile = get_integer_value_from_profile(config,systemMixerSampleRateHzpath);
-            supportsPlanarFormat_from_profile = get_boolean_value_from_profile(config,supportsPlanarFormatpath);
-            std::string systemMixerPCMFormat_string_value = get_string_value_from_profile(config,systemMixerPCMFormatpath);
+            supportsLowLatency_from_profile = ut_kvp_getBoolField(config,supportsLowLatencypath.c_str());
+            systemMixerSampleRateHz_from_profile = ut_kvp_getUInt32Field(config,systemMixerSampleRateHzpath.c_str());
+            supportsPlanarFormat_from_profile = ut_kvp_getBoolField(config,supportsPlanarFormatpath.c_str());
+            std::string systemMixerPCMFormat_string_value = (0 == ut_kvp_getStringField(config, systemMixerPCMFormatpath.c_str(), result_kvp, UT_KVP_MAX_ELEMENT_SIZE)) ? std::string(result_kvp) : "";
             systemMixerPCMFormat_from_profile = StringToPCMformat(systemMixerPCMFormat_string_value);
 
             for(const auto& id: _audiosink_ids_from_profile)
@@ -2661,36 +2720,13 @@ int main(int argc, char **argv)
                 g_audiosinkId.value = id;
                 Status status = service->getAudioSink(g_audiosinkId, &_audioSink);
                 ::testing::GTEST_FLAG(filter) = "L1AudioSinkTest.*:L1AudioSinkOpenTest.*:L1AudioSinkCloseTest.*:L1AudioSinkEventRegisterTest.*:L1AudioSinkStartTest.*:L1AudioSinkStopTest.*";
-               // result1 = RUN_ALL_TESTS();
 		std::cerr << "if segFault comes need to find a way to test some tes case" << "\n";
 		result1 = static_cast<int>(UT_run_tests());
             }
             ::testing::GTEST_FLAG(filter) = "L1AudioSinkManagerTest.*";
        		std::cerr << "if segFault comes need to find a way to test some tes case" << "\n";
 	result2 = static_cast<int>(UT_run_tests());
-        //    result2 = RUN_ALL_TESTS();
             return (result1 || result2);
-        }
-        catch (const YAML::BadFile& e) 
-        {
-            std::cerr << "Error: Could not open YAML file. " << e.what() << std::endl;
-            return -1;
-        } 
-        catch (const YAML::BadConversion& e) 
-        {
-            std::cerr << "Error: Bad type conversion in YAML. " << e.what() << std::endl;
-            return -1;
-        }
-        catch (const std::runtime_error& e) 
-        {
-            std::cerr << "Runtime Error: " << e.what() << std::endl;
-            return -1;
-        } 
-        catch (const std::exception& e) 
-        {
-            std::cerr << "Error: " << e.what() << std::endl;
-            return -1;
-        }
     }
     else
     {
