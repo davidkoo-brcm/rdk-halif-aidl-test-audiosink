@@ -28,16 +28,29 @@
 #include <com/rdk/hal/audiosink/IAudioSink.h>
 #include <com/rdk/hal/audiosink/BnAudioSink.h>
 #include <com/rdk/hal/audiosink/BnAudioSinkController.h>
+#include <com/rdk/hal/audiosink/BnAudioSinkEventListener.h>
 #include <binder/BinderService.h>
 #include <optional>
 #include <string>
 #include <utils/StrongPointer.h>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
+#include <future>
+#include <chrono>
+#include <thread>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <atomic>
+
 namespace com {
     namespace rdk {
         namespace hal {
             namespace audiosink {
-          
+
+#define NUM_AUDIO_SINK 2
+
               class AudioSinkManager :public android::BinderService<AudioSinkManager>,
                                       public BnAudioSinkManager {
               public:
@@ -54,8 +67,12 @@ namespace com {
 
               class AudioSink :public android::BinderService<AudioSink>,
                           public BnAudioSink {
+              private:
+                  IAudioSink::Id id;
+                  bool event_listener;
+
               public:
-                 AudioSink();
+                 AudioSink(IAudioSink::Id id);
                  virtual ~AudioSink();
                            
                  android::binder::Status getCapabilities( audiosink::Capabilities* _aidl_return ) override;
@@ -70,16 +87,24 @@ namespace com {
 
               class AudioSinkController :public android::BinderService<AudioSinkController>,
                           public BnAudioSinkController {
+              private:
+                  IAudioSink::Id id;
+                  std::atomic<bool> stopRequested{false};
+                  std::atomic<bool> isRamping{false};
+                  //TBD
+                  static constexpr int stepIntervalMs = 50;
+                  std::thread rampThread;
+
               public:
-                 AudioSinkController();
+                 AudioSinkController(IAudioSink::Id id);
                  virtual ~AudioSinkController();
 
                  android::binder::Status setAudioDecoder( const ::com::rdk::hal::audiodecoder::IAudioDecoder::Id& audioDecoderId, bool* _aidl_return ) override;
                  android::binder::Status getAudioDecoder( ::com::rdk::hal::audiodecoder::IAudioDecoder::Id* _aidl_return ) override;
-                 android::binder::Status start(  ) override;
-                 android::binder::Status stop(  ) override;
+                 android::binder::Status start() override;
+                 android::binder::Status stop() override;
                  android::binder::Status queueAudioFrame( int64_t nsPresentationTime, int64_t bufferHandle, const ::com::rdk::hal::audiodecoder::FrameMetadata& metadata, bool* _aidl_return ) override;
-                 android::binder::Status flush(  ) override;
+                 android::binder::Status flush() override;
                  android::binder::Status getVolume( com::rdk::hal::audiosink::Volume* _aidl_return ) override;
                  android::binder::Status setVolume( const com::rdk::hal::audiosink::Volume& volume, bool* _aidl_return ) override;
                  android::binder::Status setVolumeRamp( double targetVolume, int32_t overMs, com::rdk::hal::audiosink::VolumeRamp volumeRamp, bool* _aidl_return ) override;
