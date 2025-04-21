@@ -32,17 +32,17 @@
  */
 
 /**
- * @addtogroup AUDIO_DECODER Audio Decoder Module
+ * @addtogroup AUDIO_SINK Audio Sink Module
  * @{
  */
 
 /**
- * @addtogroup AUDIO_DECODER_HALTEST Audio Decoder HAL Tests
+ * @addtogroup AUDIO_SINK_HALTEST Audio Sink HAL Tests
  * @{
  */
 
 /**
- * @defgroup AUDIO_DECODER_HALTEST_HELPER Audio Decoder HAL Tests helper functions
+ * @defgroup AUDIO_SINK_HALTEST_HELPER Audio Sink HAL Tests helper functions
  * @{
  * @parblock
  *
@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiodecoder_helper_functions.cpp
+ * @file vts_audiosink_helper_functions.cpp
  *
  */
 
@@ -241,7 +241,7 @@ bool vts_audiosink_helper_validatePropertyValue(int sink_id, const std::optional
     }
 }
 
-/** @} */ // End of AUDIO_DECODER_HALTEST_HELPER
-/** @} */ // End of AUDIO_DECODER_HALTEST
-/** @} */ // End of AUDIO_DECODER
+/** @} */ // End of AUDIO_SINK_HALTEST_HELPER
+/** @} */ // End of AUDIO_SINK_HALTEST
+/** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK

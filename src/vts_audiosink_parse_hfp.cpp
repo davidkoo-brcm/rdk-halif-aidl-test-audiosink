@@ -122,7 +122,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     return UT_STATUS_OK;
 }
 
-/** @} */ // End of AUDIO_DECODER_HALTEST_PARSE_HFP
-/** @} */ // End of AUDIO_DECODER_HALTEST
-/** @} */ // End of AUDIO_DECODER
+/** @} */ // End of AUDIO_SINK_HALTEST_PARSE_HFP
+/** @} */ // End of AUDIO_SINK_HALTEST
+/** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK

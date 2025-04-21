@@ -32,17 +32,17 @@
  */
 
 /**
- * @addtogroup AUDIO_DECODER Audio Decoder Module
+ * @addtogroup AUDIO_SINK Audio Sink Module
  * @{
  */
 
 /**
- * @addtogroup AUDIO_DECODER_HALTEST Audio Decoder HAL Tests
+ * @addtogroup AUDIO_SINK_HALTEST Audio Sink HAL Tests
  * @{
  */
 
 /**
- * @defgroup AUDIO_DECODER_HALTEST_HELPER_HEADER Audio Decoder HAL Tests helper functions Header File
+ * @defgroup AUDIO_SINK_HALTEST_HELPER_HEADER Audio Sink HAL Tests helper functions Header File
  * @{
  * @parblock
  *
@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiodecoder_helper_functions.h
+ * @file vts_audiosink_helper_functions.h
  *
  */
 
@@ -97,9 +97,9 @@ bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
 com::rdk::hal::audiodecoder::PCMFormat vts_audiosink_helper_StringTocodec(const std::string& );
 
-#endif //__VTS_AUDIODECODER_HELPER_H__
+#endif //__VTS_AUDIOSINK_HELPER_H__
 
-/** @} */ // End of AUDIO_DECODER_HALTEST_HELPER_HEADER
-/** @} */ // End of AUDIO_DECODER_HALTEST
-/** @} */ // End of AUDIO_DECODER
+/** @} */ // End of AUDIO_SINK_HALTEST_HELPER_HEADER
+/** @} */ // End of AUDIO_SINK_HALTEST
+/** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK
