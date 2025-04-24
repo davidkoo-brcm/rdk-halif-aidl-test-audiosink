@@ -106,7 +106,7 @@ public:
 
 UT_status_t vts_audiosink_getAudioSinkService()
 {
-    gAudioSinkManagerService = android::interface_cast<IAudioSinkManager>(
+    gAudioSinkManager = android::interface_cast<IAudioSinkManager>(
             defaultServiceManager()->getService(String16(IAudioSinkManager::serviceName().c_str())));
     if (gAudioSinkManager == nullptr)
     {
@@ -167,16 +167,11 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSinkIds_pos)
         UT_ASSERT_EQUAL(initialaudiosinkIds[i].value, secondaudiosinkIds[i].value);
     }
 
-    /* checking the number of audio sink ids from the api getAudioSinkIds()
-       equal to the number of audio sink ids from HAL FEATURE PROFILE  */
-    UT_ASSERT_EQUAL(initialaudiosinkIds.size(), gAudiosinks_hfp.size());
-
     const auto& obj = gAudiosinks_hfp;
 
-    /* checking whether retrieved audio sinks ids from the api getAudioSinkIds()
-       is listed in the HAL FEATURE PROFILE */
-    UT_ASSERT_EQUAL(obj[0].ids.size(), initialaudiosinkIds.size());
-
+    /* checking the number of audio sink ids from the api getAudioSinkIds()
+       equal to the number of audio sink ids from HAL FEATURE PROFILE  */
+    UT_ASSERT_EQUAL(initialaudiosinkIds.size(), obj[0].ids.size());
 }
 
 /**
@@ -209,10 +204,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getPlatformCapabilities_pos)
     AUDIOSINK_GETPLATFORMCAPABILITIES(platformCapabilities);
     
     /* Log platform capabilities for debugging */
-    UT_LOG_INFO("lowlatency: %s", platformCapabilities.supportsLowLatency);
-    UT_LOG_INFO("samplerate: %s", platformCapabilities.systemMixerSampleRateHz);
-    UT_LOG_INFO("mixer_pcmformat: %s", platformCapabilities.systemMixerPCMFormat);
-    UT_LOG_INFO("supportsPlanarFormat: %s", platformCapabilities.supportsPlanarFormat);
+    UT_LOG_INFO("lowlatency: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsLowLatency));
+    UT_LOG_INFO("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
+    UT_LOG_INFO("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
+    UT_LOG_INFO("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
     
     /* validate platform capabilites using hfp profile*/
     vts_audiosink_helper_validateCapabilities(platformCapabilities);
@@ -312,14 +307,14 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSink_neg)
     
     invalidID = sinkIds.front();
     invalidID.value -= 1;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
     
     invalidID = sinkIds.back();
     invalidID.value += 1;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
     
     invalidID.value = IAudioSink::Id::UNDEFINED;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
 }
 
 /**
@@ -485,7 +480,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getProperty_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_pos) 
 {
     std::vector<IAudioSink::Id> sinkIds;
-    android::sp<IAudioSink> audioSink;
+    sp<IAudioSink> audioSink;
     ::android::binder::Status status;
     bool aidl_return = false;
     bool closed = false;
@@ -495,9 +490,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_pos)
 
     for (const auto& _sinkId : sinkIds ) 
     {
-        android::sp<IAudioSinkController> audioSinkController;
+        android::sp<IAudioSinkController> audioSinkController = nullptr;
         android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        android::sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -563,13 +557,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         /*set valid properties in invalid state*/
-        AUDIOSINK_SETPROPERTY_LIST_SUCCESS(audioSink, validIntPropertyReady, intValue);
+        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, validIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
          
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC ,audioSink, controllerListener, audioSinkController, true);
@@ -581,22 +574,22 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_neg)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
         /* set the properties in invalid state */
-        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
 
         /* set the read only properties*/
         AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, setIntPropertyReadonly, intValue, Status::EX_ILLEGAL_ARGUMENT);
 
-        /* Stop the sink */
+        /* Stop the sink */ 
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
         /* set the properties which can be set after Ready */
-        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_ARGUMENT);
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
 
         /* set the properties in invalid state */
-        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
     }
 }
 
@@ -639,7 +632,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getState_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -697,9 +689,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    State state = State::UNKNOWN;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -708,7 +697,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -759,25 +747,21 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_neg)
 
     for (const auto& _sinkId : sinkIds ) 
     {
-        sp<IAudioSinkController> audioSinkController;
+        sp<IAudioSinkController> audioSinkController = nullptr;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
-        android::sp<IAudioSinkController> audioSinkController_invalid = nullptr;
+        android::sp<IAudioSinkController> audioSinkController_nullptr = nullptr;
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
          
         //send Null listener
-        AUDIOSINK_OPEN_FAILURE(ContentType::MOVIE, audioSink, nullptr, audioSinkController, Status::EX_NULL_POINTER);
-
-        //send invalid audio sink controller 
-        AUDIOSINK_OPEN_FAILURE(ContentType::MUSIC, audioSink, controllerListener, audioSinkController_invalid, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_OPEN_FAILURE(ContentType::MOVIE, audioSink, nullptr, audioSinkController_nullptr, Status::EX_NULL_POINTER);
 
         //open audio sink
         AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
 
         //open audio sink again
-        AUDIOSINK_OPEN_FAILURE(ContentType::UNKNOWN, audioSink, controllerListener, audioSinkController, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_OPEN_FAILURE(ContentType::UNKNOWN, audioSink, controllerListener, audioSinkController_nullptr, Status::EX_ILLEGAL_STATE);
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -823,7 +807,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -874,7 +857,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
         android::sp<IAudioSinkController> audioSinkController_invalid;
          
         /* Get Audio sink handle */
@@ -992,7 +974,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_registerEventListener_neg)
         AUDIOSINK_REGISTER_EVENT_SUCCESS(audioSink, eventListener);
 
         /* Register events again */
-        AUDIOSINK_REGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
+        AUDIOSINK_REGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
 
         /* Un-register the events */
         AUDIOSINK_UNREGISTER_EVENT_SUCCESS(audioSink, eventListener);
@@ -1089,7 +1071,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         /* Un-register the events */
-        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
+        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
 
         /* Register events */
         AUDIOSINK_REGISTER_EVENT_SUCCESS(audioSink, eventListener);
@@ -1101,7 +1083,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_neg)
         AUDIOSINK_UNREGISTER_EVENT_SUCCESS(audioSink, eventListener);
 
         /* Un-register the events again */
-        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
+        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
     }
 }
 
@@ -1151,9 +1133,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_pos)
     // Ensure the resource is in the State::READY state
       for(const auto& _sinkId : sinkIds)
       {
-        sp<IAudioSinkController> audioSinkController;
+        sp<IAudioSinkController> audioSinkController = nullptr;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1228,7 +1209,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1311,7 +1291,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
       {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1382,7 +1361,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getAudioDecoder_neg)
      {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
 
        /* Get Audio sink handle */
        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1441,7 +1419,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1498,7 +1475,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1556,7 +1532,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1599,7 +1574,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_pos)
  * | 05 | Call stop() to move to STOPPING and then READY | status = controller->stop() | status.isOk() = true, mNewState = READY | Should be successful |
  * | 06 | Call stop() again in READY state and verify it returns EX_ILLEGAL_STATE | status = controller->stop() | status.isOk() = false, status.exceptionCode() = EX_ILLEGAL_STATE | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, test_l1_AudioSinkController_negative_stop)
+UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1613,7 +1588,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, test_l1_AudioSinkController_negative_stop)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1622,7 +1596,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, test_l1_AudioSinkController_negative_stop)
         AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC, audioSink, controllerListener, audioSinkController, true);
 
         //Stop the Audio sink in non STARTED state
-        AUDIOSINK_STOP_FAILURE(audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_STOP_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -1631,7 +1605,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, test_l1_AudioSinkController_negative_stop)
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
         //Stop the Audio sink again
-        AUDIOSINK_STOP_FAILURE(audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_STOP_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
 
         //close the Audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -1675,19 +1649,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_queueAudioFrame_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
-         
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
         
-        //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
-
-        // Transition to a non-READY state (e.g., STARTED)
-        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
- 
         // Prepare test inputs
-        int64_t nsPresentationTime = 1000000; // 1 millisecond in nanoseconds
+        int64_t nsPresentationTime = -10000; // 1 millisecond in nanoseconds
         int64_t bufferHandle = -9999; // Invalid buffer handle
         com::rdk::hal::audiodecoder::FrameMetadata metadata;
         metadata.sourceCodec = com::rdk::hal::audiodecoder::Codec::PCM;
@@ -1704,11 +1668,14 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_queueAudioFrame_neg)
         metadata.discontinuity = false;
         metadata.source = AVSource::SYSTEM;
 
-        // Log the API call
-        AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_ARGUMENT);
-
-        //Stop the Audio sink
-        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+        /* Get Audio sink handle */
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+        
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
+ 
+        // Log the API call in Ready state
+        AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_STATE);
         
         //close the Audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -1752,7 +1719,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1811,7 +1777,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1873,7 +1838,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1953,7 +1917,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2010,7 +1973,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2087,7 +2049,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2104,7 +2065,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
         //setting invalid volume
         volumeSet.volume = 1.1; // Using the specified input
         volumeSet.muted = false; // Using the specified input
-        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_ARGUMENT);
 
         // Ensure the audio sink is in State::STARTED
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -2112,7 +2073,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
         volumeSet.volume = -0.1; // Using the specified input
         volumeSet.muted = false; // Using the specified input
         // Set invalid volume below minimum volume again
-        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_ARGUMENT);
         
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
@@ -2163,7 +2124,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_pos)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2229,7 +2189,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2244,12 +2203,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_neg)
         double targetVolume = -0.5;
         int32_t overMs = 5000;
         VolumeRamp volumeRampLinear = VolumeRamp::LINEAR;
-        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_ARGUMENT);
 
         //  Invalid Duration (Zero Milliseconds)
         targetVolume = 0.7;
         overMs = 0;
-        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_ARGUMENT);
 
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);

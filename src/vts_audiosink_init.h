@@ -32,17 +32,17 @@
  */
 
 /**
- * @addtogroup AUDIO_SINK Audio Sink Module
+ * @addtogroup AUDIO_SINK Audio Decoder Module
  * @{
  */
 
 /**
- * @addtogroup AUDIO_SINK_HALTEST Audio Sink HAL Tests
+ * @addtogroup AUDIO_SINK_HALTEST Audio Decoder HAL Tests
  * @{
  */
 
 /**
- * @defgroup AUDIO_SINK_HALTEST_INIT_HEADER Audio Sink HAL Tests helper functions Header File
+ * @defgroup AUDIO_SINK_HALTEST_INIT_HEADER Audio Decoder HAL Tests helper functions Header File
  * @{
  * @parblock
  *
@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiosink_init.h
+ * @file vts_audiodecoder_init.h
  *
  */
 

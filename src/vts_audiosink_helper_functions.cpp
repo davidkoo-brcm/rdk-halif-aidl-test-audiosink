@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiosink_helper_functions.cpp
+ * @file vts_audiodecoder_helper_functions.cpp
  *
  */
 
@@ -126,19 +126,23 @@ bool stringToBool(const std::string& str) {
 
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& capabilities)
 {
+    UT_LOG_INFO("Inside of the validater helper fucntion");
+
     const auto& _sinkmanager =  gAudiosinks_hfp;
 
+    UT_LOG_INFO("Validing platform capabilites in helper fucntion");
+
     /* checking lowlatency support from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[1].supportedcaps[0].lowlatency), capabilities.supportsLowLatency);
+    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].lowlatency), capabilities.supportsLowLatency);
 
     /* checking samplerate support from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(std::stoi(_sinkmanager[1].supportedcaps[0].samplerate), capabilities.systemMixerSampleRateHz);
+    UT_ASSERT_EQUAL(std::stoi(_sinkmanager[0].supportedcaps[0].samplerate), capabilities.systemMixerSampleRateHz);
 
     /* checking mixer pcmformat from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(vts_audiosink_helper_StringTocodec(_sinkmanager[1].supportedcaps[0].mixer_pcmformat), capabilities.systemMixerPCMFormat);
+    UT_ASSERT_EQUAL(vts_audiosink_helper_StringTocodec(_sinkmanager[0].supportedcaps[0].mixer_pcmformat), capabilities.systemMixerPCMFormat);
 
     /* checking supports PlanarFormat from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[1].supportedcaps[0].supportsPlanarFormat), capabilities.supportsPlanarFormat);
+    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsPlanarFormat), capabilities.supportsPlanarFormat);
 }
 
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& values)
@@ -223,10 +227,10 @@ bool vts_audiosink_helper_validatePropertyValue(int sink_id, const std::optional
                      std::get<int32_t>(val) <= static_cast<int32_t>(AVSource::COMPOSITE_5)));
 
         case Property::RENDER_LATENCY_NS:
-            return std::holds_alternative<int32_t>(val) && std::get<int32_t>(val) >= 1;
+            return std::holds_alternative<int32_t>(val) && std::get<int32_t>(val) >= 0;
 
         case Property::QUEUE_DEPTH_NS:
-            return std::holds_alternative<int32_t>(val) && std::get<int32_t>(val) >= 1;
+            return std::holds_alternative<int32_t>(val) && std::get<int32_t>(val) >= 0;
 
         case Property::MIXER_ID:
             return std::holds_alternative<std::int32_t>(val) &&

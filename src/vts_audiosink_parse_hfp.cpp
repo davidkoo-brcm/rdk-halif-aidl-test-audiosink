@@ -89,18 +89,16 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     for(int32_t i = 0; i < number_of_audiosinks; ++i)
     {
-        std::string audiosinkidpath = audiosinkpath + "." + std::to_string(i) + ".id";
+        std::string audiosinkidpath = audiosinkpath + std::to_string(i) + ".id";
         int32_t sink_id = UT_KVP_PROFILE_GET_UINT32(audiosinkidpath.c_str());
         temporary.ids.push_back(sink_id);
     }
-
-    platformcapabilitespath = audiosinkpath + ".platformCapabilities";
     
     // Read platform capabilites attributes
-    std::string lowlatency_path = platformcapabilitespath + ".supportsLowLatency";
-    std::string samplerate_path = platformcapabilitespath + ".systemMixerSampleRateHz";
-    std::string mixer_pcmformat_path = platformcapabilitespath + ".systemMixerPCMFormat";
-    std::string supportsPlanarFormat_path = platformcapabilitespath + ".supportsPlanarFormat";
+    std::string lowlatency_path = platformcapabilitespath + ".0.supportsLowLatency";
+    std::string samplerate_path = platformcapabilitespath + ".1.systemMixerSampleRateHz";
+    std::string mixer_pcmformat_path = platformcapabilitespath + ".2.systemMixerPCMFormat";
+    std::string supportsPlanarFormat_path = platformcapabilitespath + ".3.supportsPlanarFormat";
     
     UT_KVP_PROFILE_GET_STRING(lowlatency_path.c_str(), lowlatency_buffer);
     UT_KVP_PROFILE_GET_STRING(samplerate_path.c_str(), samplerate_buffer);

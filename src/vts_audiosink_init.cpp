@@ -37,7 +37,7 @@
  */
 
 /**
- * @addtogroup AUDIO_SINK_HALTEST Audio Sink HAL Tests
+ * @addtogroup AUDIO_SINK_HALTEST Audio SINK HAL Tests
  * @{
  */
 

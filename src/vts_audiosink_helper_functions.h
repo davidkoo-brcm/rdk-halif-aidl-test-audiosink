@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiosink_helper_functions.h
+ * @file vts_audiodecoder_helper_functions.h
  *
  */
 

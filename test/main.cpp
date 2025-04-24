@@ -32,17 +32,17 @@
  */
 
 /**
- * @addtogroup AUDIO_DECODER Audio Decoder Module
+ * @addtogroup AUDIO_SINK Audio Decoder Module
  * @{
  */
 
 /**
- * @defgroup AUDIO_DECODER_HALTEST Audio Decoder HAL Tests
+ * @defgroup AUDIO_SINK_HALTEST Audio Decoder HAL Tests
  * @{
  */
 
 /**
- * @defgroup AUDIO_DECODER_HALTEST_MAIN Audio Decoder HAL Tests Main File
+ * @defgroup AUDIO_SINK_HALTEST_MAIN Audio Decoder HAL Tests Main File
  *  @{
  * @parblock
  *
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     return result;
 }
 
-/** @} */ // End of AUDIO_DECODER_HALTEST_MAIN
-/** @} */ // End of AUDIO_DECODER_HALTEST
-/** @} */ // End of AUDIO_DECODER Module
+/** @} */ // End of AUDIO_SINK_HALTEST_MAIN
+/** @} */ // End of AUDIO_SINK_HALTEST
+/** @} */ // End of AUDIO_SINK Module
 /** @} */ // End of HPK

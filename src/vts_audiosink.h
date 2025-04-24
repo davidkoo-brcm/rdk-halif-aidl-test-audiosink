@@ -32,17 +32,17 @@
  */
 
 /**
- * @addtogroup AUDIO_SINK Audio Decoder Module
+ * @addtogroup AUDIO_SINK Audio Sink Module
  * @{
  */
 
 /**
- * @addtogroup AUDIO_SINK_HALTEST Audio Decoder HAL Tests
+ * @addtogroup AUDIO_SINK_HALTEST Audio Sink HAL Tests
  * @{
  */
 
 /**
- * @defgroup AUDIO_SINK_HALTEST_HEADER Audio Decoder HAL Tests helper functions Header File
+ * @defgroup AUDIO_SINK_HALTEST_HEADER Audio Sink HAL Tests helper functions Header File
  * @{
  * @parblock
  *
@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiosink.h
+ * @file vts_audiodecoder.h
  *
  */
 
@@ -80,8 +80,6 @@ using android::binder::Status;
 
 using namespace com::rdk::hal;
 using namespace com::rdk::hal::audiosink;
-
-static android::sp<::com::rdk::hal::audiosink::IAudioSinkManager> gAudioSinkManagerService = nullptr;
 
 /* Status::Exception */
 const static ut_control_keyStringMapping_t statusException_mapTable[] =
@@ -126,7 +124,7 @@ std::multimap<Property, int32_t> validIntPropertyReady =
 std::multimap<Property, int32_t> invalidIntPropertyReady =
 {
     {Property::REFERENCE_LEVEL, -100},
-    {Property::MIXER_ID, -1},
+    {Property::MIXER_ID, -2},
     {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))-1},
     {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::COMPOSITE_5 ))+1},
     {Property::DOLBY_ATMOS_LOCK, -1},
@@ -146,7 +144,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling getAudioSinkIds(OUT:sinkIds:[])"); \
-        status = gAudioSinkManagerService->getAudioSinkIds(&audioSinkIds); \
+        status = (gAudioSinkManager)->getAudioSinkIds(&audioSinkIds); \
         UT_LOG_INFO("Result getAudioSinksIds(status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -158,7 +156,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("getPlatformCapabilities(OUT:platformCapabilities[])"); \
-        status = gAudioSinkManagerService->getPlatformCapabilities(&platformCapabilities); \
+        status = (gAudioSinkManager)->getPlatformCapabilities(&platformCapabilities); \
         UT_LOG_INFO("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -170,7 +168,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling getAudioSink(IN:audioSinkId:[%d], OUT:audioSink[])", _sinkId.value); \
-        status = gAudioSinkManagerService->getAudioSink(_sinkId, &audioSink); \
+        status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
         UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
                                 _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -179,24 +177,25 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
-#define AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(_sinkId, audioSink) \
+#define AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(_sinkId, audioSink, exception) \
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
         UT_LOG_INFO("Calling getAudioSink(IN:_sinkId:[%d], OUT:audioSink[])", _sinkId.value); \
-        status = gAudioSinkManagerService->getAudioSink(_sinkId, &audioSink); \
+        status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
         UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
                                 _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
-        UT_ASSERT_TRUE(audioSink.get() != nullptr); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+        UT_ASSERT_TRUE(audioSink.get() == nullptr); \
     } while (0)
 
 #define AUDIODSINK_GETCAPABILITIES(audioSink, capabilities) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling getCapabilities(OUT:capabilities)"); \
-        status = audioSink->getCapabilities(&capabilities); \
+        status = (audioSink)->getCapabilities(&capabilities); \
         UT_LOG_INFO("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -267,18 +266,16 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } while (sleep_time < MAX_FINAL_STATE_WAIT_MS && lastState != desiredState); \
     } while (0)
 
-#define AUDIOSINK_OPEN_SUCCESS(contentType, audioSink, controllerListener, audioSinkController, stateCheck) \
+#define AUDIOSINK_OPEN_SUCCESS(content_type, audioSink, controllerListener, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", \
-                     controllerListener); \
-        status = (audioSink)->open(contentType, controllerListener, &audioSinkController); \
-        UT_LOG_INFO("Result open(IN:contentType:[%s], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            contentType,controllerListener, audioSinkController.get(), \
+        UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
+        status = (audioSink)->open((content_type), (controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open(IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+            static_cast<int32_t>(content_type),(controllerListener).get(), (audioSinkController).get(), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_NOT_EQUAL(audioSinkController.get(), nullptr); \
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
         \
         if (stateCheck) \
@@ -289,14 +286,14 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } \
     } while (0)
 
-#define AUDIOSINK_OPEN_FAILURE(contentType, audioSink, controllerListener, audioSinkController, exception) \
+#define AUDIOSINK_OPEN_FAILURE(content_type, audioSink, controllerListener, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
+        UT_LOG_INFO("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
-        status = audioSink->open(contentType, controllerListener, &audioSinkController); \
-        UT_LOG_INFO("Result open(IN:contentType:[%s], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            contentType,controllerListener, audioSinkController.get(), \
+        status = (audioSink)->open(content_type, (controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open failure (IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+            static_cast<int32_t>(content_type), controllerListener, audioSinkController.get(), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -358,7 +355,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
 #define AUDIOSINK_REGISTER_EVENT_FAILURE(audioSink, eventListener, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
+        bool _aidl_return = false; \
         UT_LOG_INFO("Calling registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->registerEventListener(eventListener, &_aidl_return); \
         UT_LOG_INFO("Result registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
@@ -368,7 +365,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         if (exception == Status::EX_NONE) \
             UT_ASSERT_TRUE(status.isOk()); \
         else \
-        UT_ASSERT_FALSE(status.isOk()); \
+            UT_ASSERT_FALSE(status.isOk()); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(_aidl_return); \
     } while (0)
@@ -391,14 +388,14 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
 #define AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
+        bool _aidl_return = false; \
         UT_LOG_INFO("Calling unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->unregisterEventListener(eventListener, &_aidl_return); \
         UT_LOG_INFO("Result unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             eventListener.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_FALSE(status.isOk()); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(_aidl_return); \
     } while (0)
@@ -535,9 +532,9 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         UT_LOG_INFO("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[%lld], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(aidl_return); \
+        UT_ASSERT_FALSE(aidl_return); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_FALSE(status.isOk()); \
         } while(0)
 
 #define AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, stateCheck) \
@@ -590,7 +587,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
 #define AUDIOSINK_SETPROPERTY_FAILURE(audioSink, property, propertyValue, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
+        bool _aidl_return = false; \
         UT_LOG_INFO("Calling setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[])", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value); \
         status = (audioSink)->setProperty(property, propertyValue, &_aidl_return); \
         UT_LOG_INFO("Result setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value, \
@@ -607,14 +604,14 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         ::android::binder::Status status; \
         bool _aidl_return; \
         UT_LOG_INFO("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
-        status = (audioSinkController)->setVolume(volumeSet, &_aidl_return); \
+        status = (audioSinkController)->setVolume(volumeSet, &(_aidl_return)); \
         UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
             UT_Control_GetMapString(bool_mapTable, volumeSet.muted), \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_FALSE(_aidl_return); \
-        UT_ASSERT_FALSE(status.isOk()); \
+        UT_ASSERT_TRUE(_aidl_return); \
+        UT_ASSERT_TRUE(status.isOk()); \
     } while (0)
 
 #define AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, exception) \
@@ -622,7 +619,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         ::android::binder::Status status; \
         bool _aidl_return; \
         UT_LOG_INFO("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
-        status = (audioSinkController)->setVolume(volumeSet, &_aidl_return); \
+        status = (audioSinkController)->setVolume(volumeSet, &(_aidl_return)); \
         UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
             UT_Control_GetMapString(bool_mapTable, volumeSet.muted), \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
@@ -643,22 +640,19 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
             volumeGet.volume,UT_Control_GetMapString(bool_mapTable, volumeGet.muted), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(_aidl_return); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
         UT_ASSERT_TRUE(status.isOk()); \
     } while (0)
 
 #define AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
         UT_LOG_INFO("Calling getVolume(OUT:volumeGet[])"); \
         status = (audioSinkController)->getVolume(&volumeGet); \
-        UT_LOG_INFO("Result getVolume(OUT:volumeGet[volume:%f, muted:%s]), status:[isOK:%s, exception:%s]", volumeGet.volume, \
-            UT_Control_GetMapString(bool_mapTable, volumeGet.muted), \
+        UT_LOG_INFO("Result getVolume(OUT:status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode()));\
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_FALSE(_aidl_return);  \
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
@@ -725,7 +719,7 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
             {
                 std::lock_guard<std::mutex> lock(mMutex);
                 mStateChanges.emplace_back(oldState, newState);
-                mCurrentState = newState;
+                mCurrentState = newState;   
             }
             mCV.notify_all(); // Unblock any waiting test code
             return Status::ok();
