@@ -603,9 +603,10 @@ namespace com {
 
                     //Stop any existing ramp before starting a new one
                     stopRequested.store(true);
-                    if (rampThread.joinable()) {
+                     if (rampThread.joinable()) {
                         rampThread.join();  // Wait for the previous ramp to exit completely
                     }
+
                     stopRequested.store(false);  // Reset for the new ramp
 
                     // Start a new volume ramp

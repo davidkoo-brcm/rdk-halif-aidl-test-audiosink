@@ -58,7 +58,7 @@
  */
 
 /**
- * @file vts_audiodecoder.h
+ * @file vts_audiosink.h
  *
  */
 
@@ -481,43 +481,39 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         ::android::binder::Status status; \
         ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audioDecoderId; \
         audioDecoderId.value = decoderId; \
-        bool aidl_return; \
+        bool aidl_return = false; \
         UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
         status = (audioSinkController)->setAudioDecoder(audioDecoderId, &aidl_return); \
         UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, aidl_return ? "true" : "false", \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(aidl_return); \
+        UT_ASSERT_FALSE(aidl_return); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
     
 #define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioDecoderId, audioSinkController) \
     do { \
         ::android::binder::Status status; \
-        bool aidl_return; \
         UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[], OUT:_aidl_return[])"); \
         status = (audioSinkController)->getAudioDecoder(&audioDecoderId); \
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
-                    audioDecoderId.value, aidl_return ? "true" : "false", \
+        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], status:[isOK:%s, exception:%s]", \
+                    audioDecoderId.value, \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(aidl_return); \
         UT_ASSERT_TRUE(status.isOk()); \
     } while (0)
 
 #define AUDIOSINK_GETAUDIODECODER_FAILURE(audioDecoderId, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        bool aidl_return; \
-        UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[], OUT:_aidl_return)"); \
-        status = (audioSinkController)->getAudioDecoder(&audioDecoderId);\
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
-                    audioDecoderId.value, aidl_return ? "true" : "false", \
+        UT_LOG_INFO("Calling setAudioDecoder(OUT:audioDecoderId:[]"); \
+        status = (audioSinkController)->getAudioDecoder(&audiodecoderId);\
+        UT_LOG_INFO("Result setAudioDecoder(OUT:audioDecoderId:[%d]), status:[isOK:%s, exception:%s]", \
+                    audioDecoderId.value, \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_FALSE(aidl_return); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)

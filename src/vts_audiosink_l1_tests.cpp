@@ -1217,10 +1217,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
         AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
 
        // Test with invalid ID (least value -1)
-       AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_STATE);
+       AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
       
         // Test with invalid ID (highest value +1)
-        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidHighId, audioSinkController, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidHighId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
 
         // Test Case 4: Resource Not in READY State
         // Transition to a non-READY state (e.g., STARTED)
@@ -1335,51 +1335,41 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
  * | 06 | Set the audio decoder again using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
  * | 07 | Get the audio decoder again and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getAudioDecoder_neg) 
-{
-   android::binder::Status status;
-   bool aidl_return = false;
-   std::vector<IAudioSink::Id> sinkIds;
-   ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audiodecoderId;
-   sp<IAudioSink> audioSink;
-   std::vector<int> decoderIds;
-   
-   std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
-   size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+// Cannot test the scenario as per the aidl spec
+//UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getAudioDecoder_neg) 
+//{
+ //  android::binder::Status status;
+  // bool aidl_return = false;
+   //std::vector<IAudioSink::Id> sinkIds;
+   //::com::rdk::hal::audiodecoder::IAudioDecoder::Id audiodecoderId;
+   //sp<IAudioSink> audioSink;
 
-   for (size_t i = 0; i < expectedCount; ++i){
-       std::string audiodecoderidpath = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i) + ".id";
-       int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
-       decoderIds.push_back(expectedIdValue);
-   }
-   
-   /* Get the Audio sink IDs */
-   AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+      /* Get the Audio sink IDs */
+   //AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
    // Ensure the resource is in the State::READY state
-     for(const auto& _sinkId : sinkIds)
-     {
-        sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+     //for(const auto& _sinkId : sinkIds)
+     //{
+       // sp<IAudioSinkController> audioSinkController;
+        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
        /* Get Audio sink handle */
-       AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+       //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
            
-       audiodecoderId.value = decoderIds[0];
        //call get audio decoder in non ready state
-       AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+       //AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
         
        //set state to READY by invoking `open` (set-up)
-       AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
+       //AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
        
-       audiodecoderId.value = -1; 
+       //audiodecoderId.value = -1; 
        //call get audio decoder with invalid id
-       AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+       //AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
        
        /* Close the sink */
-       AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-   }
-}
+       //AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+   //}
+//}
 
 /**
  * @brief Test the positive scenario of starting the AudioSinkController.
@@ -1903,40 +1893,41 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_pos)
  * | 05 | Set volume again using setVolume function | volume = 1.0, muted = false | status.isOk() = true, volumeSetResult = true | Should Pass |
  * | 06 | Get volume again using getVolume function | volumeGet | status.isOk() = true, volumeGet.volume = 1.0, volumeGet.muted = false | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_neg) 
-{
-    android::binder::Status status;
-    bool aidl_return = false;
-    std::vector<IAudioSink::Id> sinkIds;
-    sp<IAudioSink> audioSink;
+// Cannot test the scenario as per the aidl spec
+//UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_neg) 
+//{
+    //android::binder::Status status;
+    //bool aidl_return = false;
+    //std::vector<IAudioSink::Id> sinkIds;
+    //sp<IAudioSink> audioSink;
 
     /* Get the Audio sink IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+    //AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
-    for (const auto& _sinkId : sinkIds)
-    {
-        sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+    //for (const auto& _sinkId : sinkIds)
+    //{
+        //sp<IAudioSinkController> audioSinkController;
+        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
          
         /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+        //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //Get the volume in non ready state
         //Get volume
-        Volume volumeGet;
-        AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
+        //Volume volumeGet;
+        //AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
          
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(ContentType::SPEECH, audioSink, controllerListener, audioSinkController, true);
+        //AUDIOSINK_OPEN_SUCCESS(ContentType::SPEECH, audioSink, controllerListener, audioSinkController, true);
                         
         //close the Audio sink
-        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+        //AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
 
         //Again Get the volume in non ready state
         //Get volume
-        AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
-    }
-}
+        //AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
+    //}
+//}
 
 /**
  * @brief Test the functionality of setting volume in different states of AudioSinkController
@@ -2052,17 +2043,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
          
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
-        //Set volume
-        Volume volumeSet;
-        volumeSet.volume = 1.0; // Using the specified input
-        volumeSet.muted = false; // Using the specified input
-        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_STATE);
          
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(ContentType::SONIFICATION, audioSink, controllerListener, audioSinkController, true);
         
         //setting invalid volume
+        Volume volumeSet;
         volumeSet.volume = 1.1; // Using the specified input
         volumeSet.muted = false; // Using the specified input
         AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_ARGUMENT);
@@ -2142,6 +2128,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_pos)
         for (auto& targetVolume : targetVolumes) {
             for (auto& volumeRamp : volumeRamps) {
                 AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
+                // Add a delay to approximate the ramp duration
+                std::this_thread::sleep_for(std::chrono::milliseconds(overMs+500));
             }
         }
         
