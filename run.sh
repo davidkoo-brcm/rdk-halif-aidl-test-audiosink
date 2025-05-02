@@ -97,4 +97,4 @@ else
 fi
 
 echo "Eexecute [vts_audiosink_hal_test]"
-${RUN_DIR}/vts_audiosink_hal_test -p profiles/hfp-audiosink.yaml$@
+${RUN_DIR}/vts_audiosink_hal_test $@
