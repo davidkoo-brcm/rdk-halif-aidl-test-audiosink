@@ -107,7 +107,7 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     {NULL, -1}
 };
 
-std::multimap<Property, int32_t> validIntPropertyReady =
+const static std::multimap<Property, int32_t> validIntPropertyReady =
 {
     {Property::REFERENCE_LEVEL, -31},
     {Property::MIXER_ID , 0},
@@ -121,7 +121,7 @@ std::multimap<Property, int32_t> validIntPropertyReady =
     {Property::DOLBY_ATMOS_LOCK, 1},
 };
 
-std::multimap<Property, int32_t> invalidIntPropertyReady =
+const static std::multimap<Property, int32_t> invalidIntPropertyReady =
 {
     {Property::REFERENCE_LEVEL, -100},
     {Property::MIXER_ID, -2},
@@ -130,7 +130,7 @@ std::multimap<Property, int32_t> invalidIntPropertyReady =
     {Property::DOLBY_ATMOS_LOCK, -1},
 };
 
-std::multimap<Property, int32_t> setIntPropertyReadonly =
+const static std::multimap<Property, int32_t> setIntPropertyReadonly =
 {
     {Property::RESOURCE_ID, 1},
     {Property::RENDER_LATENCY_NS , 2},

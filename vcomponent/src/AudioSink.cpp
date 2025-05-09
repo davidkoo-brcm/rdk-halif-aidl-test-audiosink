@@ -585,7 +585,7 @@ namespace com {
 
                 android::binder::Status AudioSinkController::setVolumeRamp(  double targetVolume, int32_t overMs, com::rdk::hal::audiosink::VolumeRamp volumeRamp, bool* _aidl_return  )
                 {
-                    std::lock_guard<std::mutex> lock(ramp_mutex);
+                    //std::lock_guard<std::mutex> lock(ramp_mutex);
 
                     if (g_audiosink_state[this->id.value] != State::STARTED)
                     {
@@ -628,13 +628,16 @@ namespace com {
                             switch (volumeRamp) {
                                 case VolumeRamp::LINEAR:
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * progress;
+                                    g_volume[this->id.value].muted = false;
                                     break;
                                 case VolumeRamp::IN_CUBIC:
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * (progress * progress * progress);
+                                    g_volume[this->id.value].muted = false;
                                     break;
                                 case VolumeRamp::OUT_CUBIC:
                                     double t = progress - 1;
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * (t * t * t + 1);
+                                    g_volume[this->id.value].muted = false;
                                     break;
                             }
 
@@ -643,6 +646,7 @@ namespace com {
 
                         // Ensure final volume is set
                         g_volume[this->id.value].volume = targetVolume;
+                        g_volume[this->id.value].muted = false;
                         isRamping.store(false);
                     });
 
