@@ -41,7 +41,7 @@
  *
  * ### L2 Test Cases for Audio Sink HAL :
  *
- * This module includes Level 1 functional tests (success and failure scenarios).
+ * This module includes Level 2 functional tests (success and failure scenarios).
  * This is to ensure that the API meets the operational requirements of the module across all vendors.
  *
  * **Pre-Conditions:** @n
@@ -116,6 +116,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
     std::vector<IAudioSink::Id> sinkIds;
     std::optional<PropertyValue> resource_id;
     sp<IAudioSink> audioSink;
+    State currentState = State::CLOSED;
 
     /* Get the Audio sinks IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -130,6 +131,10 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
 
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE ,audioSink, controllerListener, audioSinkController, true);
+
+        /*Get the Current State */
+        AUDIOSINK_GET_STATE(audioSink, currentState);
+        UT_ASSERT_EQUAL(currentState, State::READY);
 
         for (const auto& [property, value] : validIntPropertyReady) 
         {
@@ -148,6 +153,12 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
             UT_ASSERT_EQUAL(_resource_id, value);
 
         }
+        // Close the audio sink
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+
+        /*Get the Current State */
+        AUDIOSINK_GET_STATE(audioSink, currentState);
+        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
