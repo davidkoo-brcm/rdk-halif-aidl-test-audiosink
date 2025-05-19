@@ -266,13 +266,12 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } while (sleep_time < MAX_FINAL_STATE_WAIT_MS && lastState != desiredState); \
     } while (0)
 
-#define AUDIOSINK_OPEN_SUCCESS(content_type, audioSink, controllerListener, audioSinkController, stateCheck) \
+#define AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
-        status = (audioSink)->open((content_type), (controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open(IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            static_cast<int32_t>(content_type),(controllerListener).get(), (audioSinkController).get(), \
+        status = (audioSink)->open((controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -286,14 +285,13 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } \
     } while (0)
 
-#define AUDIOSINK_OPEN_FAILURE(content_type, audioSink, controllerListener, audioSinkController, exception) \
+#define AUDIOSINK_OPEN_FAILURE(audioSink, controllerListener, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
-        status = (audioSink)->open(content_type, (controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open failure (IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            static_cast<int32_t>(content_type), controllerListener, audioSinkController.get(), \
+        status = (audioSink)->open((controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -492,7 +490,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
-    
+
 #define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioDecoderId, audioSinkController) \
     do { \
         ::android::binder::Status status; \
@@ -715,7 +713,7 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
             {
                 std::lock_guard<std::mutex> lock(mMutex);
                 mStateChanges.emplace_back(oldState, newState);
-                mCurrentState = newState;   
+                mCurrentState = newState;
             }
             mCV.notify_all(); // Unblock any waiting test code
             return Status::ok();
@@ -740,7 +738,7 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
             std::lock_guard<std::mutex> lock(mMutex);
             return Status::ok();
         }
-        
+
         Status onAudioResumed(int64_t nsPresentationTime) override
         {
             std::lock_guard<std::mutex> lock(mMutex);
@@ -801,7 +799,7 @@ class AudioSinkEventListener: public BnAudioSinkEventListener
             std::lock_guard<std::mutex> lock(mMutex);
             return Status::ok();
         }
-        
+
         Status onAudioResumed(int64_t nsPresentationTime) override
         {
             std::lock_guard<std::mutex> lock(mMutex);
