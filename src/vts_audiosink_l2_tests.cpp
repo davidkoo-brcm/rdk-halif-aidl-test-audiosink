@@ -81,7 +81,7 @@
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
 
-std::multimap<Property, int32_t> validIntPropertyReady =
+static std::multimap<Property, int32_t> validIntPropertyReady =
 {
     {Property::REFERENCE_LEVEL, -31},
     {Property::MIXER_ID , 0},
@@ -234,19 +234,19 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
         checkCompleteStateTransition(audioSink, eventListener, State::CLOSED, State::OPENING, State::READY);
 
         // Start the audio sink
-        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, State::READY, State::STARTING, State::STARTED);
 
         // Flush the audio sink
-        AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, State::STARTED, State::FLUSHING, State::STARTED);
         
         // Stop the audio sink
-        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, State::STARTED, State::STOPPING, State::READY);
 
         // Close the audio sink
-        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, State::READY, State::CLOSING, State::CLOSED);
     }
 }

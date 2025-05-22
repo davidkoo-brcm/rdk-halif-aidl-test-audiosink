@@ -107,36 +107,6 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     {NULL, -1}
 };
 
-const static std::multimap<Property, int32_t> validIntPropertyReady =
-{
-    {Property::REFERENCE_LEVEL, -31},
-    {Property::MIXER_ID , 0},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::UNKNOWN))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::IP))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::TUNER))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::SYSTEM))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::HDMI_1))},
-    {Property::DOLBY_ATMOS_LOCK, 0},
-    {Property::DOLBY_ATMOS_LOCK, 1},
-};
-
-const static std::multimap<Property, int32_t> invalidIntPropertyReady =
-{
-    {Property::REFERENCE_LEVEL, -100},
-    {Property::MIXER_ID, -2},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))-1},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::COMPOSITE_5 ))+1},
-    {Property::DOLBY_ATMOS_LOCK, -1},
-};
-
-const static std::multimap<Property, int32_t> setIntPropertyReadonly =
-{
-    {Property::RESOURCE_ID, 1},
-    {Property::RENDER_LATENCY_NS , 2},
-    {Property::QUEUE_DEPTH_NS , 3},
-};
-
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500
 
