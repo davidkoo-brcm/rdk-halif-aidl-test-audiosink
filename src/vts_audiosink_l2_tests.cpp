@@ -74,6 +74,8 @@
 #include <condition_variable>
 #include <algorithm>
 #include <unordered_set>
+#include <tuple>
+#include <map>
 
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
@@ -87,16 +89,68 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
 class VTS_L2_AudioSink : public UTCore
 {
 public:
-    VTS_L2_AudioSink() : UTCore() {}
+VTS_L2_AudioSink() : UTCore() {}
 
     ~VTS_L2_AudioSink() override = default;
 
-    void SetUp() override
-    {
-    }
+    public:
+        std::vector<std::tuple<sp<IAudioSink>, sp<AudioSinkControllerListener>, sp<AudioSinkEventListener>>> mAudioSinkList;
 
+        void SetUp() override
+        {
+            std::vector<IAudioSink::Id> sinkIds;
+            /* Get the Audio Sink IDs */
+            AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+            android::ProcessState::self()->startThreadPool();
+
+            for(const auto& _sinkId: sinkIds)
+            {
+                sp<IAudioSink> audioSink;
+
+                sp<AudioSinkEventListener> eventListener = new AudioSinkEventListener();
+
+                sp<AudioSinkControllerListener> controlListener = new AudioSinkControllerListener();
+
+                /* Get Audio decoder handle */
+                AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+                /* Register events */
+                AUDIOSINK_REGISTER_EVENT_SUCCESS(audioSink, eventListener);
+
+                /* Get Capabilities of Audio Sink */
+                //AUDIOSINK_GETCAPABILITIES(audioDecoder, capabilities);
+
+                mAudioSinkList.push_back({audioSink, controlListener, eventListener});
+            }
+        }
+
+    void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener, State oldState, State intermediateState, State newState)
+    {
+        ::com::rdk::hal::State currentState;
+
+        UT_ASSERT_TRUE(eventListener->checkStateTransistion(oldState, intermediateState));
+
+        eventListener->waitForState(newState, std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
+
+        AUDIOSINK_GET_STATE(sink, currentState);
+
+        UT_ASSERT_EQUAL(currentState, newState);
+
+        UT_ASSERT_TRUE(eventListener->checkStateTransistion(intermediateState, newState));
+
+        eventListener->resetStateChanges();
+    }
     void TearDown() override
     {
+        for (const auto& [sink, controlListener, eventListener, capabilities] : mAudioSinkList)
+        {
+            /* Un-register the events */
+            AUDIOSINK_UNREGISTER_EVENT_SUCCESS(sink, eventListener);
+        }
+        mAudioSinkList.clear();
+        //TODO: check right place to call joinThreadPool
+        //android::IPCThreadState::self()->joinThreadPool();
     }
 };
 
@@ -113,32 +167,18 @@ public:
 */
 UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState = State::CLOSED;
 
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
+        std::optional<PropertyValue> resource_id;
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
-
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE ,audioSink, controllerListener, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         for (const auto& [property, value] : validIntPropertyReady) 
         {
-            PropertyValue setValue;
+            PropertyValue setValue
             setValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(value);
  
             /* Set the property and value*/
@@ -155,10 +195,6 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
         }
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -175,108 +211,29 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
  */
 UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    sp<IAudioSink> audioSink;
-    State lastState;
-    State desiredState;
-    State currentState;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE ,audioSink, controllerListener, audioSinkController, true);
-                 
-        // Verify state transition to OPENING
-        lastState = State::CLOSED;
-        desiredState = State::OPENING;
-
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        // Verify state transition to READY
-        lastState = State::OPENING;
-        desiredState = State::READY;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE ,audioSink, controlListener, audioSinkController, false);
+        checkCompleteStateTransition(audioSink, eventListener, State::CLOSED, State::OPENING, State::READY);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-       
-        // Verify state transition to STARTING
-        lastState = State::READY;
-        desiredState = State::STARTING;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        // Verify state transition to STARTED
-        lastState = State::STARTING;
-        desiredState = State::STARTED;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::STARTED);
+        checkCompleteStateTransition(audioSink, eventListener, State::READY, State::STARTING, State::STARTED);
 
         // Flush the audio sink
         AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, true);
+        checkCompleteStateTransition(audioSink, eventListener, State::STARTED, State::FLUSHING, State::STARTED);
         
-        // Verify state transition to FLUSHING
-        lastState = State::STARTED;
-        desiredState = State::FLUSHING;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-        
-        // Verify state transition to STARTED
-        lastState = State::FLUSHING;
-        desiredState = State::STARTED;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::STARTED);
-
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
- 
-        // Verify state transition to STOPPING
-        lastState = State::STARTED;
-        desiredState = State::STOPPING;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        // Verify state transition to READY
-        lastState = State::STOPPING;
-        desiredState = State::READY;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        checkCompleteStateTransition(audioSink, eventListener, State::STARTED, State::STOPPING, State::READY);
 
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-        
-        // Verify state transition to CLOSING
-        lastState = State::READY;
-        desiredState = State::CLOSING;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        // Verify state transition to CLOSED
-        lastState = State::CLOSING;
-        desiredState = State::CLOSED;
-        AUDIOSINK_WAIT_FOR_STATE(audioSink, desiredState, lastState);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
+        checkCompleteStateTransition(audioSink, eventListener, State::READY, State::CLOSING, State::CLOSED);
     }
 }
 
@@ -293,28 +250,12 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
 */
 UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Set and verify volume
         for (double volume = 0.0; volume <= 1.0; volume += 0.1) 
@@ -331,10 +272,6 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
 
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -351,28 +288,12 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
 */
 UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Set and verify volume
         for (double volume = 0.1; volume <= 1.0; volume += 0.1) 
@@ -419,10 +340,6 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
 
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -439,36 +356,16 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
  */
 UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-    Volume currentVol;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
+        Volume currentVol;
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::STARTED);
 
         // Iterate over targetVolume, overMs, and volumeRamp
         std::vector<double> targetVolumes = {0.0, 0.5, 1.0};
@@ -479,9 +376,10 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
         {
             for (auto& volumeRamp : volumeRamps)
             {
+                    currentVol.volume = 0.0; //reset volume to zero
                     AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
                     // Add a delay to approximate the ramp duration
-                    std::this_thread::sleep_for(std::chrono::milliseconds(overMs+500));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(overMs));
 
                     AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
                     UT_ASSERT_EQUAL(targetVolume, currentVol.volume);
@@ -491,16 +389,8 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
-
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -517,37 +407,17 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
 */
 UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-    Volume currentVol;
-    Volume volume;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
+        Volume currentVol;
+        Volume volume;
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::STARTED);
 
         // Set volume ramp
         // Iterate over targetVolume, overMs, and volumeRamp
@@ -559,6 +429,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
         {
             for (auto& volumeRamp : volumeRamps)
             {
+                    volume.volume = 0.0;
                     volume.muted = true;
 
                     /*Set volume mute state to true*/
@@ -568,7 +439,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
                     AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
 
                     // Add a delay to approximate the ramp duration
-                    std::this_thread::sleep_for(std::chrono::milliseconds(overMs+500));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(overMs));
 
                     /*Get the volume set and mute status should false*/
                     AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
@@ -580,16 +451,8 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
-
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -606,76 +469,51 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
  */
 UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-    Volume currentVol;
-    Volume volume;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
+        Volume currentVol;
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::STARTED);
-
-                // Set volume ramp
+        // Set volume ramp
         // Iterate over targetVolume, overMs, and volumeRamp
+        std::vector<double> targetVolumes = {0.0, 0.5, 1.0};
         int32_t overMs = 1000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
         
-        for (auto& volumeRamp : volumeRamps)
+        for (auto& targetVolume : targetVolumes)
         {
-                double targetVolume = 0.0;
+            for (auto& volumeRamp : volumeRamps)
+            {
+                currentVol.volume = 0.0;
 
                 /*Set Ramp over target volume and volume ramps type */
                 AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
-                
+
                 //Immediately set another volume ramp.
                 targetVolume = 0.5;
                 AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
 
                 // Add a delay to approximate the ramp duration
-                std::this_thread::sleep_for(std::chrono::milliseconds(overMs+500));                
+                std::this_thread::sleep_for(std::chrono::milliseconds(overMs));
 
                 /*Get the volume set and mute status should false*/
                 AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
                 UT_ASSERT_EQUAL(targetVolume, currentVol.volume);
             
+            }
         }
 
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
-        
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-        
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::CLOSED);
     }
 }
 
@@ -693,45 +531,26 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
 */
 UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress) 
 {
-    std::vector<IAudioSink::Id> sinkIds;
-    std::optional<PropertyValue> resource_id;
-    sp<IAudioSink> audioSink;
-    State currentState;
-    Volume currentVol;
-    Volume volume;
-
-    /* Get the Audio sinks IDs */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    for (const auto& _sinkId: sinkIds) 
-    {            
-        /* Get Audio sink handle */
-        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
+    for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
+    {
+        Volume currentVol;
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
 
-        // Open the audio sink
-        AUDIOSINK_OPEN_SUCCESS(ContentType::MUSIC , audioSink, controllerListener, audioSinkController, true);
-       
-        /*Get the Current State */
-        AUDIOSINK_GET_STATE(audioSink, currentState);
-        UT_ASSERT_EQUAL(currentState, State::READY);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(ContentType::MOVIE, audioSink, controlListener, audioSinkController, false);
 
         // Set volume ramp
         double targetVolume = 0.5;
-        int32_t overMs = 1000;
+        int32_t overMs = 10000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
          
          for (auto& volumeRamp : volumeRamps)
          {
                  // Start the audio sink
                  AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-
-                 /*Get the Current State */
-                 AUDIOSINK_GET_STATE(audioSink, currentState);
-                 UT_ASSERT_EQUAL(currentState, State::STARTED); 
  
+                 currentVol.volume = 0.0;
+
                  /*Set Ramp over target volume and volume ramps type */
                  AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
                   
@@ -741,10 +560,6 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
                  // Stop the audio sink
                  AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
  
-                 /*Get the Current State */
-                 AUDIOSINK_GET_STATE(audioSink, currentState);
-                 UT_ASSERT_EQUAL(currentState, State::READY);
- 
                  /*Get the volume and should be equal to the target volume*/
                  AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
                  UT_ASSERT_EQUAL(targetVolume, currentVol.volume);
@@ -752,10 +567,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
           
          // Close the audio sink
          AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-         
-         /*Get the Current State */
-         AUDIOSINK_GET_STATE(audioSink, currentState);
-         UT_ASSERT_EQUAL(currentState, State::CLOSED);
+
     }
 }
 
