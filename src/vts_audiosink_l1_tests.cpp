@@ -83,6 +83,36 @@
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
 
+std::multimap<Property, int32_t> validIntPropertyReady =
+{
+    {Property::REFERENCE_LEVEL, -31},
+    {Property::MIXER_ID , 0},
+    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))},
+    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::UNKNOWN))},
+    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::IP))},
+    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::TUNER))},
+    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::SYSTEM))},
+    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::HDMI_1))},
+    {Property::DOLBY_ATMOS_LOCK, 0},
+    {Property::DOLBY_ATMOS_LOCK, 1},
+};
+
+std::multimap<Property, int32_t> invalidIntPropertyReady =
+{
+    {Property::REFERENCE_LEVEL, -100},
+    {Property::MIXER_ID, -2},
+    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))-1},
+    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::COMPOSITE_5 ))+1},
+    {Property::DOLBY_ATMOS_LOCK, -1},
+};
+
+std::multimap<Property, int32_t> setIntPropertyReadonly =
+{
+    {Property::RESOURCE_ID, 1},
+    {Property::RENDER_LATENCY_NS , 2},
+    {Property::QUEUE_DEPTH_NS , 3},
+};
+
 /* Test class registration with UT_Core */
 UT_ADD_TEST_TO_GROUP(VTS_L1_AudioSink, UT_TESTS_L1);
 
