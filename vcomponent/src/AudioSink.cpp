@@ -628,16 +628,13 @@ namespace com {
                             switch (volumeRamp) {
                                 case VolumeRamp::LINEAR:
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * progress;
-                                    g_volume[this->id.value].muted = false;
                                     break;
                                 case VolumeRamp::IN_CUBIC:
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * (progress * progress * progress);
-                                    g_volume[this->id.value].muted = false;
                                     break;
                                 case VolumeRamp::OUT_CUBIC:
                                     double t = progress - 1;
                                     g_volume[this->id.value].volume = startVolume + (targetVolume - startVolume) * (t * t * t + 1);
-                                    g_volume[this->id.value].muted = false;
                                     break;
                             }
 
@@ -646,7 +643,6 @@ namespace com {
 
                         // Ensure final volume is set
                         g_volume[this->id.value].volume = targetVolume;
-                        g_volume[this->id.value].muted = false;
                         isRamping.store(false);
                     });
 
