@@ -585,7 +585,7 @@ namespace com {
 
                 android::binder::Status AudioSinkController::setVolumeRamp(  double targetVolume, int32_t overMs, com::rdk::hal::audiosink::VolumeRamp volumeRamp, bool* _aidl_return  )
                 {
-                    std::lock_guard<std::mutex> lock(ramp_mutex);
+                    //std::lock_guard<std::mutex> lock(ramp_mutex);
 
                     if (g_audiosink_state[this->id.value] != State::STARTED)
                     {
