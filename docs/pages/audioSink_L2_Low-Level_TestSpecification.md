@@ -27,7 +27,7 @@ This document describes the Low Level L2 Test Specification and Procedure for th
 
 ### References
 
-- High Level Test Specification - [audioSink_High-Level_TestSpecification.md](https://github.com/rdkcentral/rdk-halif-binder-test-audiosink/blob/develop/docs/pages/audioSink_High-Level_TestSpecification.md)
+- High Level Test Specification - [audioSink_High-Level_TestSpecification.md](audioSink_High-Level_TestSpecification.md)
 
 ## Level 2 Test Procedure
 
