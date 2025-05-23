@@ -680,7 +680,7 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
 
         Status onStateChanged(State oldState,State newState) override
         {
-            UT_LOG("\n=======State Change received: %d, %d=============\n", oldState, newState);
+            UT_LOG_INFO("\nControllerListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
             {
                 std::lock_guard<std::mutex> lock(mMutex);
                 mStateChanges.emplace_back(oldState, newState);
@@ -722,6 +722,36 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
             std::lock_guard<std::mutex> lock(mMutex);
             return Status::ok();
         }
+
+        bool waitForState(State desiredState, std::chrono::milliseconds timeout)
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            // Wait until mCurrentState == desiredState or until timeout
+            return mCV.wait_for(lock, timeout, [this, desiredState]() {
+                return (mCurrentState == desiredState);
+            });
+        }
+
+        void resetStateChanges()
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mStateChanges.clear();
+        }
+
+        bool checkStateTransistion(State expOldState, State expNewState)
+        {
+            bool foundClosedToOpening = false;
+            for (const auto &[oldState, newState] : mStateChanges)
+            {
+                if (oldState == expOldState && newState == expNewState)
+                {
+                    foundClosedToOpening = true;
+                    break;
+                }
+            }
+            return foundClosedToOpening;
+        }
+
     private:
         mutable std::mutex mMutex;
         std::condition_variable mCV;
@@ -741,7 +771,7 @@ class AudioSinkEventListener: public BnAudioSinkEventListener
 
         Status onStateChanged(State oldState,State newState) override
         {
-            UT_LOG("\n=======State Change received: %d, %d=============\n", oldState, newState);
+            UT_LOG_INFO("\nEventListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
             {
                 std::lock_guard<std::mutex> lock(mMutex);
                 mStateChanges.emplace_back(oldState, newState);
