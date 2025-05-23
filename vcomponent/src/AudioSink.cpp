@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-/** @brief 
+
+/** @brief
 * AudioSink.cpp
-* 
+*
 * Implementation of AudioSink service
 */
 #include "AudioSink.h"
@@ -257,7 +257,7 @@ namespace com {
                 }
 
 
-                android::binder::Status AudioSink::open(ContentType content_type,  const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return  )
+                android::binder::Status AudioSink::open(const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return  )
                 {
                     if(audioSinkControllerListener == nullptr)
                     {
@@ -374,7 +374,7 @@ namespace com {
                     {
                         std::cout << "[SERVICE]::audioSinkEventListener for ID : " <<this->id.value<<" is NULL ...exiting...\n";//added
                         *_aidl_return = false;
-                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER); 
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
                     }
                     *_aidl_return = true;
                     std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is unregistered successfully:: eventListener value : " << this->event_listener << "\n";//added
@@ -400,7 +400,7 @@ namespace com {
                         *_aidl_return = false;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
-                    
+
                     if(audioDecoderId.value < 0 || audioDecoderId.value > 1)
                     {
                         *_aidl_return = false;
@@ -585,7 +585,7 @@ namespace com {
 
                 android::binder::Status AudioSinkController::setVolumeRamp(  double targetVolume, int32_t overMs, com::rdk::hal::audiosink::VolumeRamp volumeRamp, bool* _aidl_return  )
                 {
-                    std::lock_guard<std::mutex> lock(ramp_mutex);
+                    //std::lock_guard<std::mutex> lock(ramp_mutex);
 
                     if (g_audiosink_state[this->id.value] != State::STARTED)
                     {

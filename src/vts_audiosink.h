@@ -107,36 +107,6 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     {NULL, -1}
 };
 
-std::multimap<Property, int32_t> validIntPropertyReady =
-{
-    {Property::REFERENCE_LEVEL, -31},
-    {Property::MIXER_ID , 0},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::UNKNOWN))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::IP))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::TUNER))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::SYSTEM))},
-    {Property::AV_SOURCE, int32_t(static_cast<int32_t>(AVSource::HDMI_1))},
-    {Property::DOLBY_ATMOS_LOCK, 0},
-    {Property::DOLBY_ATMOS_LOCK, 1},
-};
-
-std::multimap<Property, int32_t> invalidIntPropertyReady =
-{
-    {Property::REFERENCE_LEVEL, -100},
-    {Property::MIXER_ID, -2},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::AUTO))-1},
-    {Property::AV_SOURCE , int32_t(static_cast<int32_t>(AVSource::COMPOSITE_5 ))+1},
-    {Property::DOLBY_ATMOS_LOCK, -1},
-};
-
-std::multimap<Property, int32_t> setIntPropertyReadonly =
-{
-    {Property::RESOURCE_ID, 1},
-    {Property::RENDER_LATENCY_NS , 2},
-    {Property::QUEUE_DEPTH_NS , 3},
-};
-
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500
 
@@ -266,13 +236,13 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } while (sleep_time < MAX_FINAL_STATE_WAIT_MS && lastState != desiredState); \
     } while (0)
 
-#define AUDIOSINK_OPEN_SUCCESS(content_type, audioSink, controllerListener, audioSinkController, stateCheck) \
+#define AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
-        status = (audioSink)->open((content_type), (controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open(IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            static_cast<int32_t>(content_type),(controllerListener).get(), (audioSinkController).get(), \
+        status = (audioSink)->open((controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", (controllerListener).get(),\
+            (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -286,14 +256,13 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         } \
     } while (0)
 
-#define AUDIOSINK_OPEN_FAILURE(content_type, audioSink, controllerListener, audioSinkController, exception) \
+#define AUDIOSINK_OPEN_FAILURE(audioSink, controllerListener, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
-        status = (audioSink)->open(content_type, (controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open failure (IN:contentType:[%d], IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
-            static_cast<int32_t>(content_type), controllerListener, audioSinkController.get(), \
+        status = (audioSink)->open((controllerListener), &(audioSinkController)); \
+        UT_LOG_INFO("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -492,7 +461,7 @@ std::multimap<Property, int32_t> setIntPropertyReadonly =
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
-    
+
 #define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioDecoderId, audioSinkController) \
     do { \
         ::android::binder::Status status; \
@@ -711,68 +680,7 @@ class AudioSinkControllerListener: public BnAudioSinkControllerListener
 
         Status onStateChanged(State oldState,State newState) override
         {
-            UT_LOG("\n=======State Change received: %d, %d=============\n", oldState, newState);
-            {
-                std::lock_guard<std::mutex> lock(mMutex);
-                mStateChanges.emplace_back(oldState, newState);
-                mCurrentState = newState;   
-            }
-            mCV.notify_all(); // Unblock any waiting test code
-            return Status::ok();
-        }
-
-        Status onFirstFrameRendered(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            firstframerendered.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onEndOfStream(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            endofstream.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onAudioUnderflow() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-        
-        Status onAudioResumed(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            audioresumed.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onFlushComplete() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-    private:
-        mutable std::mutex mMutex;
-        std::condition_variable mCV;
-
-        State mCurrentState;
-        std::vector<std::pair<State, State>> mStateChanges;
-        std::vector<int64_t> firstframerendered;
-        std::vector<int64_t> endofstream;
-        std::vector<int64_t> audioresumed;
-};
-
-class AudioSinkEventListener: public BnAudioSinkEventListener
-{
-    public:
-        AudioSinkEventListener(): mCurrentState(State::CLOSED) {}
-        virtual ~AudioSinkEventListener() = default;
-
-        Status onStateChanged(State oldState,State newState) override
-        {
-            UT_LOG("\n=======State Change received: %d, %d=============\n", oldState, newState);
+            UT_LOG_INFO("\nControllerListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
             {
                 std::lock_guard<std::mutex> lock(mMutex);
                 mStateChanges.emplace_back(oldState, newState);
@@ -801,7 +709,7 @@ class AudioSinkEventListener: public BnAudioSinkEventListener
             std::lock_guard<std::mutex> lock(mMutex);
             return Status::ok();
         }
-        
+
         Status onAudioResumed(int64_t nsPresentationTime) override
         {
             std::lock_guard<std::mutex> lock(mMutex);
@@ -813,6 +721,126 @@ class AudioSinkEventListener: public BnAudioSinkEventListener
         {
             std::lock_guard<std::mutex> lock(mMutex);
             return Status::ok();
+        }
+
+        bool waitForState(State desiredState, std::chrono::milliseconds timeout)
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            // Wait until mCurrentState == desiredState or until timeout
+            return mCV.wait_for(lock, timeout, [this, desiredState]() {
+                return (mCurrentState == desiredState);
+            });
+        }
+
+        void resetStateChanges()
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mStateChanges.clear();
+        }
+
+        bool checkStateTransistion(State expOldState, State expNewState)
+        {
+            bool foundClosedToOpening = false;
+            for (const auto &[oldState, newState] : mStateChanges)
+            {
+                if (oldState == expOldState && newState == expNewState)
+                {
+                    foundClosedToOpening = true;
+                    break;
+                }
+            }
+            return foundClosedToOpening;
+        }
+
+    private:
+        mutable std::mutex mMutex;
+        std::condition_variable mCV;
+
+        State mCurrentState;
+        std::vector<std::pair<State, State>> mStateChanges;
+        std::vector<int64_t> firstframerendered;
+        std::vector<int64_t> endofstream;
+        std::vector<int64_t> audioresumed;
+};
+
+class AudioSinkEventListener: public BnAudioSinkEventListener
+{
+    public:
+        AudioSinkEventListener(): mCurrentState(State::CLOSED) {}
+        virtual ~AudioSinkEventListener() = default;
+
+        Status onStateChanged(State oldState,State newState) override
+        {
+            UT_LOG_INFO("\nEventListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
+            {
+                std::lock_guard<std::mutex> lock(mMutex);
+                mStateChanges.emplace_back(oldState, newState);
+                mCurrentState = newState;
+            }
+            mCV.notify_all(); // Unblock any waiting test code
+            return Status::ok();
+        }
+
+        Status onFirstFrameRendered(int64_t nsPresentationTime) override
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            firstframerendered.push_back(nsPresentationTime);
+            return Status::ok();
+        }
+
+        Status onEndOfStream(int64_t nsPresentationTime) override
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            endofstream.push_back(nsPresentationTime);
+            return Status::ok();
+        }
+
+        Status onAudioUnderflow() override
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            return Status::ok();
+        }
+
+        Status onAudioResumed(int64_t nsPresentationTime) override
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            audioresumed.push_back(nsPresentationTime);
+            return Status::ok();
+        }
+
+        Status onFlushComplete() override
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            return Status::ok();
+        }
+
+        bool waitForState(State desiredState, std::chrono::milliseconds timeout)
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            // Wait until mCurrentState == desiredState or until timeout
+            return mCV.wait_for(lock, timeout, [this, desiredState]() {
+                return (mCurrentState == desiredState);
+            });
+        }
+
+        void resetStateChanges()
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mStateChanges.clear();
+        }
+
+        bool checkStateTransistion(State expOldState, State expNewState)
+        {
+            bool foundClosedToOpening = false;
+            for (const auto &[oldState, newState] : mStateChanges)
+            {
+                if (oldState == expOldState && newState == expNewState)
+                {
+                    foundClosedToOpening = true;
+                    break;
+                }
+            }
+            return foundClosedToOpening;
         }
     private:
         mutable std::mutex mMutex;

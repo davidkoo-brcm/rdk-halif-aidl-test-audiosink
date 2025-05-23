@@ -56,10 +56,10 @@ namespace com {
               public:
                  AudioSinkManager();
                  virtual ~AudioSinkManager();
-                 
+
                  static char const* getServiceName() {
                      return IAudioSinkManager::serviceName().c_str(); }
-          
+
                  android::binder::Status getAudioSinkIds( std::vector<IAudioSink::Id>* _aidl_return ) override;
 				 android::binder::Status getPlatformCapabilities( PlatformCapabilities* _aidl_return ) override;
 				 android::binder::Status getAudioSink( const IAudioSink::Id& audioSinkId, android::sp<IAudioSink>* _aidl_return ) override;
@@ -73,12 +73,12 @@ namespace com {
                  bool event_listener;
                  AudioSink(IAudioSink::Id id);
                  virtual ~AudioSink();
-                           
+
                  android::binder::Status getCapabilities( audiosink::Capabilities* _aidl_return ) override;
                  android::binder::Status getProperty( audiosink::Property property, std::optional<PropertyValue>* _aidl_return ) override;
                  android::binder::Status setProperty( audiosink::Property property, const PropertyValue& propertyValue, bool* _aidl_return ) override;
                  android::binder::Status getState( State* _aidl_return ) override;
-                 android::binder::Status open(ContentType content_type, const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return ) override;
+                 android::binder::Status open(const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return ) override;
                  android::binder::Status close( const android::sp<audiosink::IAudioSinkController>& audioSinkController, bool* _aidl_return ) override;
                  android::binder::Status registerEventListener( const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return ) override;
                  android::binder::Status unregisterEventListener( const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return ) override;
