@@ -27,7 +27,7 @@ This document describes the Low Level L2 Test Specification and Procedure for th
 
 ### References
 
-- High Level Test Specification - [audioSink_High-Level_TestSpecification.md](https://github.com/rdkcentral/rdk-halif-binder-test-audiosink/blob/feature/gh4_l2_l3_audiosink_highlevel_doc/docs/pages/audioSink_High-Level_TestSpecification.md)
+- High Level Test Specification - [audioSink_High-Level_TestSpecification.md](https://github.com/rdkcentral/rdk-halif-binder-test-audiosink/blob/develop/docs/pages/audioSink_High-Level_TestSpecification.md)
 
 ## Level 2 Test Procedure
 
@@ -38,7 +38,7 @@ The following functions are expecting to test the module operates correctly.
 |Title|Details|
 |-----|-------|
 |Function Name|`TestReadWriteProperties`|
-|Description|Loop through supported audio sinkid's, set property using setProperty and verify the property uing getProperty|
+|Description|Loop through supported audio sinkid's, set property using setProperty and verify the property using getProperty|
 |Test Group|02|
 |Test Case ID|001|
 |Priority|High|
