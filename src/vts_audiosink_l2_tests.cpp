@@ -280,6 +280,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
         {
             Volume setVol;
             setVol.volume = volume;
+            setVol.muted = false;
             AUDIOSINK_SETVOLUME_SUCCESS(audioSinkController, setVol);
 
             Volume currentVol;
