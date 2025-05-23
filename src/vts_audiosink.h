@@ -241,7 +241,8 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
         status = (audioSink)->open((controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_INFO("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", (controllerListener).get(),\
+            (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
