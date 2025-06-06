@@ -171,7 +171,7 @@ UT_status_t vts_audiosink_getAudioSinkService()
  * | 07 | Initialize expectedIds set with expected audio sink IDs | expectedIds = set of expected IDs | expectedIds initialized | Should be successful |
  * | 08 | Verify each ID in audioSinkIds is in expectedIds | audioSinkIds, expectedIds | Assertion passes for each ID | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSinkIds_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
 {
     std::vector<IAudioSink::Id> initialaudiosinkIds;
     std::vector<IAudioSink::Id> secondaudiosinkIds;
@@ -227,7 +227,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSinkIds_pos)
  * | 05 | Check systemMixerPCMFormat attribute against expected value | platformCapabilities.systemMixerPCMFormat = value | platformCapabilities.systemMixerPCMFormat = expectedSystemMixerPCMFormat | Should Pass |
  * | 06 | Check supportsPlanarFormat attribute against expected value | platformCapabilities.supportsPlanarFormat = value | platformCapabilities.supportsPlanarFormat = expectedSupportsPlanarFormat | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getPlatformCapabilities_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
 {
     PlatformCapabilities platformCapabilities;
 
@@ -265,7 +265,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getPlatformCapabilities_pos)
  * |03|Invoke getAudioSink again with same id; check status|id, audiosink|Status is OK and audiosink is not NULL|Should Pass|
  * |04|Compare RESOURCE_ID from both invocations|resource_id_1, resource_id_2|RESOURCE_IDs are equal|Should Pass|
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSink_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
 {
     sp<IAudioSink> audiosink_1;
     sp<IAudioSink> audiosink_2;
@@ -322,7 +322,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSink_pos)
  * | 03 | Test getAudioSink with an invalid ID (least value - 1). | input: audioSinkId = leastValue - 1, output: audioSink = nullptr | Status is not OK, audioSink is nullptr | Should Fail |
  * | 04 | Test getAudioSink with an invalid ID (highest value + 1). | input: audioSinkId = highestValue + 1, output: audioSink = nullptr | Status is not OK, audioSink is nullptr | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSink_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -371,7 +371,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkmanager_getAudioSink_neg)
  * | 05 | Assert that the status is OK | status.isOk() | status.isOk() should be true | Should Pass |
  * | 06 | Assert that capabilities is not nullptr | capabilities | capabilities should not be nullptr | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getCapabilities_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getCapabilities_pos)
 {
     Capabilities capabilities;
     std::vector<IAudioSink::Id> sinkIds;
@@ -416,7 +416,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getCapabilities_pos)
  * | 06 | Retrieve AV_SOURCE Property in READY State | property = AV_SOURCE | status.isOk() = true, aidlReturn.has_value() = true, aidlReturn->value = 0 | Should Pass |
  * | 07 | Retrieve DOLBY_ATMOS_LOCK Property in READY State | property = DOLBY_ATMOS_LOCK | status.isOk() = true, aidlReturn.has_value() = true, aidlReturn->value = 0 or 1 | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getProperty_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getProperty_pos)
 {
 
     std::vector<IAudioSink::Id> sinkIds;
@@ -462,7 +462,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getProperty_pos)
  * | 01 | Check if mAudioSinks is not empty | mAudioSinks | Should not be empty | Should be successful |
  * | 02 | Iterate over each sink in mAudioSinks and call getProperty with invalid property | property = -1, aidl_return = null | status.isOk() = false, aidl_return.has_value() = false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getProperty_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, getProperty_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -507,7 +507,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getProperty_neg)
  * | 04 | Set AV_SOURCE to 0 in the READY state using setProperty. | property = AV_SOURCE, propertyValue = 0, aidl_return = false | status.isOk() = true, aidl_return = true | Should Pass |
  * | 05 | Enable DOLBY_ATMOS_LOCK by setting it to 1 in the READY state using setProperty. | property = DOLBY_ATMOS_LOCK, propertyValue = 1, aidl_return = false | status.isOk() = true, aidl_return = true | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, setProperty_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -572,7 +572,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_pos)
  * | 08 | Attempt to disable DOLBY_ATMOS_LOCK in a non-READY state. | property = DOLBY_ATMOS_LOCK, propertyValue = 0, aidl_return = false | aidl_return should be false | Should Fail |
  * | 09 | Attempt to set READONLY property RENDER_LATENCY_NS. | property = RENDER_LATENCY_NS, propertyValue = 0, aidl_return = false | aidl_return should be false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -646,7 +646,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_setProperty_neg)
  * | 05 | Define a list of valid states | validStates | Should be successful | |
  * | 06 | Assert that the currentState is within the valid states | currentState in validStates | Should Pass | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getState_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -714,7 +714,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_getState_pos)
  * | 04 | Assert that the status is OK | status.isOk() | Assertion should pass | Should Pass |
  * | 05 | Assert that the audio sink controller is not nullptr | audioSinkController != nullptr | Assertion should pass | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -763,7 +763,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_pos)
  * | 05 | Call open again with the same valid listener to test negative scenario | audioSinkControllerListener = valid, secondController = nullptr | status.isOk() = false, secondController = nullptr | Should Fail |
  * | 06 | Close the controller to clean up the test environment | controller = valid, closed = false | status.isOk() = true, closed = true | Done by Pre-requisite TearDown function |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -821,7 +821,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_open_neg)
  * | 04 | Log the result of the close API | controller = mControllers[i], closed = true, status = status | Log should be successful | Should be successful |
  * | 05 | Verify the close operation was successful | status.isOk() = true, closed = true | status.isOk() should be true, closed should be true | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, close_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -871,7 +871,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_pos)
  * | 03 | Attempt to close with a valid AudioSinkController instance from a valid state | audioSinkController = valid, _aidl_return = false | _aidl_return = true, status.isOk() = true | Should Pass |
  * | 04 | Attempt to close again with a valid AudioSinkController instance from a CLOSED state | audioSinkController = valid, _aidl_return = false | _aidl_return = false, status.isOk() = false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, close_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -935,7 +935,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_close_neg)
  * | 05 | Verify that the return value indicates success | status.isOk() = true | Assertion should pass | Should Pass |
  * | 06 | Check that the output parameter *_aidl_return is not NULL or empty | aidlReturn = true | Assertion should pass | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_registerEventListener_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -980,7 +980,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_registerEventListener_pos)
  * | 03 | Register the valid listener for the second time | audioSinkEventListener = mSinkEventListener, aidlReturn = false | status.isOk() = true, aidlReturn = false | Should Fail |
  * | 04 | Attempt to register a null listener | audioSinkEventListener = nullptr, aidlReturn = false | status.isOk() = false, aidlReturn = false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_registerEventListener_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -1035,7 +1035,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_registerEventListener_neg)
  * | 06 | Check the output parameter *_aidl_return to confirm it indicates success | UT_ASSERT_TRUE(aidl_return) | aidl_return = true | Assertion should pass | Should Pass |
  * | 07 | Log the result of unregisterEventListener | UT_LOG_INFO("Result unregisterEventListener...") | mSinkEventListener.get(), aidl_return | Log should be successful | Should be successful |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -1083,7 +1083,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_pos)
  * | 04 | Unregister the event listener for the first time | listener = 0x[listener address], aidl_return = false | aidl_return = true, status.isOk() = true | Should Pass |
  * | 05 | Attempt to unregister the event listener again | listener = 0x[listener address], aidl_return = false | aidl_return = false, status.isOk() = false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_neg)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
@@ -1140,7 +1140,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosink_unregisterEventListener_neg)
  * | 02 | Retrieve valid audio decoder IDs using the configuration YAML APIs | decoderIds | decoderIds should not be empty | Should be successful |
  * | 03 | Call setAudioDecoder with each valid ID | audioDecoderId = decoderId.value, _aidl_return = false | _aidl_return should be true, status should be OK | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1206,7 +1206,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_pos)
  * | 08 | Test setAudioDecoder with valid ID in STARTED state | audioDecoderId = validId, aidlReturn = false | status.exceptionCode should be EX_ILLEGAL_STATE, aidlReturn should be false | Should Fail |
  * | 09 | Transition resource back to READY state | None | State should be READY | Should be successful |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1294,7 +1294,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
  * | 06 | Set the audio decoder again using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
  * | 07 | Get the audio decoder again and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
  */
- UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getAudioDecoder_pos)
+ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
  {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1425,7 +1425,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setAudioDecoder_neg)
  * | 06 | Verify the state transition to STARTING and then STARTED | mOldState = READY, mNewState = STARTED | State should transition correctly | Should Pass |
  * | 07 | Teardown: Call stop to revert the state | None | Status should be OK, State should be READY | Done by Pre-requisite TearDown function |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1481,7 +1481,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_pos)
  * | 04 | Verify the exception code is EX_ILLEGAL_STATE | status.exceptionCode() | EX_ILLEGAL_STATE | Should Fail |
  * | 05 | Call stop() on each controller as teardown | controller[i]->stop() | Status is OK | Done by Pre-requisite TearDown function |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1538,7 +1538,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_start_neg)
  * | 04 | Call the stop() API to transition to the READY state | controller[i]->stop() | status.isOk() = true, mControllerListener->mNewState = READY | Should Pass |
  * | 05 | Log the result of the stop() API call | status.isOk(), status.exceptionCode() | Log output | Should be successful |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1594,7 +1594,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_pos)
  * | 05 | Call stop() to move to STOPPING and then READY | status = controller->stop() | status.isOk() = true, mNewState = READY | Should be successful |
  * | 06 | Call stop() again in READY state and verify it returns EX_ILLEGAL_STATE | status = controller->stop() | status.isOk() = false, status.exceptionCode() = EX_ILLEGAL_STATE | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1655,7 +1655,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_stop_neg)
  * | 05 | Log the result of the API call. | status = {isOk = false, exception = EX_ILLEGAL_ARGUMENT} | Log should be successful | Should be successful |
  * | 06 | Verify the expected output by checking the exception code. | status.exceptionCode() = EX_ILLEGAL_ARGUMENT | Exception code should be EX_ILLEGAL_ARGUMENT | Should be successful |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_queueAudioFrame_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1725,7 +1725,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_queueAudioFrame_neg)
  * | 03 | Flush the audio sink for each controller | controller->flush() | status.isOk() = true | Should Pass |
  * | 04 | Stop the audio sink for each controller | controller->stop() | status.isOk() = true | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1783,7 +1783,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_pos)
  * | 03 | Stop the audio sink to transition to READY state | controller = mControllers[i], stopped = false | status.isOk() = true, stopped = true | Should be successful |
  * | 04 | Attempt to flush the audio sink when not in STARTED state | None | status.exceptionCode() = EX_ILLEGAL_STATE | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1844,7 +1844,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_flush_neg)
  * | 05 | Set volume again using setVolume function | volume = 1.0, muted = false | status.isOk() = true, volumeSetResult = true | Should Pass |
  * | 06 | Get volume again using getVolume function | volumeGet | status.isOk() = true, volumeGet.volume = 1.0, volumeGet.muted = false | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -1980,7 +1980,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_pos)
  * | 03 | Start the controller and ensure it is in the STARTED state |  | status.isOk() = true, mControllerListener->mNewState = STARTED | Should be successful |
  * | 04 | Set volume to minimum level in STARTED state | volume = 0.0, muted = false | status.isOk() = true, aidlReturn = true | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -2056,7 +2056,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_pos)
  * | 02 | Set Volume with Invalid Volume Level (Above Maximum) | volume = 1.1, muted = false, _aidl_return = false | status.isOk() = false, _aidl_return = false | Should Fail |
  * | 03 | Set Volume with Invalid Volume Level (Below Minimum) | volume = -0.1, muted = false, _aidl_return = false | status.isOk() = false, _aidl_return = false | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -2126,7 +2126,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolume_neg)
  * | 09 | Iterate over targetVolumes and volumeRamps, and call setVolumeRamp on each controller | targetVolume = 0.5, overMs = 5000, volumeRamp = OUT_CUBIC | status.isOk() = true, aidlReturn = true | Should Pass |
  * | 10 | Iterate over targetVolumes and volumeRamps, and call setVolumeRamp on each controller | targetVolume = 1.0, overMs = 5000, volumeRamp = OUT_CUBIC | status.isOk() = true, aidlReturn = true | Should Pass |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_pos)
+UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
 {
     android::binder::Status status;
     bool aidl_return = false;
@@ -2193,7 +2193,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_pos)
  * | 04 | Ensure all controllers are stopped | None | Controllers should NOT be in State::STARTED | Should be successful |
  * | 05 | Call setVolumeRamp with invalid state | targetVolume = 0.6, overMs = 4000, volumeRamp = LINEAR | aidlReturn = false, status.exceptionCode() = EX_ILLEGAL_STATE | Should Fail |
  */
-UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_setVolumeRamp_neg)
+UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
 {
     android::binder::Status status;
     bool aidl_return = false;

@@ -246,6 +246,7 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE_FATAL(status.isOk()); \
+        UT_ASSERT_NOT_EQUAL_FATAL(audioSinkController.get(), nullptr); \
         UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
         \
         if (stateCheck) \
