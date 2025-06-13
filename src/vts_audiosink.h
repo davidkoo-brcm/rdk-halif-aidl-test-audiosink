@@ -118,8 +118,8 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         UT_LOG_INFO("Result getAudioSinksIds(status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+        UT_ASSERT_TRUE_FATAL(status.isOk()); \
+        UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
 #define AUDIOSINK_GETPLATFORMCAPABILITIES(platformCapabilities) \
@@ -142,9 +142,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
                                 _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_TRUE(audioSink.get() != nullptr); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+        UT_ASSERT_TRUE_FATAL(status.isOk()); \
+        UT_ASSERT_TRUE_FATAL(audioSink.get() != nullptr); \
+        UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
 #define AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(_sinkId, audioSink, exception) \
@@ -245,8 +245,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
             (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+        UT_ASSERT_TRUE_FATAL(status.isOk()); \
+        UT_ASSERT_NOT_EQUAL_FATAL(audioSinkController.get(), nullptr); \
+        UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
         \
         if (stateCheck) \
         { \
@@ -280,9 +281,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
             audioSinkController.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_TRUE(_aidl_return); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+        UT_ASSERT_TRUE_FATAL(status.isOk()); \
+        UT_ASSERT_TRUE_FATAL(_aidl_return); \
+        UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
         if (stateCheck) \
         { \
             ::com::rdk::hal::State lastState; \
