@@ -86,7 +86,7 @@ The Sequential Sink test evaluates each audio sink individually, one after anoth
 ```mermaid
 block-beta
     block:1
-        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder")  space Sink("Sink_1") space Output("Output")
+        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder") space Sink("Sink") space Output("Output")
         AudioStream --> AVBuffer
         AVBuffer --> AudioDecoder
         AudioDecoder --> AudioSink
