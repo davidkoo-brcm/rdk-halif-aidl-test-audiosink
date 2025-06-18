@@ -86,7 +86,7 @@ The Sequential Sink test evaluates each audio sink individually, one after anoth
 ```mermaid
 block-beta
     block:1
-        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder") space Sink("Sink") space Output("Output")
+        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder") space AudioSink("AudioSink") space Output("Output")
         AudioStream --> AVBuffer
         AVBuffer --> AudioDecoder
         AudioDecoder --> AudioSink
@@ -102,7 +102,7 @@ The Concurrent Sink test assesses the system's ability to handle multiple audio 
 block-beta
 columns 1
     block:1
-        AudioStream_1("Audio Stream") space AVBuffer_1("AVBuffer") space AudioDecoder_1("AudioDecoder_1") space Sink_1("Sink_1") space Output_1("Output")
+        AudioStream_1("Audio Stream") space AVBuffer_1("AVBuffer") space AudioDecoder_1("AudioDecoder_1") space AudioSink_1("AudioSink_1") space Output_1("Output")
         AudioStream_1 --> AVBuffer_1
         AVBuffer_1 --> AudioDecoder_1
         AudioDecoder_1-->AudioSink_1
@@ -110,7 +110,7 @@ columns 1
     end
     space
     block:2
-        AudioStream_2("Audio Stream") space AVBuffer_2("AVBuffer") space AudioDecoder_2("AudioDecoder_2") space Sink_2("Sink_2") space Output_2("Output")
+        AudioStream_2("Audio Stream") space AVBuffer_2("AVBuffer") space AudioDecoder_2("AudioDecoder_2") space AudioSink_2("AudioSink_2") space Output_2("Output")
         AudioStream_2 --> AVBuffer_2
         AVBuffer_2 --> AudioDecoder_2
         AudioDecoder_2-->AudioSink_2
@@ -118,7 +118,7 @@ columns 1
     end
     space
     block:N
-        AudioStream_N("Audio Stream") space AVBuffer_N("AVBuffer") space AudioDecoder_N("AudioDecoder_N") space Sink_N("Sink_N") space Output_N("Output")
+        AudioStream_N("Audio Stream") space AVBuffer_N("AVBuffer") space AudioDecoder_N("AudioDecoder_N") space AudioSink_N("AudioSink_N") space Output_N("Output")
         AudioStream_N --> AVBuffer_N
         AVBuffer_N --> AudioDecoder_N
         AudioDecoder_N-->AudioSink_N
