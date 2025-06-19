@@ -129,27 +129,49 @@ install_test()
     cp -rf ${TOP}/profiles ${INSTALL_PATH}
 }
 
-clean_test()
+dist_clean_test()
 {
     rm -rf $BUILD_DIR
     rm -rf src/*.o
     rm -rf ${MOCK_SERVICE_DIR}/src/*.o
     rm -rf $RDK_HAL_DIR
+    rm -rf ${UT_CORE_DIR}
+}
+
+clean_test()
+{
+    rm -rf $BUILD_DIR
+    rm -rf src/*.o
+    rm -rf ${MOCK_SERVICE_DIR}/src/*.o
 }
 
 help()
 {
-    echo "Usage:"
-    echo "$0 - builds the test"
-    echo "$0 clean - cleans the build folder"
-    echo "$0 help - prints this message"
+    # Colors
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'
+    BOLD='\033[1m'
+    RESET='\033[0m'
+
+    echo -e "${BOLD}${CYAN}Usage:${RESET}"
+
+    echo -e "${BOLD}╔════════════════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${BOLD}* ${GREEN}$0 all${RESET}            ${YELLOW}- Builds the test${RESET}                        ${BOLD}*${RESET}"
+    echo -e "${BOLD}* ${GREEN}$0 clean${RESET}          ${YELLOW}- Cleans the build folder${RESET}                ${BOLD}*${RESET}"
+    echo -e "${BOLD}* ${GREEN}$0 dist_clean${RESET}     ${YELLOW}- Deletes all build and checkout folders${RESET} ${BOLD}*${RESET}"
+    echo -e "${BOLD}* ${GREEN}$0 help/-h/--help${RESET} ${YELLOW}- Prints this message${RESET}                    ${BOLD}*${RESET}"
+    echo -e "${BOLD}╚════════════════════════════════════════════════════════════════════╝${RESET}"
 }
 
 if [ "$1" == "clean" ]; then
     clean_test
+elif [ "$1" == "dist_clean" ]; then
+    dist_clean_test
 elif [ "$1" == "help" ]; then
     help
-else
+elif [ "$1" == "all" ]; then
     install_linux_binder
     generate_audiosink_hal
     build_aidl_libs
@@ -157,4 +179,11 @@ else
     build_ut_core
     make -j`nproc` -C ${TOP}
     install_test
+else
+	# Colors
+    RED='\033[0;31m'
+    BOLD='\033[1m'
+    RESET='\033[0m'
+    echo -e "${BOLD}${RED}Invalid Arguments${RESET}"
+    help
 fi
