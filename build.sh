@@ -5,6 +5,8 @@ declare -r TOP=`dirname $(realpath $0)`
 declare -r UT_CORE_DIR="${TOP}/ut/ut-core"
 declare -r BUILD_DIR="${TOP}/build"
 declare -r BUILD_INSTALL_PREFIX=${BUILD_DIR}/usr
+declare -r AIDL_LIB_DIR=${TOP}/aidl_lib
+declare -r MOCK_SERVICE_DIR="${TOP}/mockservice"
 
 
 DEF_LINUX_BINDER="`realpath ${TOP}/../`/linux_binder_idl"
@@ -21,12 +23,12 @@ mkdir -p $BUILD_DIR
 
 
 if [ ! -x $AIDL_BIN ]; then
-		echo "AIDL_BIN: path does not exists, consdier building the linux_binder_idl in $AIDL_BIN"
-		exit 1
+        echo "AIDL_BIN: path does not exists, consdier building the linux_binder_idl in $AIDL_BIN"
+        exit 1
 fi
 if [ ! -d $LINUX_BINDER_OUT_DIR ]; then
-		echo "LINUX_BINDER_OUT_DIR: path does not exists, consider building the linux_binder_idl in $DEF_LINUX_BINDER"
-		exit 1
+        echo "LINUX_BINDER_OUT_DIR: path does not exists, consider building the linux_binder_idl in $DEF_LINUX_BINDER"
+        exit 1
 fi
 
 # Turning them into absolute path because we may calling change current working directory
@@ -38,56 +40,63 @@ RDK_HALIF_AIDL_VERSION="${RDK_HALIF_AIDL_VERSION="main"}"
 install_linux_binder()
 {
 
-		echo "Install linux-binder \`service manager, headers and libraries'"
-		install -d ${BUILD_INSTALL_PREFIX}/bin ${BUILD_INSTALL_PREFIX}/lib ${BUILD_INSTALL_PREFIX}/include
-		install -t ${BUILD_INSTALL_PREFIX}/bin ${LINUX_BINDER_OUT_DIR}/bin/*
-		install -t ${BUILD_INSTALL_PREFIX}/lib ${LINUX_BINDER_OUT_DIR}/lib/*
-		cp -apr ${LINUX_BINDER_OUT_DIR}/include/* ${BUILD_INSTALL_PREFIX}/include/
+        echo "Install linux-binder \`service manager, headers and libraries'"
+        install -d ${BUILD_INSTALL_PREFIX}/bin ${BUILD_INSTALL_PREFIX}/lib ${BUILD_INSTALL_PREFIX}/include
+        install -t ${BUILD_INSTALL_PREFIX}/bin ${LINUX_BINDER_OUT_DIR}/bin/*
+        install -t ${BUILD_INSTALL_PREFIX}/lib ${LINUX_BINDER_OUT_DIR}/lib/*
+        cp -apr ${LINUX_BINDER_OUT_DIR}/include/* ${BUILD_INSTALL_PREFIX}/include/
 }
 
 
 generate_audiosink_hal()
 {
-	declare -r HAL_BUILD_DIR=${BUILD_DIR}/audiosink_hal
-	declare -r AUDIOSINK_VERSION=current
-	declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen/$AUDIOSINK_VERSION"
-	declare -r RDK_HAL_DIR=${TOP}/rdk-halif-aidl
+    declare -r HAL_BUILD_DIR=${BUILD_DIR}/audiosink_hal
+    declare -r AUDIOSINK_VERSION=current
+    declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen/$AUDIOSINK_VERSION"
+    declare -r RDK_HAL_DIR=${TOP}/rdk-halif-aidl
 
-	if [ ! -d "$RDK_HAL_DIR" ]; then
+    if [ ! -d "$RDK_HAL_DIR" ]; then
         echo "Checking out version: " $RDK_HALIF_AIDL_VERSION
-		git clone -b $RDK_HALIF_AIDL_VERSION 'http://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
-	fi
+        git clone -b $RDK_HALIF_AIDL_VERSION 'http://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
+    fi
 
-	for m in audiosink audiodecoder; do
-	# for m in audiodecoder; do
-		cmake \
-			-DAIDL_BIN=$AIDL_BIN \
-			-DAIDL_GEN_DIR=$AIDL_GEN_DIR \
-			-DAIDL_SRC_VERSION=$AUDIOSINK_VERSION \
-			-DAIDL_TARGET=$m \
-			-B ${HAL_BUILD_DIR}/gen/build/${m}_test \
-			$RDK_HAL_DIR
-	done
+    for m in audiosink audiodecoder; do
+    # for m in audiodecoder; do
+        cmake \
+            -DAIDL_BIN=$AIDL_BIN \
+            -DAIDL_GEN_DIR=$AIDL_GEN_DIR \
+            -DAIDL_SRC_VERSION=$AUDIOSINK_VERSION \
+            -DAIDL_TARGET=$m \
+            -B ${HAL_BUILD_DIR}/gen/build/${m}_test \
+            $RDK_HAL_DIR
+    done
 
 }
 
-build_vcomponent()
+build_mockservice()
 {
     # Invoke Makefile to build the mock_service target
     make -j`nproc` \
-                -C ${TOP}/vcomponent
+                -C ${MOCK_SERVICE_DIR}
 }
 
+build_aidl_libs()
+{
+    pushd ${AIDL_LIB_DIR}
+    make -j`nproc`
+    echo "AIDL Build completed successfully."
+    popd
+}
 
 build_ut_core()
 {
-	if [ ! -d ${UT_CORE_DIR} ]; then
-		git clone https://github.com/rdkcentral/ut-core.git ${UT_CORE_DIR}
-		if [ $? -ne 0 ]; then
-			echo "Failed to clone the repository. Exiting."
-			exit 1
-		fi
-	fi
+    if [ ! -d ${UT_CORE_DIR} ]; then
+        git clone https://github.com/rdkcentral/ut-core.git ${UT_CORE_DIR}
+        if [ $? -ne 0 ]; then
+            echo "Failed to clone the repository. Exiting."
+            exit 1
+        fi
+    fi
 
         pushd ${UT_CORE_DIR}
 
@@ -112,17 +121,40 @@ build_ut_core()
 
 install_test()
 {
-	declare -r INSTALL_PATH=${BUILD_DIR}/bin
+    declare -r INSTALL_PATH=${BUILD_DIR}/bin
 
-	install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/bin/*
-	install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/lib/*
-	install -t ${INSTALL_PATH} run.sh
-	cp -rf ${TOP}/profiles ${INSTALL_PATH}
+    install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/bin/*
+    install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/lib/*
+    install -t ${INSTALL_PATH} run.sh
+    cp -rf ${TOP}/profiles ${INSTALL_PATH}
 }
 
-install_linux_binder
-generate_audiosink_hal
-build_vcomponent
-build_ut_core
-make -j`nproc` -C ${TOP}
-install_test
+clean_test()
+{
+    rm -rf $BUILD_DIR
+    rm -rf src/*.o
+    rm -rf ${MOCK_SERVICE_DIR}/src/*.o
+    rm -rf $RDK_HAL_DIR
+}
+
+help()
+{
+    echo "Usage:"
+    echo "$0 - builds the test"
+    echo "$0 clean - cleans the build folder"
+    echo "$0 help - prints this message"
+}
+
+if [ "$1" == "clean" ]; then
+    clean_test
+elif [ "$1" == "help" ]; then
+    help
+else
+    install_linux_binder
+    generate_audiosink_hal
+    build_aidl_libs
+    build_mockservice
+    build_ut_core
+    make -j`nproc` -C ${TOP}
+    install_test
+fi

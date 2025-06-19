@@ -55,7 +55,7 @@
  * @file vts_audiosink_l2_tests.c
  *
  */
- 
+
 #include <ut_kvp_profile.h>
 #include <ut.h>
 #include <ut_log.h>
@@ -183,7 +183,7 @@ VTS_L2_AudioSink() : UTCore() {}
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
 {
 
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
@@ -194,14 +194,14 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
 
-        for (const auto& [property, value] : validIntPropertyReady) 
+        for (const auto& [property, value] : validIntPropertyReady)
         {
             PropertyValue setValue;
             setValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(value);
- 
+
             /* Set the property and value*/
             AUDIOSINK_SETPROPERTY_SUCCESS(audioSink, property, setValue);
-            
+
             /* Get the resource ID */
             AUDIOSINK_GET_PROPERTY_SUCCESS(audioSink, property, resource_id);
 
@@ -227,7 +227,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
  * **Test Procedure:**
  * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
  */
-UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -244,7 +244,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
         // Flush the audio sink
         AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener, State::STARTED, State::FLUSHING, State::STARTED);
-        
+
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener, State::STARTED, State::STOPPING, State::READY);
@@ -266,7 +266,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -276,7 +276,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
         AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
 
         // Set and verify volume
-        for (double volume = 0.0; volume <= 1.0; volume += 0.1) 
+        for (double volume = 0.0; volume <= 1.0; volume += 0.1)
         {
             Volume setVol;
             setVol.volume = volume;
@@ -305,7 +305,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -315,37 +315,37 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
         AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
 
         // Set and verify volume
-        for (double volume = 0.1; volume <= 1.0; volume += 0.1) 
+        for (double volume = 0.1; volume <= 1.0; volume += 0.1)
         {
             Volume setVol;
             Volume currentVol;
             setVol.volume = volume;
             setVol.muted = true;
-            
+
             /*Set the volume and mute status */
             AUDIOSINK_SETVOLUME_SUCCESS(audioSinkController, setVol);
 
             /*Get the volume and mute status*/
             AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
-            
+
             /*Verify set and get volume should be equal*/
             UT_ASSERT_EQUAL(setVol.volume, currentVol.volume);
 
             /*Verify set and get mute status should be equal*/
             UT_ASSERT_EQUAL(setVol.muted, currentVol.muted);
-             
+
             /*set the mute state to unmute*/
             setVol.muted = false;
 
             /*Set the volume and mute status */
             AUDIOSINK_SETVOLUME_SUCCESS(audioSinkController, setVol);
-        
+
             /*Get the volume and mute status*/
             AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
-                    
+
             /*Verify set and get volume should be equal*/
             UT_ASSERT_EQUAL(setVol.volume, currentVol.volume);
-        
+
             /*Verify set and get mute status should be equal*/
             UT_ASSERT_EQUAL(setVol.muted, currentVol.muted);
 
@@ -367,7 +367,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
  * **Test Procedure:**
  * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
  */
-UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -425,7 +425,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -444,7 +444,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
         std::vector<double> targetVolumes = {0.0, 0.5, 1.0};
         int32_t overMs = 1000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
-        
+
         for (auto& targetVolume : targetVolumes)
         {
             for (auto& volumeRamp : volumeRamps)
@@ -509,7 +509,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
         std::vector<double> targetVolumes = {0.0, 0.5, 1.0};
         int32_t overMs = 1000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
-        
+
         for (auto& targetVolume : targetVolumes)
         {
             for (auto& volumeRamp : volumeRamps)
@@ -531,7 +531,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
                 currentVol.volume = 0.0; //reset volume to zero
                 currentVol.muted = false;
                 AUDIOSINK_SETVOLUME_SUCCESS(audioSinkController, currentVol);
-            
+
             }
         }
 
@@ -546,7 +546,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
 /**
 * @brief Tests the VolumeRamp functionality of AudioSink by verifying state transitions and volume adjustments.
 *
-* This test verifies the correct state transitions and operations of an audio sink. Opens the sink, starts playback, sets VolumeRamp, stops immediately, and verifies the target volume.  
+* This test verifies the correct state transitions and operations of an audio sink. Opens the sink, starts playback, sets VolumeRamp, stops immediately, and verifies the target volume.
 * Ensures proper state transitions from READY to STARTED, back to READY, then CLOSED after closing.
 *
 * **Test Group ID:** 02@n
@@ -555,7 +555,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress) 
+UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
 {
     for (const auto& [audioSink, controlListener, eventListener] : mAudioSinkList)
     {
@@ -569,7 +569,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
         double targetVolume = 0.5;
         int32_t overMs = 10000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
-         
+
          for (auto& volumeRamp : volumeRamps)
          {
                  // Start the audio sink
@@ -577,10 +577,10 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
 
                  /*Set Ramp over target volume and volume ramps type */
                  AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
-                 
+
                  // Stop the audio sink
                  AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
- 
+
                  /*Get the volume and should be equal to the target volume*/
                  AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, currentVol);
                  UT_ASSERT_EQUAL(targetVolume, currentVol.volume);
@@ -589,7 +589,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
                  currentVol.muted = false;
                  AUDIOSINK_SETVOLUME_SUCCESS(audioSinkController, currentVol);
          }
-          
+
          // Close the audio sink
          AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
 
