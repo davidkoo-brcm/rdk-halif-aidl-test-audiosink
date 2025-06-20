@@ -73,56 +73,103 @@ Audio Sink HAL interface takes decoded Audio frame buffers.
 
 #### AV Buffer
 
-Audio frames are supplied to the Audio Sink during testing, which necessitates a pre-validated AVBuffer module. Therefore, the AVBuffer must successfully pass VTS L1, L2, and L3 testing before being used in the Audio Decoder tests
+Audio frames are supplied to the Audio Sink during testing, which necessitates a pre-validated AVBuffer module. Therefore, the AVBuffer must successfully pass VTS L1, L2, and L3 testing before being used in the Audio Sink tests
+
+#### Audio Decoder For Tunnel Cases
+
+Decoded Audio frames are supplied to the Audio Sink during testing for tunnel cases, which necessitates a pre-validated Audio Decoder module. Therefore, the AudioDecoder must successfully pass VTS L1, L2, and L3 testing before being used in the Audio Sink tests
+
 
 ### Feature List
 
 VTS L3 validates all the Audio Sink features in both sequential and concurrent sink modes (if the platform supports multiple sinks) as represented below.
 
-#### Sequential Sink
+#### Sequential Non Tunnel Sink
 
-The Sequential Sink test evaluates each audio sink individually, one after another, to ensure functional correctness across all supported features. This approach helps isolate issues and verify that every sink instance performs as expected in a standalone environment.
+The Sequential Non Tunnel Sink test evaluates each audio sink individually, one after another, to ensure functional correctness across all supported features. This approach helps isolate issues and verify that every sink instance performs as expected in a standalone environment.
 
 ```mermaid
 block-beta
     block:1
-        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder") space AudioSink("AudioSink") space Output("Output")
+        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioSink("AudioSink") space Output("Output")
         AudioStream --> AVBuffer
-        AVBuffer --> AudioDecoder
-        AudioDecoder --> AudioSink
+        AVBuffer --> AudioSink
         AudioSink-->Output
     end
 ```
 
-#### Concurrent Sink
+#### Concurrent Non Tunnel Sink
 
-The Concurrent Sink test assesses the system's ability to handle multiple audio sinks operating simultaneously, each configured with different supported features. This test is designed to validate the robustness, resource management, and feature compatibility of the platform under concurrent load, and is applicable only if the platform supports multiple sink instances.
+The Concurrent Non Tunnel Sink test assesses the system's ability to handle multiple audio sinks operating simultaneously, each configured with different supported features. This test is designed to validate the robustness, resource management, and feature compatibility of the platform under concurrent load, and is applicable only if the platform supports multiple sink instances.
 
 ```mermaid
 block-beta
 columns 1
     block:1
-        AudioStream_1("Audio Stream") space AVBuffer_1("AVBuffer") space AudioDecoder_1("AudioDecoder_1") space AudioSink_1("AudioSink_1") space Output_1("Output")
+        AudioStream_1("Audio Stream") space AVBuffer_1("AVBuffer") space AudioSink_1("AudioSink_1") space Output_1("Output")
         AudioStream_1 --> AVBuffer_1
-        AVBuffer_1 --> AudioDecoder_1
-        AudioDecoder_1-->AudioSink_1
+        AVBuffer_1 --> AudioSink_1
         AudioSink_1 --> Output_1
     end
     space
     block:2
-        AudioStream_2("Audio Stream") space AVBuffer_2("AVBuffer") space AudioDecoder_2("AudioDecoder_2") space AudioSink_2("AudioSink_2") space Output_2("Output")
+        AudioStream_2("Audio Stream") space AVBuffer_2("AVBuffer") space AudioSink_2("AudioSink_2") space Output_2("Output")
         AudioStream_2 --> AVBuffer_2
-        AVBuffer_2 --> AudioDecoder_2
-        AudioDecoder_2-->AudioSink_2
+        AVBuffer_2 --> AudioSink_2
         AudioSink_2 --> Output_2
     end
     space
     block:N
-        AudioStream_N("Audio Stream") space AVBuffer_N("AVBuffer") space AudioDecoder_N("AudioDecoder_N") space AudioSink_N("AudioSink_N") space Output_N("Output")
+        AudioStream_N("Audio Stream") space AVBuffer_N("AVBuffer") space AudioSink_N("AudioSink_N") space Output_N("Output")
+        AudioStream_N --> AVBuffer_N
+        AVBuffer_N --> AudioSink_N
+        AudioSink_N --> Output_N
+    end
+```
+#### Sequential Tunnel Sink
+
+The Sequential Tunnel Sink test evaluates each audio sink individually, one after another, to ensure functional correctness . This approach helps isolate issues and verify that every sink instance performs as expected in a standalone environment.In tunnel mode Decoder should set Sink to tunnel mode any buffers instead bypass to Audio Mixer directly.
+
+```mermaid
+block-beta
+    block:1
+        AudioStream("Audio Stream") space AVBuffer("AVBuffer") space AudioDecoder("AudioDecoder") space AudioMixer("AudioMixer") space Output("Output")
+        AudioStream --> AVBuffer
+        AVBuffer --> AudioDecoder
+        AudioDecoder --> AudioMixer
+        AudioSink-->Output
+    end
+```
+
+#### Concurrent Tunnel Sink
+
+The Concurrent Tunnel Sink test assesses the system's multiple audio sinks functionality simultaneously. This test is designed to validate the robustness, resource management, and feature compatibility of the platform under concurrent load.In tunnel mode Decoder should set concurrent Sink to tunnel mode any buffers instead bypass to Audio Mixer directly.
+
+```mermaid
+block-beta
+columns 1
+    block:1
+        AudioStream_1("Audio Stream") space AVBuffer_1("AVBuffer") space AudioDecoder_1("AudioDecoder_1") space AudiMixer_1("AudioMixer_1") space Output_1("Output")
+        AudioStream_1 --> AVBuffer_1
+        AVBuffer_1 --> AudioDecoder_1
+        AudioDecoder_1-->AudioMixer_1
+        AudioMixer_1 --> Output_1
+    end
+    space
+    block:2
+        AudioStream_2("Audio Stream") space AVBuffer_2("AVBuffer") space AudioDecoder_2("AudioDecoder_2") space AudioMixer_2("AudioMixer_2") space Output_2("Output")
+        AudioStream_2 --> AVBuffer_2
+        AVBuffer_2 --> AudioDecoder_2
+        AudioDecoder_2-->AudioMixer_2
+        AudioMixer_2 --> Output_2
+    end
+    space
+    block:N
+        AudioStream_N("Audio Stream") space AVBuffer_N("AVBuffer") space AudioDecoder_N("AudioDecoder_N") space AudioMixer_N("AudioMixer_N") space Output_N("Output")
         AudioStream_N --> AVBuffer_N
         AVBuffer_N --> AudioDecoder_N
-        AudioDecoder_N-->AudioSink_N
-        AudioSink_N --> Output_N
+        AudioDecoder_N-->AudioMixer_N
+        AudioMixer_N --> Output_N
     end
 ```
 
@@ -130,67 +177,66 @@ The following table outlines the core features validated in the L3 test phase
 
 |#|Testing Feature|Description|
 |-|---------------|-----------|
-|1|Audio Decoder Tunnel/Non-Tunnel|Executes the decoder in tunnel mode. Based on stream format, the decoder chooses between tunnel and non-tunnel operation. In tunnel mode, the test validates only metrics and metadata. In non-tunnel mode, test also validates decoded buffers by comparing their `rms` difference against reference data.|
-|2|Audio Sink Tunnel/Non-Tunnel| In tunnel mode or passthrough, sink cannot handle the audio frames.In non-tunnel mode sink receives PCM data and checks functionality of the sink| 
-|3|Secure and Non-Secure|Initializes the sink in secure mode, ensuring all buffer operations occur in secure memory|
-|4|Underflow|Verifies sink behaviour audio underflow . Ensures appropriate events are raised|
-|5|First Frame Rendered|Verifies sink behaviour audio first frame rendered when ever first frame received . Ensures appropriate events are raised|
-|6|Latency|Verifies sink behaviour latency when ever the frame rendered . Ensures property metric captured|
-|7|Resumed|Verifies sink behaviour audio resumed. Ensures appropriate events are raised|
-|8|EOS|Test the sink's handling of an `eos` (end-of-stream) signal. The sink should correctly sink all frames up to `eos` ensure appropriate events raised. It must ignore any buffers received after `eos`|
-|9|Queue Depth|This test  checks Queue depth and it should not accept any audio frames after `eos` or buffer full passed to it and read the values from the property metrics|
-|10|Error Streams|Verifies sink behaviour with error streams. Ensures appropriate events are raised and frame metadata is updated accurately|
-|11|Flush Complete|Verifies sink behaviour flush complete . Ensures appropriate events are raised|
-|12|Flush|Verifies sink behaviour flush. Ensures appropriate events are raised|
-|13|Concurrent sink|If platform supports multiple sinks, test executes multiple sinks simultaneously, validating callbacks and their respective metrics.|
+|1|Audio Sink Tunnel/Non-Tunnel| In tunnel mode or passthrough, sink cannot handle the audio frames.In non-tunnel mode sink receives PCM data and checks functionality of the sink| 
+|2|Secure and Non-Secure|Initializes the sink in secure mode, ensuring all buffer operations occur in secure memory|
+|3|Underflow|Verifies sink behaviour audio underflow . Ensures appropriate events are raised|
+|4|First Frame Rendered|Verifies sink behaviour audio first frame rendered when ever first frame received . Ensures appropriate events are raised|
+|5|Latency|Verifies sink behaviour latency when ever the frame rendered . Ensures property metric captured|
+|6|Resumed|Verifies sink behaviour audio resumed. Ensures appropriate events are raised|
+|7|EOS|Test the sink's handling of an `eos` (end-of-stream) signal. The sink should correctly sink all frames up to `eos` ensure appropriate events raised. It must ignore any buffers received after `eos`|
+|8|Queue Depth|This test  checks Queue depth and it should not accept any audio frames after `eos` or buffer full passed to it and read the values from the property metrics|
+|9|Error Streams|Verifies sink behaviour with error streams. Ensures appropriate events are raised and frame metadata is updated accurately|
+|10|Flush Complete|Verifies sink behaviour flush complete . Ensures appropriate events are raised|
+|11|Flush|Verifies sink behaviour flush. Ensures appropriate events are raised|
+|12|Concurrent sink|If platform supports multiple sinks, test executes multiple sinks simultaneously, validating callbacks and their respective metrics.|
 
 ### Test Cases
 
 The table below summarizes the L3 test cases executed using various audio stream formats and configurations. These tests are also executed in a multi-process environment:
 
-|#|Test|Decoder Tunnel|Secure|Underflow|FirstFrame|Latency|Resumed|EOS|QueueDepth|Error|Flush|Concurrency|
+|#|Test|Tunnel|Secure|Underflow|FirstFrame|Latency|Resumed|EOS|QueueDepth|Error|Flush|Concurrency|
 |-|----|--------------|------|---------|----------|-------|-------|---|----------|-----|-----|-----------|
-|1|Decode_Sink_Sequential_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|
-|2|Decode_Sink_Sequential_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|3|Decode_Sink_Sequential_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|
-|4|Decode_Sink_Sequential_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|
-|5|Decode_Sink_Sequential_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|6|Decode_Sink_Sequential_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|
-|7|Decode_Sink_Sequential_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|8|Decode_Sink_Sequential_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
-|9|Decode_Sink_Sequential_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✘|
-|10|Decode_Sink_Sequential_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|11|Decode_Sink_Sequential_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|
-|12|Decode_Sink_Sequential_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✘|
-|13|Decode_Sink_Sequential_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|14|Decode_Sink_Sequential_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|
-|15|Decode_Sink_Sequential_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|16|Decode_Sink_Sequential_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
-|17|Decode_Sink_Sequential_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|18|Decode_Sink_Sequential_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|19|Decode_Sink_Sequential_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|20|Decode_Sink_Sequential_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|21|Decode_Sink_Sequential_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|22|Decode_Sink_Sequential_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|23|Decode_Sink_Concurrent_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|
-|24|Decode_Sink_Concurrent_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|25|Decode_Sink_Concurrent_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✔|
-|26|Decode_Sink_Concurrent_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✔|
-|27|Decode_Sink_Concurrent_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|28|Decode_Sink_Concurrent_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✔|
-|29|Decode_Sink_Concurrent_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|30|Decode_Sink_Concurrent_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
-|31|Decode_Sink_Concurrent_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|
-|32|Decode_Sink_Concurrent_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|33|Decode_Sink_Concurrent_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✔|
-|34|Decode_Sink_Concurrent_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✔|
-|35|Decode_Sink_Concurrent_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|36|Decode_Sink_Concurrent_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✔|
-|37|Decode_Sink_Concurrent_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|38|Decode_Sink_Concurrent_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
-|39|Decode_Sink_Concurrent_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|40|Decode_Sink_Concurrent_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|41|Decode_Sink_Concurrent_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|42|Decode_Sink_Concurrent_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|43|Decode_Sink_Concurrent_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|44|Decode_Sink_Concurrent_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|1|Sink_Sequential_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|
+|2|Sink_Sequential_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
+|3|Sink_Sequential_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|
+|4|Sink_Sequential_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|
+|5|Sink_Sequential_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
+|6|Sink_Sequential_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|
+|7|Sink_Sequential_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
+|8|Sink_Sequential_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
+|9|Sink_Sequential_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✘|
+|10|Sink_Sequential_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
+|11|Sink_Sequential_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|
+|12|Sink_Sequential_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✘|
+|13|Sink_Sequential_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
+|14|Sink_Sequential_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|
+|15|Sink_Sequential_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✔|✘|✘|
+|16|Sink_Sequential_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
+|17|Sink_Sequential_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
+|18|Sink_Sequential_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
+|19|Sink_Sequential_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
+|20|Sink_Sequential_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
+|21|Sink_Sequential_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
+|22|Sink_Sequential_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
+|23|Sink_Concurrent_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|
+|24|Sink_Concurrent_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
+|25|Sink_Concurrent_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✔|
+|26|Sink_Concurrent_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✔|
+|27|Sink_Concurrent_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|28|Sink_Concurrent_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✔|
+|29|Sink_Concurrent_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|30|Sink_Concurrent_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
+|31|Sink_Concurrent_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|
+|32|Sink_Concurrent_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
+|33|Sink_Concurrent_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✔|
+|34|Sink_Concurrent_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✔|
+|35|Sink_Concurrent_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|36|Sink_Concurrent_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✔|
+|37|Sink_Concurrent_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|38|Sink_Concurrent_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
+|39|Sink_Concurrent_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
+|40|Sink_Concurrent_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|41|Sink_Concurrent_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|42|Sink_Concurrent_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
+|43|Sink_Concurrent_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|44|Sink_Concurrent_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
