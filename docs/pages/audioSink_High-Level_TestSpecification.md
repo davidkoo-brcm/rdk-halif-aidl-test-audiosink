@@ -185,58 +185,49 @@ The following table outlines the core features validated in the L3 test phase
 |6|Resumed|Verifies sink behaviour audio resumed. Ensures appropriate events are raised|
 |7|EOS|Test the sink's handling of an `eos` (end-of-stream) signal. The sink should correctly sink all frames up to `eos` ensure appropriate events raised. It must ignore any buffers received after `eos`|
 |8|Queue Depth|This test  checks Queue depth and it should not accept any audio frames after `eos` or buffer full passed to it and read the values from the property metrics|
-|9|Error Streams|Verifies sink behaviour with error streams. Ensures appropriate events are raised and frame metadata is updated accurately|
-|10|Flush Complete|Verifies sink behaviour flush complete . Ensures appropriate events are raised|
-|11|Flush|Verifies sink behaviour flush. Ensures appropriate events are raised|
-|12|Concurrent sink|If platform supports multiple sinks, test executes multiple sinks simultaneously, validating callbacks and their respective metrics.|
+|9|Flush Complete|Verifies sink behaviour flush complete . Ensures appropriate events are raised|
+|10|Flush|Verifies sink behaviour flush. Ensures appropriate events are raised|
+|11|Concurrent sink|If platform supports multiple sinks, test executes multiple sinks simultaneously, validating callbacks and their respective metrics.|
 
 ### Test Cases
 
 The table below summarizes the L3 test cases executed using various audio stream formats and configurations. These tests are also executed in a multi-process environment:
 
-|#|Test|Tunnel|Secure|Underflow|FirstFrame|Latency|Resumed|EOS|QueueDepth|Error|Flush|Concurrency|
-|-|----|--------------|------|---------|----------|-------|-------|---|----------|-----|-----|-----------|
-|1|Sink_Sequential_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|
-|2|Sink_Sequential_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|3|Sink_Sequential_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|
-|4|Sink_Sequential_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|
-|5|Sink_Sequential_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|6|Sink_Sequential_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|
-|7|Sink_Sequential_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|8|Sink_Sequential_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
-|9|Sink_Sequential_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✘|
-|10|Sink_Sequential_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|11|Sink_Sequential_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|
-|12|Sink_Sequential_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✘|
-|13|Sink_Sequential_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|14|Sink_Sequential_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|
-|15|Sink_Sequential_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|16|Sink_Sequential_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
-|17|Sink_Sequential_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|18|Sink_Sequential_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|19|Sink_Sequential_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|20|Sink_Sequential_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✘|
-|21|Sink_Sequential_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✘|
-|22|Sink_Sequential_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
-|23|Sink_Concurrent_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|
-|24|Sink_Concurrent_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|25|Sink_Concurrent_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|✔|
-|26|Sink_Concurrent_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|✔|
-|27|Sink_Concurrent_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|28|Sink_Concurrent_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|✔|
-|29|Sink_Concurrent_NonTunnel_NonSecure_Error|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|30|Sink_Concurrent_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
-|31|Sink_Concurrent_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|
-|32|Sink_Concurrent_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|33|Sink_Concurrent_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|✔|
-|34|Sink_Concurrent_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|✔|
-|35|Sink_Concurrent_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|36|Sink_Concurrent_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|✔|
-|37|Sink_Concurrent_NonTunnel_Secure_Error|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|38|Sink_Concurrent_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
-|39|Sink_Concurrent_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|40|Sink_Concurrent_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|41|Sink_Concurrent_Tunnel_NonSecure_Error|✔|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
-|42|Sink_Concurrent_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|✔|
-|43|Sink_Concurrent_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
-|44|Sink_Concurrent_Tunnel_Secure_Error|✔|✔|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|#|Test|Tunnel|Secure|Underflow|FirstFrame|Latency|Resumed|EOS|QueueDepth|Flush|Concurrency|
+|-|----|------|------|---------|----------|-------|-------|---|----------|-----|-----------|
+|1|Sink_Sequential_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✘|
+|2|Sink_Sequential_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✘|
+|3|Sink_Sequential_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✘|
+|4|Sink_Sequential_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✘|
+|5|Sink_Sequential_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✘|
+|6|Sink_Sequential_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✘|
+|7|Sink_Sequential_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✔|✘|
+|8|Sink_Sequential_NonTunnel_Secure_Underflow|✔|✔|✘|✘|✘|✘|✘|✘|✘|✘|
+|9|Sink_Sequential_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✘|
+|10|Sink_Sequential_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✘|
+|11|Sink_Sequential_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✘|
+|12|Sink_Sequential_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✘|
+|13|Sink_Sequential_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✘|✔|✘|✘|
+|14|Sink_Sequential_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✔|✘|
+|15|Sink_Sequential_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|
+|16|Sink_Sequential_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✘|✔|✘|✘|✘|
+|17|Sink_Sequential_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✘|
+|18|Sink_Sequential_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✘|
+|19|Sink_Concurrent_NonTunnel_NonSecure_Underflow|✘|✘|✔|✘|✘|✘|✘|✘|✘|✔|
+|20|Sink_Concurrent_NonTunnel_NonSecure_FirstFrame|✘|✘|✘|✔|✘|✘|✘|✘|✘|✔|
+|21|Sink_Concurrent_NonTunnel_NonSecure_Latency|✘|✘|✘|✘|✔|✘|✘|✘|✘|✔|
+|22|Sink_Concurrent_NonTunnel_NonSecure_Resumed|✘|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|23|Sink_Concurrent_NonTunnel_NonSecure_EOS|✘|✘|✘|✘|✘|✘|✔|✘|✘|✔|
+|24|Sink_Concurrent_NonTunnel_NonSecure_QueueDepth|✘|✘|✘|✘|✘|✘|✘|✔|✘|✔|
+|25|Sink_Concurrent_NonTunnel_NonSecure_Flush|✘|✘|✘|✘|✘|✘|✘|✘|✘|✔|✔|
+|26|Sink_Concurrent_NonTunnel_Secure_Underflow|✘|✔|✔|✘|✘|✘|✘|✘|✘|✔|
+|27|Sink_Concurrent_NonTunnel_Secure_FirstFrame|✘|✔|✘|✔|✘|✘|✘|✘|✘|✔|
+|28|Sink_Concurrent_NonTunnel_Secure_Latency|✘|✔|✘|✘|✔|✘|✘|✘|✘|✔|
+|29|Sink_Concurrent_NonTunnel_Secure_Resumed|✘|✔|✘|✘|✘|✔|✘|✘|✘|✔|
+|30|Sink_Concurrent_NonTunnel_Secure_EOS|✘|✔|✘|✘|✘|✘|✔|✘|✘|✔|
+|31|Sink_Concurrent_NonTunnel_Secure_QueueDepth|✘|✔|✘|✘|✘|✘|✔|✘|✘|✔|
+|32|Sink_Concurrent_NonTunnel_Secure_Flush|✘|✔|✘|✘|✘|✘|✘|✘|✘|✔|✔|
+|33|Sink_Concurrent_Tunnel_NonSecure_FirstFrame|✔|✘|✘|✔|✘|✘|✘|✘|✘|✔|
+|34|Sink_Concurrent_Tunnel_NonSecure_EOS|✔|✘|✘|✘|✘|✔|✘|✘|✘|✔|
+|35|Sink_Concurrent_Tunnel_Secure_FirstFrame|✔|✔|✘|✔|✘|✘|✘|✘|✘|✔|
+|36|Sink_Concurrent_Tunnel_Secure_EOS|✔|✔|✘|✘|✘|✘|✔|✘|✘|✔|
