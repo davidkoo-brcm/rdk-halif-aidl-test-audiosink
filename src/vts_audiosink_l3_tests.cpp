@@ -81,18 +81,19 @@
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
+#include "vts_avbuffer.h"
 
 /* Test class registration with UT_Core */
 UT_ADD_TEST_TO_GROUP(VTS_L3_AudioSink, UT_TESTS_L3);
 
 extern sp<IAudioSinkManager> gAudioSinkManager;
 
-class VTS_L2_AudioSink : public UTCore
+class VTS_L3_AudioSink : public UTCore
 {
 public:
-VTS_L2_AudioSink() : UTCore() {}
+VTS_L3_AudioSink() : UTCore() {}
 
-    ~VTS_L2_AudioSink() override = default;
+    ~VTS_L3_AudioSink() override = default;
 
     public:
         std::vector<std::tuple<sp<IAudioSink>, sp<AudioSinkControllerListener>, sp<AudioSinkEventListener>>> mAudioSinkList;
@@ -172,7 +173,7 @@ VTS_L2_AudioSink() : UTCore() {}
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L2_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
 {
 }
 

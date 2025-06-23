@@ -2,12 +2,12 @@
 
 # Define the directory where the repository will be cloned
 declare -r TOP=`dirname $(realpath $0)`
-declare -r UT_CORE_DIR="${TOP}/ut/ut-core"
+declare -r UT_CORE_DIR="${TOP}/ut-core"
 declare -r BUILD_DIR="${TOP}/build"
 declare -r BUILD_INSTALL_PREFIX=${BUILD_DIR}/usr
 declare -r AIDL_LIB_DIR=${TOP}/aidl_lib
 declare -r MOCK_SERVICE_DIR="${TOP}/mockservice"
-
+declare -r RDK_HAL_DIR=${TOP}/rdk-halif-aidl
 
 DEF_LINUX_BINDER="`realpath ${TOP}/../`/linux_binder_idl"
 # AIDL_BIN: path of aidl compiler
@@ -15,7 +15,6 @@ AIDL_BIN=${AIDL_BIN:-${DEF_LINUX_BINDER}/out/aidl}
 # LINUX_BINDER_OUT_DIR: output installed after building linux_binder_idl
 # contains bin/servicemanager, lib/libbinder etc
 LINUX_BINDER_OUT_DIR=${LINUX_BINDER_OUT_DIR:-${DEF_LINUX_BINDER}/local}
-
 
 # Used in build audiodecoder_hal
 
@@ -47,16 +46,14 @@ install_linux_binder()
         cp -apr ${LINUX_BINDER_OUT_DIR}/include/* ${BUILD_INSTALL_PREFIX}/include/
 }
 
-
 generate_audiosink_hal()
 {
     declare -r HAL_BUILD_DIR=${BUILD_DIR}/audiosink_hal
     declare -r AUDIOSINK_VERSION=current
     declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiosink_gen/$AUDIOSINK_VERSION"
-    declare -r RDK_HAL_DIR=${TOP}/rdk-halif-aidl
 
     if [ ! -d "$RDK_HAL_DIR" ]; then
-        echo "Checking out version: " $RDK_HALIF_AIDL_VERSION
+        echo "Checking out Audio sink version: " $RDK_HALIF_AIDL_VERSION
         git clone -b $RDK_HALIF_AIDL_VERSION 'http://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
     fi
 
@@ -70,6 +67,73 @@ generate_audiosink_hal()
             -B ${HAL_BUILD_DIR}/gen/build/${m}_test \
             $RDK_HAL_DIR
     done
+
+}
+
+generate_audiodecoder_hal()
+{
+    declare -r HAL_BUILD_DIR=${BUILD_DIR}/audiodecoder_aidl
+    declare -r AUDIODECODER_VERSION=current
+    declare -r AIDL_GEN_DIR="${BUILD_DIR}/audiodecoder_gen/$AUDIODECODER_VERSION"
+
+
+    # Clone the repository if not already present
+    if [ ! -d "$RDK_HAL_DIR" ]; then
+        echo "Checking out Audio decoder version: " $RDK_HALIF_AIDL_VERSION
+        git clone -b $RDK_HALIF_AIDL_VERSION 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
+    fi
+
+    # Prepare cmake build directories and configuration for each module
+    cmake \
+        -DAIDL_BIN=$AIDL_BIN \
+        -DAIDL_GEN_DIR=$AIDL_GEN_DIR \
+        -DAIDL_SRC_VERSION=$AUDIODECODER_VERSION \
+        -DAIDL_TARGET=audiodecoder \
+        -B ${HAL_BUILD_DIR}  \
+        $RDK_HAL_DIR
+}
+
+generate_avbuffer_hal()
+{
+    declare -r HAL_BUILD_DIR=${BUILD_DIR}/avbuffer_hal
+    declare -r VERSION=current
+    declare -r AIDL_GEN_DIR="${BUILD_DIR}/avbuffer_gen/$VERSION"
+
+    # Clone the repository if not already present
+    if [ ! -d "$RDK_HAL_DIR" ]; then
+        echo "Checking out AV buffer version: " $RDK_HALIF_AIDL_VERSION
+        git clone -b $RDK_HALIF_AIDL_VERSION 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
+    fi
+
+    for m in avbuffer; do
+        cmake \
+        -DAIDL_BIN=$AIDL_BIN \
+        -DAIDL_GEN_DIR=$AIDL_GEN_DIR \
+        -DAIDL_SRC_VERSION=$VERSION \
+        -DAIDL_TARGET=$m  \
+        -B ${HAL_BUILD_DIR} \
+        $RDK_HAL_DIR
+    done
+}
+
+generate_videodecoder_hal()
+{
+    declare -r HAL_BUILD_DIR=${BUILD_DIR}/videodecoder_aidl
+    declare -r VIDEODECODER_VERSION=current
+    declare -r AIDL_GEN_DIR="${BUILD_DIR}/videodecoder_gen/$VIDEODECODER_VERSION"
+
+    # Clone the repository if not already present
+    if [ ! -d "$RDK_HAL_DIR" ]; then
+        git clone -b $RDK_HALIF_AIDL_VERSION 'ssh://git@github.com/rdkcentral/rdk-halif-aidl.git' $RDK_HAL_DIR
+    fi
+
+    cmake \
+        -DAIDL_BIN=$AIDL_BIN \
+        -DAIDL_GEN_DIR=$AIDL_GEN_DIR \
+        -DAIDL_SRC_VERSION=$VIDEODECODER_VERSION \
+        -DAIDL_TARGET=videodecoder \
+        -B ${HAL_BUILD_DIR} \
+        $RDK_HAL_DIR
 
 }
 
@@ -173,6 +237,9 @@ elif [ "$1" == "help" ]; then
     help
 elif [ "$1" == "all" ]; then
     install_linux_binder
+    generate_avbuffer_hal
+    generate_audiodecoder_hal
+    generate_videodecoder_hal
     generate_audiosink_hal
     build_aidl_libs
     build_mockservice
