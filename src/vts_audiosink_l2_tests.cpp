@@ -122,9 +122,9 @@ VTS_L2_AudioSink() : UTCore() {}
             {
                 sp<IAudioSink> audioSink;
 
-                sp<AudioSinkEventListener> eventListener = new AudioSinkEventListener();
+                sp<AudioSinkEventListener> eventListener = new AudioSinkEventListener(_sinkId.value);
 
-                sp<AudioSinkControllerListener> controlListener = new AudioSinkControllerListener();
+                sp<AudioSinkControllerListener> controlListener = new AudioSinkControllerListener(_sinkId.value);
 
                 /* Get Audio decoder handle */
                 AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);

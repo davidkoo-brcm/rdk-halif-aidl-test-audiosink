@@ -521,7 +521,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_pos)
     for (const auto& _sinkId : sinkIds )
     {
         android::sp<IAudioSinkController> audioSinkController = nullptr;
-        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        android::sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -586,7 +586,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -661,7 +661,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -726,7 +726,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -778,7 +778,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController = nullptr;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
         android::sp<IAudioSinkController> audioSinkController_nullptr = nullptr;
 
         /* Get Audio sink handle */
@@ -836,7 +836,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_pos)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -886,7 +886,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_neg)
     for (const auto& _sinkId : sinkIds )
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
         android::sp<IAudioSinkController> audioSinkController_invalid;
 
         /* Get Audio sink handle */
@@ -946,7 +946,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_pos)
 
     for(const auto& _sinkId: sinkIds)
     {
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
+        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -991,7 +991,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_neg)
 
     for(const auto& _sinkId: sinkIds)
     {
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
+        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener(_sinkId.value);
         sp<IAudioSinkEventListener> eventListener_nullptr = nullptr;
 
         /* Get Audio decoder handle */
@@ -1047,7 +1047,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_pos)
 
     for(const auto& _sinkId: sinkIds)
     {
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
+        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener(_sinkId.value);
 
         /* Get Audio decoder handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1094,7 +1094,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_neg)
 
     for(const auto& _sinkId: sinkIds)
     {
-        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener();
+        sp<IAudioSinkEventListener> eventListener = new AudioSinkEventListener(_sinkId.value);
         sp<IAudioSinkEventListener> eventListener_nullptr = nullptr;
 
         /* Get Audio sink handle */
@@ -1164,7 +1164,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
       for(const auto& _sinkId : sinkIds)
       {
         sp<IAudioSinkController> audioSinkController = nullptr;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1238,7 +1238,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1320,7 +1320,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
       for(const auto& _sinkId : sinkIds)
       {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1381,7 +1381,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
      //for(const auto& _sinkId : sinkIds)
      //{
        // sp<IAudioSinkController> audioSinkController;
-        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
        /* Get Audio sink handle */
        //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1438,7 +1438,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1494,7 +1494,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1551,7 +1551,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1607,7 +1607,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1668,7 +1668,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         // Prepare test inputs
         int64_t nsPresentationTime = -10000; // 1 millisecond in nanoseconds
@@ -1738,7 +1738,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1796,7 +1796,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1857,7 +1857,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1937,7 +1937,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
     //for (const auto& _sinkId : sinkIds)
     //{
         //sp<IAudioSinkController> audioSinkController;
-        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -1993,7 +1993,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2069,7 +2069,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2139,7 +2139,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
@@ -2206,7 +2206,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
     for (const auto& _sinkId : sinkIds)
     {
         sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener();
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);

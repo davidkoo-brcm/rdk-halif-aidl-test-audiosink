@@ -65,13 +65,16 @@
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
 
-std::vector<sinkmanager> gAudiosinks_hfp;
+using namespace std;
+
+vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP()
 {
-    std::string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
-    std::string platformcapabilitespath = AUDIOSINKMGR_PLATFORMCAPS;
-    int32_t number_of_audiosinks;
+    string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
+    std::string audiodecoderPath = "IAudioDecoderManager.IAudioDecoder";
+    string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
+    int32_t number_of_audiosinks, available_sinks_count;
     int32_t platformcapabilites_count;
     sinkmanager temporary;
     platformcap caps;
@@ -89,17 +92,37 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     for(int32_t i = 0; i < number_of_audiosinks; ++i)
     {
-        std::string audiosinkidpath = audiosinkpath + std::to_string(i) + ".id";
+        string audiosinkidpath = audiosinkpath + "." + std::to_string(i) + ".id";
         int32_t sink_id = UT_KVP_PROFILE_GET_UINT32(audiosinkidpath.c_str());
         temporary.ids.push_back(sink_id);
     }
-    
+
+    size_t decoderCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoderPath.c_str());
+
+    for (size_t i = 0; i < decoderCount; ++i)
+    {
+        audiodecoder::IAudioDecoder::Id decoderId;
+        std::string audiodecoderidpath = audiodecoderPath + "." +std::to_string(i) + ".id";
+        int32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
+        decoderId.value = id;
+        temporary.audioDecoderIds.push_back(decoderId);
+    }
+
+    string availableIDPath = string(AUDIOSINKMGR) + ".availableSinks";
+    available_sinks_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableIDPath.c_str());
+    for(int32_t i = 0; i < available_sinks_count; ++i)
+    {
+        string availableIDPathId = availableIDPath + "." + to_string(i);
+        int32_t sink_id = UT_KVP_PROFILE_GET_UINT32(availableIDPathId.c_str());
+        temporary.availableIds.push_back(sink_id);
+    }
+
     // Read platform capabilites attributes
-    std::string lowlatency_path = platformcapabilitespath + ".0.supportsLowLatency";
-    std::string samplerate_path = platformcapabilitespath + ".1.systemMixerSampleRateHz";
-    std::string mixer_pcmformat_path = platformcapabilitespath + ".2.systemMixerPCMFormat";
-    std::string supportsPlanarFormat_path = platformcapabilitespath + ".3.supportsPlanarFormat";
-    
+    string lowlatency_path = platformCapabilitesPath + ".supportsLowLatency";
+    string samplerate_path = platformCapabilitesPath + ".systemMixerSampleRateHz";
+    string mixer_pcmformat_path = platformCapabilitesPath + ".systemMixerPCMFormat";
+    string supportsPlanarFormat_path = platformCapabilitesPath + ".supportsPlanarFormat";
+
     UT_KVP_PROFILE_GET_STRING(lowlatency_path.c_str(), lowlatency_buffer);
     UT_KVP_PROFILE_GET_STRING(samplerate_path.c_str(), samplerate_buffer);
     UT_KVP_PROFILE_GET_STRING(mixer_pcmformat_path.c_str(), mixer_pcmformat_buffer);
@@ -110,9 +133,6 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     caps.mixer_pcmformat = std::string(mixer_pcmformat_buffer);
     caps.supportsPlanarFormat = std::string(supportsPlanarFormat_buffer);
 
-    UT_LOG_INFO("lowlatency %s: samplerate=%s, mixer_pcmformat=%s, supportsplanarformat=%s",
-                        caps.lowlatency.c_str() , caps.samplerate.c_str() , caps.mixer_pcmformat.c_str(), caps.supportsPlanarFormat.c_str());
-    
     temporary.supportedcaps.push_back(caps);
     gAudiosinks_hfp.push_back(temporary);
     temporary.ids.clear();

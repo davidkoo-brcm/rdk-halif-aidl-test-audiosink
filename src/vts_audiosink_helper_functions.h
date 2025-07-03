@@ -95,7 +95,10 @@ using namespace com::rdk::hal::audiosink;
 bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const Property );
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
-com::rdk::hal::audiodecoder::PCMFormat vts_audiosink_helper_StringTocodec(const std::string& );
+audiodecoder::PCMFormat vts_audiosink_helper_StringToFormat(const std::string& format);
+audiodecoder::Codec vts_audiosink_helper_StringTocodec(const std::string& );
+audiodecoder::ChannelType vts_audiosink_helper_StringToChannelType(const std::string& channelType);
+size_t vts_bytesPerSample(audiodecoder::PCMFormat format);
 
 #endif //__VTS_AUDIOSINK_HELPER_H__
 

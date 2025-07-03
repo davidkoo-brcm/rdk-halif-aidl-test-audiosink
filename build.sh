@@ -144,6 +144,20 @@ build_mockservice()
                 -C ${MOCK_SERVICE_DIR}
 }
 
+generate_avbufferhelper_skeleton()
+{
+    declare -r AVBUFFER_HELPER_DIR=${MOCK_SERVICE_DIR}/avbufferhelper
+    mkdir -p $AVBUFFER_HELPER_DIR/build
+    cd $AVBUFFER_HELPER_DIR/build
+
+    cmake ..
+    make
+
+    cp libavbufferhelper.so ${BUILD_DIR}/usr/lib/
+    cd -
+    rm -rf $AVBUFFER_HELPER_DIR/build
+}
+
 build_aidl_libs()
 {
     pushd ${AIDL_LIB_DIR}
@@ -162,24 +176,24 @@ build_ut_core()
         fi
     fi
 
-        pushd ${UT_CORE_DIR}
+    pushd ${UT_CORE_DIR}
 
-        git fetch -q -t origin
-        # get the latest version of ut-core
-                if [ -z "$UT_CORE_VERSION" ]; then
-                        UT_CORE_VERSION=`git tag | sort -Vr | head -n1`
-                fi
+    git fetch -q -t origin
+    # get the latest version of ut-core
+            if [ -z "$UT_CORE_VERSION" ]; then
+                    UT_CORE_VERSION=`git tag | sort -Vr | head -n1`
+            fi
 
-        git checkout $UT_CORE_VER
+    git checkout $UT_CORE_VERSION
 
-        ./build.sh TARGET=linux VARIANT=CPP
-        if [ $? -ne 0 ]; then
-                echo "Build script failed. Exiting."
-                exit 1
-        fi
+    ./build.sh TARGET=linux VARIANT=CPP
+    if [ $? -ne 0 ]; then
+            echo "Build script failed. Exiting."
+            exit 1
+    fi
 
-        echo "Build completed successfully."
-        popd
+    echo "Build completed successfully."
+    popd
 
 }
 
@@ -191,6 +205,9 @@ install_test()
     install -t ${INSTALL_PATH} ${BUILD_DIR}/usr/lib/*
     install -t ${INSTALL_PATH} run.sh
     cp -rf ${TOP}/profiles ${INSTALL_PATH}
+    cp -rf ${TOP}/test_configuration ${INSTALL_PATH}
+    cp -rf ${TOP}/stream_configuration ${INSTALL_PATH}
+    rm -rf ${INSTALL_PATH}/libavbufferhelper.so
 }
 
 dist_clean_test()
@@ -240,6 +257,7 @@ elif [ "$1" == "all" ]; then
     generate_avbuffer_hal
     generate_audiodecoder_hal
     generate_videodecoder_hal
+    generate_avbufferhelper_skeleton
     generate_audiosink_hal
     build_aidl_libs
     build_mockservice

@@ -73,6 +73,9 @@
 #include <ut_kvp.h>
 #include <ut_log.h>
 
+using namespace com::rdk::hal;
+//using namespace com::rdk::hal::audiodecoder;
+
 struct platformcap
 {
     std::string lowlatency;
@@ -84,11 +87,14 @@ struct platformcap
 struct sinkmanager
 {
     std::vector<int32_t> ids;
+    std::vector<int32_t> availableIds;
     std::vector<platformcap> supportedcaps;
+    std::vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
 };
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
 
+#define AUDIOSINKMGR "IAudioSinkManager"
 #define AUDIOSINKMGR_IAUDIOSINK "IAudioSinkManager.IAudioSink"
 #define AUDIOSINKMGR_PLATFORMCAPS "IAudioSinkManager.platformCapabilities"
 

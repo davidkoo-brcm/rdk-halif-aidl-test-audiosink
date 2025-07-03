@@ -36,6 +36,12 @@ $(info RDK_HALIF_AIDL_VERSION: $(RDK_HALIF_AIDL_VERSION))
 
 # Assign VERSION and RDK_HALIF_AIDL_VERSION to CXXFLAGS
 CXXFLAGS := -DHALIF_TEST_TAG_VERSION=\"$(VERSION)\" -DRDK_HALIF_AIDL_VERSION=\"$(RDK_HALIF_AIDL_VERSION)\"
+
+# TODO: remove this once the ut-core implements runtime logging configuration
+ifeq ($(DISABLE_UT_DEBUG_LOGGING),1)
+CXXFLAGS += -DDISABLE_UT_DEBUG_LOGGING
+endif
+
 $(info CXXFLAGS: $(CXXFLAGS))
 
 ROOT_DIR := $(CURDIR)
@@ -49,6 +55,7 @@ INC_DIRS += $(ROOT_DIR)/build/avbuffer_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/videodecoder_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/audiodecoder_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/usr/include
+INC_DIRS += $(ROOT_DIR)/mockservice/avbufferhelper
 INC_DIRS += $(ROOT_DIR)/src/
 
 
@@ -56,7 +63,7 @@ XLDFLAGS := -L$(ROOT_DIR)/build/usr/lib
 XLDFLAGS += -Wl,-rpath-link=$(ROOT_DIR)/build/usr/lib
 XLDFLAGS += -lbinder -lutils
 XLDFLAGS += -laudiosinkaidl
-XLDFLAGS += -laudiodecoderaidl
+XLDFLAGS += -laudiodecoderaidl -lavbufferaidl -lvideodecoderaidl
 
 
 # required for std::optional

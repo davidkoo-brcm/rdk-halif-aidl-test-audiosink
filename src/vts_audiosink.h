@@ -67,6 +67,9 @@
 
 #include <thread>
 #include <chrono>
+#include <queue>
+#include <condition_variable>
+#include <mutex>
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
@@ -79,7 +82,10 @@ using android::defaultServiceManager;
 using android::binder::Status;
 
 using namespace com::rdk::hal;
+using namespace std;
 using namespace com::rdk::hal::audiosink;
+
+extern void *gTestConfiguration;
 
 /* Status::Exception */
 const static ut_control_keyStringMapping_t statusException_mapTable[] =
@@ -110,12 +116,16 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500
 
+#ifdef DISABLE_UT_DEBUG_LOGGING
+#define UT_LOG_DEBUG(...)
+#endif
+
 #define AUDIOSINK_MANAGER_GETAUDIOSINKIDS(audioSinkIds) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling getAudioSinkIds(OUT:sinkIds:[])"); \
+        UT_LOG_DEBUG("Calling getAudioSinkIds(OUT:sinkIds:[])"); \
         status = (gAudioSinkManager)->getAudioSinkIds(&audioSinkIds); \
-        UT_LOG_INFO("Result getAudioSinksIds(status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getAudioSinksIds(status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE_FATAL(status.isOk()); \
@@ -125,9 +135,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_GETPLATFORMCAPABILITIES(platformCapabilities) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("getPlatformCapabilities(OUT:platformCapabilities[])"); \
+        UT_LOG_DEBUG("getPlatformCapabilities(OUT:platformCapabilities[])"); \
         status = (gAudioSinkManager)->getPlatformCapabilities(&platformCapabilities); \
-        UT_LOG_INFO("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -137,9 +147,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling getAudioSink(IN:audioSinkId:[%d], OUT:audioSink[])", _sinkId.value); \
+        UT_LOG_DEBUG("Calling getAudioSink(IN:audioSinkId:[%d], OUT:audioSink[])", _sinkId.value); \
         status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
-        UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
                                 _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE_FATAL(status.isOk()); \
@@ -151,9 +161,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling getAudioSink(IN:_sinkId:[%d], OUT:audioSink[])", _sinkId.value); \
+        UT_LOG_DEBUG("Calling getAudioSink(IN:_sinkId:[%d], OUT:audioSink[])", _sinkId.value); \
         status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
-        UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
                                 _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -164,9 +174,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIODSINK_GETCAPABILITIES(audioSink, capabilities) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling getCapabilities(OUT:capabilities)"); \
+        UT_LOG_DEBUG("Calling getCapabilities(OUT:capabilities)"); \
         status = (audioSink)->getCapabilities(&capabilities); \
-        UT_LOG_INFO("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getCapabilities(OUT:capabilities), status:[isOK:%s, exception:%s]", \
                                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -178,18 +188,18 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         ::com::rdk::hal::State state; \
-        UT_LOG_INFO("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
+        UT_LOG_DEBUG("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
         status = (audioSink)->getProperty(property, &propertyValue); \
         switch (propertyValue->value.value().getTag()) \
         { \
             case PropertyValue::Value::Tag::intValue: \
-                UT_LOG_INFO("Result getProperty(IN:property[%s], OUT:propertyValue[%d]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
+                UT_LOG_DEBUG("Result getProperty(IN:property[%s], OUT:propertyValue[%d]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
                 propertyValue->value->get<PropertyValue::Value::Tag::intValue>(), \
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
                 break; \
             case PropertyValue::Value::Tag::stringValue: \
-                UT_LOG_INFO("Result getProperty(IN:property[%s], OUT:propertyValue[%s]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
+                UT_LOG_DEBUG("Result getProperty(IN:property[%s], OUT:propertyValue[%s]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
                 propertyValue->value->get<PropertyValue::Value::Tag::stringValue>().string(), \
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -203,9 +213,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         ::com::rdk::hal::State state; \
-        UT_LOG_INFO("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
+        UT_LOG_DEBUG("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
         status = (audioSink)->getProperty(property, &propertyValue); \
-        UT_LOG_INFO("Result getProperty(IN:property[%s], OUT:propertyValue[]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
+        UT_LOG_DEBUG("Result getProperty(IN:property[%s], OUT:propertyValue[]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -215,9 +225,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_GET_STATE(audioSink, state) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling getState(OUT:state[]"); \
+        UT_LOG_DEBUG("Calling getState(OUT:state[]"); \
         status = (audioSink)->getState(&state); \
-        UT_LOG_INFO("Result getState(OUT:state[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::toString(state).c_str(), \
+        UT_LOG_DEBUG("Result getState(OUT:state[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::toString(state).c_str(), \
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -239,9 +249,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
+        UT_LOG_DEBUG("Calling open(IN:controllerListener[0x%p], OUT:audioSinkController[])", (controllerListener).get()); \
         status = (audioSink)->open((controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", (controllerListener).get(),\
+        UT_LOG_DEBUG("Result open(IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", (controllerListener).get(),\
             (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -260,10 +270,10 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_OPEN_FAILURE(audioSink, controllerListener, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
+        UT_LOG_DEBUG("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
         status = (audioSink)->open((controllerListener), &(audioSinkController)); \
-        UT_LOG_INFO("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
@@ -275,9 +285,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling close(IN:audioSinkController[0x%p], OUT:_aidl_return[])", audioSinkController.get()); \
+        UT_LOG_DEBUG("Calling close(IN:audioSinkController[0x%p], OUT:_aidl_return[])", audioSinkController.get()); \
         status = audioSink->close(audioSinkController, &_aidl_return); \
-        UT_LOG_INFO("Result close(IN:audioSinkController[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result close(IN:audioSinkController[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             audioSinkController.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -296,9 +306,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling close(OUT:_aidl_return[])"); \
+        UT_LOG_DEBUG("Calling close(OUT:_aidl_return[])"); \
         status = (audioSink)->close(audioSinkController, &_aidl_return); \
-        UT_LOG_INFO("Result close(OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result close(OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -311,9 +321,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
+        UT_LOG_DEBUG("Calling registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->registerEventListener(eventListener, &_aidl_return); \
-        UT_LOG_INFO("Result registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             eventListener.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -326,9 +336,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return = false; \
-        UT_LOG_INFO("Calling registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
+        UT_LOG_DEBUG("Calling registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->registerEventListener(eventListener, &_aidl_return); \
-        UT_LOG_INFO("Result registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result registerEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             eventListener.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -344,9 +354,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
+        UT_LOG_DEBUG("Calling unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->unregisterEventListener(eventListener, &_aidl_return); \
-        UT_LOG_INFO("Result unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             eventListener.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -359,9 +369,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return = false; \
-        UT_LOG_INFO("Calling unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
+        UT_LOG_DEBUG("Calling unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[])", eventListener.get()); \
         status = (audioSink)->unregisterEventListener(eventListener, &_aidl_return); \
-        UT_LOG_INFO("Result unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result unregisterEventListener(IN:eventListener[0x%p], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", \
             eventListener.get(), UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -373,9 +383,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling start()"); \
+        UT_LOG_DEBUG("Calling start()"); \
         status = (audioSinkController)->start(); \
-        UT_LOG_INFO("Result start(), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result start(), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -391,9 +401,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_START_FAILURE(audioSink, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling start()"); \
+        UT_LOG_DEBUG("Calling start()"); \
         status = (audioSinkController)->start(); \
-        UT_LOG_INFO("Result start(), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result start(), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
@@ -403,9 +413,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling stop()"); \
+        UT_LOG_DEBUG("Calling stop()"); \
         status = (audioSinkController)->stop(); \
-        UT_LOG_INFO("Result stop(), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result stop(), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -421,9 +431,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_STOP_FAILURE(audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling stop()"); \
+        UT_LOG_DEBUG("Calling stop()"); \
         status = (audioSinkController)->stop(); \
-        UT_LOG_INFO("Result stop(), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result stop(), status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
@@ -436,9 +446,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audioDecoderId; \
         audioDecoderId.value = decoderId; \
         bool aidl_return; \
-        UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
+        UT_LOG_DEBUG("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
         status = (audioSinkController)->setAudioDecoder(audioDecoderId, &aidl_return); \
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, aidl_return ? "true" : "false", \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -452,9 +462,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audioDecoderId; \
         audioDecoderId.value = decoderId; \
         bool aidl_return = false; \
-        UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
+        UT_LOG_DEBUG("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
         status = (audioSinkController)->setAudioDecoder(audioDecoderId, &aidl_return); \
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, aidl_return ? "true" : "false", \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -466,9 +476,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioDecoderId, audioSinkController) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[], OUT:_aidl_return[])"); \
+        UT_LOG_DEBUG("Calling setAudioDecoder(IN:audioDecoderId:[], OUT:_aidl_return[])"); \
         status = (audioSinkController)->getAudioDecoder(&audioDecoderId); \
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result setAudioDecoder(IN:audioDecoderId:[%d], status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -478,9 +488,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_GETAUDIODECODER_FAILURE(audioDecoderId, audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling setAudioDecoder(OUT:audioDecoderId:[]"); \
+        UT_LOG_DEBUG("Calling setAudioDecoder(OUT:audioDecoderId:[]"); \
         status = (audioSinkController)->getAudioDecoder(&audiodecoderId);\
-        UT_LOG_INFO("Result setAudioDecoder(OUT:audioDecoderId:[%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result setAudioDecoder(OUT:audioDecoderId:[%d]), status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -488,14 +498,29 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
+#define AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(audioSinkcontroller, nsPresentationTime, bufferHandle, metadata) \
+    do { \
+        ::android::binder::Status status; \
+        bool aidl_return; \
+        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+                    nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
+        status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
+        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+                    nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
+                    UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_TRUE(aidl_return); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+        UT_ASSERT_TRUE(status.isOk()); \
+        } while(0)
+
 #define AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkcontroller, nsPresentationTime, bufferHandle, metadata, exception) \
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        UT_LOG_INFO("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[%lld], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
         status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_INFO("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[%lld], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(aidl_return); \
@@ -506,9 +531,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, stateCheck) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling flush"); \
+        UT_LOG_DEBUG("Calling flush"); \
         status = (audioSinkController)->flush(); \
-        UT_LOG_INFO("Result flush(status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result flush(status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -525,9 +550,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_FLUSH_FAILURE(audioDecoderController, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling flush"); \
+        UT_LOG_DEBUG("Calling flush"); \
         status = (audioSinkController)->flush(); \
-        UT_LOG_INFO("Result flush(status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result flush(status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
@@ -538,10 +563,10 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[])", com::rdk::hal::audiosink::toString(property).c_str(), \
+        UT_LOG_DEBUG("Calling setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[])", com::rdk::hal::audiosink::toString(property).c_str(), \
                       propertyValue.value); \
         status = (audioSink)->setProperty(property, propertyValue, &_aidl_return); \
-        UT_LOG_INFO("Result setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value, \
+        UT_LOG_DEBUG("Result setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value, \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -554,9 +579,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return = false; \
-        UT_LOG_INFO("Calling setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[])", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value); \
+        UT_LOG_DEBUG("Calling setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[])", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value); \
         status = (audioSink)->setProperty(property, propertyValue, &_aidl_return); \
-        UT_LOG_INFO("Result setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value, \
+        UT_LOG_DEBUG("Result setProperty(IN:property[%s], IN:propertyValue[0x%X], OUT:_aidl_return[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(property).c_str(), propertyValue.value, \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -569,9 +594,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
+        UT_LOG_DEBUG("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
         status = (audioSinkController)->setVolume(volumeSet, &(_aidl_return)); \
-        UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
+        UT_LOG_DEBUG("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
             UT_Control_GetMapString(bool_mapTable, volumeSet.muted), \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
@@ -584,9 +609,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
+        UT_LOG_DEBUG("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
         status = (audioSinkController)->setVolume(volumeSet, &(_aidl_return)); \
-        UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
+        UT_LOG_DEBUG("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:volumeSetResult:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
             UT_Control_GetMapString(bool_mapTable, volumeSet.muted), \
             UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
@@ -600,9 +625,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling getVolume(OUT:volumeGet[])"); \
+        UT_LOG_DEBUG("Calling getVolume(OUT:volumeGet[])"); \
         status = (audioSinkController)->getVolume(&volumeGet); \
-        UT_LOG_INFO("Result getVolume(OUT:volumeGet[volume:%f, muted:%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getVolume(OUT:volumeGet[volume:%f, muted:%s]), status:[isOK:%s, exception:%s]", \
             volumeGet.volume,UT_Control_GetMapString(bool_mapTable, volumeGet.muted), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -613,9 +638,9 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 #define AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_INFO("Calling getVolume(OUT:volumeGet[])"); \
+        UT_LOG_DEBUG("Calling getVolume(OUT:volumeGet[])"); \
         status = (audioSinkController)->getVolume(&volumeGet); \
-        UT_LOG_INFO("Result getVolume(OUT:status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getVolume(OUT:status:[isOK:%s, exception:%s]", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode()));\
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
@@ -626,10 +651,10 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn)", targetVolume, \
+        UT_LOG_DEBUG("Calling setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn)", targetVolume, \
             overMs, static_cast<int32_t>(volumeRamp)); \
         status = (audioSinkController)->setVolumeRamp(targetVolume, overMs, volumeRamp, &_aidl_return); \
-        UT_LOG_INFO("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn:[%s]), status:[isOK:%s, exception:%s]", targetVolume, \
+        UT_LOG_DEBUG("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn:[%s]), status:[isOK:%s, exception:%s]", targetVolume, \
             overMs, static_cast<int32_t>(volumeRamp), _aidl_return ? "true" : "false", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -641,10 +666,10 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
     do { \
         ::android::binder::Status status; \
         bool _aidl_return; \
-        UT_LOG_INFO("Calling setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn)", targetVolume, \
+        UT_LOG_DEBUG("Calling setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn)", targetVolume, \
             overMs, static_cast<int32_t>(volumeRamp)); \
         status = (audioSinkController)->setVolumeRamp(targetVolume, overMs, volumeRamp, &_aidl_return); \
-        UT_LOG_INFO("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn:[%s]), status:[isOK:%s, exception:%s]", targetVolume, \
+        UT_LOG_DEBUG("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn:[%s]), status:[isOK:%s, exception:%s]", targetVolume, \
             overMs, static_cast<int32_t>(volumeRamp), _aidl_return ? "true" : "false", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
@@ -675,183 +700,105 @@ const static ut_control_keyStringMapping_t bool_mapTable[] =
 
 class AudioSinkControllerListener: public BnAudioSinkControllerListener
 {
-    public:
-        AudioSinkControllerListener() = default;
-        virtual ~AudioSinkControllerListener() = default;
+public:
+    AudioSinkControllerListener(int32_t sinkID)
+       : BnAudioSinkControllerListener(),
+         mUnderFlowCount(0),
+         mFlushCompleteCount(0),
+         mSinkID(sinkID)
+    {
+    }
+    virtual ~AudioSinkControllerListener() = default;
 
-        Status onStateChanged(State oldState,State newState) override
-        {
-            UT_LOG_INFO("\nControllerListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
-            {
-                std::lock_guard<std::mutex> lock(mMutex);
-                mStateChanges.emplace_back(oldState, newState);
-                mCurrentState = newState;
-            }
-            mCV.notify_all(); // Unblock any waiting test code
-            return Status::ok();
-        }
+    Status onStateChanged(State oldState,State newState) override;
+    Status onFirstFrameRendered(int64_t nsPresentationTime) override;
+    Status onEndOfStream(int64_t nsPresentationTime) override;
+    Status onAudioUnderflow() override;
+    Status onAudioResumed(int64_t nsPresentationTime) override;
+    Status onFlushComplete() override;
 
-        Status onFirstFrameRendered(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            firstframerendered.push_back(nsPresentationTime);
-            return Status::ok();
-        }
+    bool waitForState(State desiredState, std::chrono::milliseconds timeout);
+    void resetStateChanges();
+    bool checkStateTransistion(State expOldState, State expNewState);
+    bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
+    bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
+    bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
+    int32_t getUnderFlowCount(bool reset);
+    int32_t getFlushCompleteCount(bool reset);
+private:
+    mutable mutex mStateMutex;
+    mutable mutex mFFMutex;
+    mutable mutex mEOSMutex;
+    mutable mutex mUnderFlowMutex;
+    mutable mutex mResumeMutex;
+    mutable mutex mFlushMutex;
+    condition_variable mCV;
+    condition_variable mFFRenderAvailable;
+    condition_variable mEOSAvailable;
+    condition_variable mUnderFlowAvailable;
+    condition_variable mResumeAvailable;
+    condition_variable mFlushCompleteAvailable;
 
-        Status onEndOfStream(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            endofstream.push_back(nsPresentationTime);
-            return Status::ok();
-        }
+    State mCurrentState;
+    vector<std::pair<State, State>> mStateChanges;
+    queue<int64_t> mFirstframerendered;
+    queue<int64_t> mEndofstream;
+    queue<int64_t> mAudioresumed;
 
-        Status onAudioUnderflow() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-
-        Status onAudioResumed(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            audioresumed.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onFlushComplete() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-
-        bool waitForState(State desiredState, std::chrono::milliseconds timeout)
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            // Wait until mCurrentState == desiredState or until timeout
-            return mCV.wait_for(lock, timeout, [this, desiredState]() {
-                return (mCurrentState == desiredState);
-            });
-        }
-
-        void resetStateChanges()
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            mStateChanges.clear();
-        }
-
-        bool checkStateTransistion(State expOldState, State expNewState)
-        {
-            bool foundClosedToOpening = false;
-            for (const auto &[oldState, newState] : mStateChanges)
-            {
-                if (oldState == expOldState && newState == expNewState)
-                {
-                    foundClosedToOpening = true;
-                    break;
-                }
-            }
-            return foundClosedToOpening;
-        }
-
-    private:
-        mutable std::mutex mMutex;
-        std::condition_variable mCV;
-
-        State mCurrentState;
-        std::vector<std::pair<State, State>> mStateChanges;
-        std::vector<int64_t> firstframerendered;
-        std::vector<int64_t> endofstream;
-        std::vector<int64_t> audioresumed;
+    int32_t mUnderFlowCount;
+    int32_t mFlushCompleteCount;
+    int32_t mSinkID;
 };
 
 class AudioSinkEventListener: public BnAudioSinkEventListener
 {
-    public:
-        AudioSinkEventListener(): mCurrentState(State::CLOSED) {}
-        virtual ~AudioSinkEventListener() = default;
+public:
+    AudioSinkEventListener(int32_t sinkID)
+       : BnAudioSinkEventListener(),
+         mUnderFlowCount(0),
+         mFlushCompleteCount(0),
+         mSinkID(sinkID)
+    {
+    }
+    virtual ~AudioSinkEventListener() = default;
 
-        Status onStateChanged(State oldState,State newState) override
-        {
-            UT_LOG_INFO("\nEventListener State Change received: %s -> %s\n", com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
-            {
-                std::lock_guard<std::mutex> lock(mMutex);
-                mStateChanges.emplace_back(oldState, newState);
-                mCurrentState = newState;
-            }
-            mCV.notify_all(); // Unblock any waiting test code
-            return Status::ok();
-        }
+    Status onStateChanged(State oldState,State newState) override;
+    Status onFirstFrameRendered(int64_t nsPresentationTime) override;
+    Status onEndOfStream(int64_t nsPresentationTime) override;
+    Status onAudioUnderflow() override;
+    Status onAudioResumed(int64_t nsPresentationTime) override;
+    Status onFlushComplete() override;
 
-        Status onFirstFrameRendered(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            firstframerendered.push_back(nsPresentationTime);
-            return Status::ok();
-        }
+    bool waitForState(State desiredState, std::chrono::milliseconds timeout);
+    void resetStateChanges();
+    bool checkStateTransistion(State expOldState, State expNewState);
+    bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
+    bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
+    bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
+    int32_t getUnderFlowCount(bool reset);
+    int32_t getFlushCompleteCount(bool reset);
+private:
+    mutable mutex mStateMutex;
+    mutable mutex mFFMutex;
+    mutable mutex mEOSMutex;
+    mutable mutex mUnderFlowMutex;
+    mutable mutex mResumeMutex;
+    mutable mutex mFlushMutex;
+    condition_variable mCV;
+    condition_variable mFFRenderAvailable;
+    condition_variable mEOSAvailable;
+    condition_variable mUnderFlowAvailable;
+    condition_variable mResumeAvailable;
+    condition_variable mFlushCompleteAvailable;
 
-        Status onEndOfStream(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            endofstream.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onAudioUnderflow() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-
-        Status onAudioResumed(int64_t nsPresentationTime) override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            audioresumed.push_back(nsPresentationTime);
-            return Status::ok();
-        }
-
-        Status onFlushComplete() override
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            return Status::ok();
-        }
-
-        bool waitForState(State desiredState, std::chrono::milliseconds timeout)
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            // Wait until mCurrentState == desiredState or until timeout
-            return mCV.wait_for(lock, timeout, [this, desiredState]() {
-                return (mCurrentState == desiredState);
-            });
-        }
-
-        void resetStateChanges()
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            mStateChanges.clear();
-        }
-
-        bool checkStateTransistion(State expOldState, State expNewState)
-        {
-            bool foundClosedToOpening = false;
-            for (const auto &[oldState, newState] : mStateChanges)
-            {
-                if (oldState == expOldState && newState == expNewState)
-                {
-                    foundClosedToOpening = true;
-                    break;
-                }
-            }
-            return foundClosedToOpening;
-        }
-    private:
-        mutable std::mutex mMutex;
-        std::condition_variable mCV;
-
-        State mCurrentState;
-        std::vector<std::pair<State, State>> mStateChanges;
-        std::vector<int64_t> firstframerendered;
-        std::vector<int64_t> endofstream;
-        std::vector<int64_t> audioresumed;
+    State mCurrentState;
+    vector<std::pair<State, State>> mStateChanges;
+    queue<int64_t> mFirstframerendered;
+    queue<int64_t> mEndofstream;
+    queue<int64_t> mAudioresumed;
+    int32_t mUnderFlowCount;
+    int32_t mFlushCompleteCount;
+    int32_t mSinkID;
 };
 #endif //__VTS_AUDIOSINK_H__
 

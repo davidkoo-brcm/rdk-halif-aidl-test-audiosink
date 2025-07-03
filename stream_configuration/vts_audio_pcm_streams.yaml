@@ -1,0 +1,13 @@
+AudioStreams:
+  tones_48k_2_1536_pcm:
+    input: tones_48k_2_1536.pcm # Stream name
+    reference:
+    codec: PCM # audio codec information, Refer `Codec` enum
+    sample_rate: 48000 #Sample rate in `Hz`
+    channels: 2 #Number of audio channels
+    channel_types:
+      - FRONT_LEFT
+      - FRONT_RIGHT
+    format: S16LE # `pcm` format of the reference stream. Refer `PCMFormat` enum
+    num_of_frames: 30 #Total number of frames in the stream
+    frame_size: 1024 #Size of each frame in bytes

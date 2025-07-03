@@ -66,9 +66,11 @@
 #include <ut_log.h>
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
+#include "vts_audiosink_parse_testconfig.h"
 
 UT_status_t vts_audiosink_getAudioSinkService();
 sp<IAudioSinkManager> gAudioSinkManager;
+void *gTestConfiguration;
 
 UT_status_t VTS_AudioSink_init()
 {
@@ -81,8 +83,14 @@ UT_status_t VTS_AudioSink_init()
         UT_LOG_ERROR("Failed to process the HFP file");
         return UT_STATUS_FAILURE;
     }
+    gTestConfiguration = vts_kvp_create_instance(VTS_TEST_CONFIG_PATH);
 
     return UT_STATUS_OK;
+}
+
+void VTS_AudioSink_destroy()
+{
+    vts_kvp_destroy_instance(gTestConfiguration);
 }
 
 /** @} */ // End of AUDIO_SINK_HALTEST_INIT
