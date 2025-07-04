@@ -179,10 +179,11 @@ private:
             audiodecoder::FrameMetadata metadata;
             DecodedAudioFrame_t decodedFrame;
             int32_t frameCount = 0;
+            int64_t firstFramePTS = -1;
 
             avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
-            UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
+            UT_LOG_ERROR("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
 
             /* Open the Decoder */
@@ -196,11 +197,15 @@ private:
             while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
             {
                 frameCount++;
-                if (frameCount == 1 && !decodedFrame.isMetaAvailable)
+                if (frameCount == 1)
                 {
-                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
-                    UT_ASSERT_TRUE(false);
-                    break;
+                    firstFramePTS = decodedFrame.framePTS;
+                    if(!decodedFrame.isMetaAvailable)
+                    {
+                        UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                        UT_ASSERT_TRUE(false);
+                        break;
+                    }
                 }
                 if(decodedFrame.isMetaAvailable)
                 {
@@ -231,10 +236,17 @@ private:
                     AUDIOSINK_FLUSH_SUCCESS(mSinkHandle, audioSinkController, true);
                     UT_LOG_INFO("[SinkID: %d] Flushed the decoder at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
                 }
-                auto now = std::chrono::high_resolution_clock::now();
-                auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-                UT_LOG_ERROR("[SinkID: %d] Current time: %lld us", mSinkId.value, static_cast<long long>(us));
+                //auto now = std::chrono::high_resolution_clock::now();
+                //auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+                //UT_LOG_ERROR("[SinkID: %d] Current time: %lld us", mSinkId.value, static_cast<long long>(us));
                 AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, audioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata);
+            }
+
+            /* Validate the callback */
+            {
+                int64_t firstFrameRenderedPTS = -1;
+                UT_ASSERT_TRUE(mControlListener->getNextFirstFrameRenderedPTS(firstFrameRenderedPTS));
+                UT_ASSERT_EQUAL(firstFramePTS, firstFrameRenderedPTS);
             }
 
             if(mTestConfiguration.decoderDelay > 0)
@@ -274,10 +286,10 @@ private:
             AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, audioSinkController, true);
 
         } catch (const std::exception& ex) {
-            UT_LOG_ERROR("[SinkID: %d] Exception in decodeAndConsumeAudioStreams: %s", mSinkId.value, ex.what());
+            UT_LOG_ERROR("[SinkID: %d] Exception in audioSinkNonTunnelTest: %s", mSinkId.value, ex.what());
             UT_ASSERT_TRUE(false);
         } catch (...) {
-            UT_LOG_ERROR("[SinkID: %d] Unknown exception in decodeAndConsumeAudioStreams", mSinkId.value);
+            UT_LOG_ERROR("[SinkID: %d] Unknown exception in audioSinkNonTunnelTest", mSinkId.value);
             UT_ASSERT_TRUE(false);
         }
     }
