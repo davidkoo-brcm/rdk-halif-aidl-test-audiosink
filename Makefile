@@ -46,6 +46,7 @@ $(info CXXFLAGS: $(CXXFLAGS))
 
 ROOT_DIR := $(CURDIR)
 SRC_DIRS := $(ROOT_DIR)/src
+SRC_DIRS += $(ROOT_DIR)/decoder_src
 SRC_DIRS += $(ROOT_DIR)/test
 BIN_DIR := $(ROOT_DIR)/build/bin
 LIB_DIR := $(ROOT_DIR)/build/$(TARGET)/lib
@@ -57,13 +58,14 @@ INC_DIRS += $(ROOT_DIR)/build/audiodecoder_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/usr/include
 INC_DIRS += $(ROOT_DIR)/mockservice/avbufferhelper
 INC_DIRS += $(ROOT_DIR)/src/
+INC_DIRS += $(ROOT_DIR)/decoder_src/
 
 
 XLDFLAGS := -L$(ROOT_DIR)/build/usr/lib
 XLDFLAGS += -Wl,-rpath-link=$(ROOT_DIR)/build/usr/lib
 XLDFLAGS += -lbinder -lutils
 XLDFLAGS += -laudiosinkaidl
-XLDFLAGS += -laudiodecoderaidl -lavbufferaidl -lvideodecoderaidl
+XLDFLAGS += -laudiodecoderaidl -lavbufferaidl -lvideodecoderaidl  -lavbufferhelper
 
 
 # required for std::optional

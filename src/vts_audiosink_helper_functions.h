@@ -83,6 +83,9 @@
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkEventListener.h"
 #include "com/rdk/hal/audiodecoder/PCMFormat.h"
+#include "com/rdk/hal/audiodecoder/IAudioDecoderManager.h"
+#include "com/rdk/hal/audiodecoder/BnAudioDecoderControllerListener.h"
+#include "com/rdk/hal/audiodecoder/BnAudioDecoderEventListener.h"
 
 using android::sp;
 using android::String16;

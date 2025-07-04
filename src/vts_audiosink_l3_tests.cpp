@@ -85,11 +85,13 @@
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
 #include "vts_avbuffer.h"
-#include "vts_audiosink_parse_testconfig.h"
 
 #include "IAVBufferHelper.h"
+#include "vts_audiodecoder_parse_testconfig.h"
+#include "vts_audiodecoder.h"
 
 static const char *gModuleName = "IAudioSinkManager";
+static const char *gAudioModuleName = "IAudioDecoderManager";
 static const char *gTestGroup = "L3";
 static IAVBufferHelper* gAVbufferHelper;
 
@@ -102,76 +104,6 @@ sp<IAVBuffer> vts_avbuffer_getService()
             )
         );
 }
-
-#define AVBUFFER_CREATE_AUDIOPOOL_SUCCESS(avBufferManager, secureHeap, audioSinkId, listener, audioPool) \
-    do { \
-        UT_LOG_INFO("Calling createAudioPool(IN:secureHeap:[%d], IN:audioSinkId:[%d], IN:listener:[%p], OUT:audioPool)", \
-                    secureHeap, audioSinkId.value, listener.get()); \
-        Status status = avBufferManager->createAudioPool(secureHeap, audioSinkId, listener, &audioPool); \
-        UT_LOG_INFO("Result createAudioPool(IN:secureHeap:[%d], IN:audioSinkId:[%d], IN:listener:[%p], OUT:audioPool.handle:[%d]), status:[isOK:%s, exception:%s]", \
-                    secureHeap, audioSinkId.value, listener.get(), audioPool.handle, \
-                    UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_NOT_EQUAL(audioPool.handle, Pool::INVALID); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
-    } while (0)
-
-#define AVBUFFER_DESTROY_POOL_SUCCESS(avBufferManager, pool) \
-    do { \
-        bool _aidl_return = false; \
-        Status status; \
-        UT_LOG_INFO("Calling destroyPool(IN:poolHandle:[%d], OUT:_aidl_return:[])", pool); \
-        status = avBufferManager->destroyPool(pool, &_aidl_return); \
-        UT_LOG_INFO("Result destroyPool with (IN:poolHandle:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
-                    pool.handle, UT_Control_GetMapString(bool_mapTable, _aidl_return), \
-                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
-                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_TRUE(_aidl_return); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
-    } while (0)
-
-#define AVBUFFER_ALLOC_SUCCESS(avBufferManager, pool, size, bufferHandle) \
-    do { \
-        UT_LOG_INFO("Calling alloc(IN:poolHandle:[%d], IN:size:[%d], OUT:bufferHandle)", pool.handle, size); \
-        Status status = avBufferManager->alloc(pool, size, &bufferHandle); \
-        UT_LOG_INFO("Result alloc(IN:poolHandle:[%d], IN:size:[%d], OUT:bufferHandle:[0x%X]), status:[isOK:%s, exception:%s]", \
-                    pool.handle, size, bufferHandle, UT_Control_GetMapString(bool_mapTable, status.isOk()), \
-                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_NOT_EQUAL(bufferHandle, IAVBuffer::INVALID_HANDLE); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
-    } while (0)
-
-#define AVBUFFER_FREE_SUCCESS(avBufferManager, bufferHandle) \
-    do { \
-        bool _aidl_return = false; \
-        UT_LOG_INFO("Calling free(IN:bufferHandle:[0x%X], OUT:_aidl_return)", bufferHandle); \
-        Status status = avBufferManager->free(bufferHandle, &_aidl_return); \
-        UT_LOG_INFO("Result free(IN:bufferHandle:[0x%X], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
-                    bufferHandle, UT_Control_GetMapString(bool_mapTable, _aidl_return), \
-                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
-                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
-        UT_ASSERT_TRUE(_aidl_return); \
-    } while (0)
-
-#define AVBUFFER_GETMETRICS(avBufferManager, secureHeap, heapMetrics) \
-    do { \
-        UT_LOG_INFO("Calling getHeapMetrics(IN:secureHeap:[%s], OUT:heapMetrics[])", \
-                    UT_Control_GetMapString(bool_mapTable, secureHeap)); \
-        Status status = avBufferManager->getHeapMetrics(secureHeap, &heapMetrics); \
-        UT_LOG_INFO("Result getHeapMetrics(IN:secureHeap:[%s], OUT:heapMetrics[secure:%s, bytesUsed:%d, bytesTotal:%d]), status:[isOK:%s, exception:%s]", \
-                    UT_Control_GetMapString(bool_mapTable, secureHeap), \
-                    UT_Control_GetMapString(bool_mapTable, heapMetrics.secure), \
-                    heapMetrics.bytesUsed, \
-                    heapMetrics.bytesTotal, \
-                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
-                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_TRUE(status.isOk()); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
-    } while (0)
 
 /* Test class registration with UT_Core */
 UT_ADD_TEST_TO_GROUP(VTS_L3_AudioSink, UT_TESTS_L3);
@@ -196,7 +128,7 @@ class SinkTest
 public:
     SinkTest(IAudioSink::Id sinkId, sp<IAudioSink> sinkHandle,
              sp<AudioSinkControllerListener> controlListener,
-             sp<AudioSinkEventListener> eventListener,
+             sp<AudioSinkEventListener> eventListener, sp<AudioDecoderControllerListener> decoderControlListener,
              sp<IAVBuffer> AVBufferManager, IAudioDecoder::Id decoderId,
              bool secureDecode, bool isTunnel, testConfiguration_t config)
     {
@@ -208,6 +140,7 @@ public:
         mEventListener = eventListener;
         mTestConfiguration = config;
         mAVBufferManager = AVBufferManager;
+        mdecoderControlListener = decoderControlListener;
         mIsTunnel = isTunnel;
     }
 
@@ -230,6 +163,7 @@ private:
     sp<AudioSinkControllerListener> mControlListener;
     sp<AudioSinkEventListener> mEventListener;
     sp<IAVBuffer> mAVBufferManager;
+    sp<AudioDecoderControllerListener> mdecoderControlListener;
     bool mSecureBuffer;
     bool mIsTunnel;
     testConfiguration_t mTestConfiguration;
@@ -243,27 +177,13 @@ private:
             PropertyValue avSourcePropertyValue;
             sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
             audiodecoder::FrameMetadata metadata;
+            DecodedAudioFrame_t decodedFrame;
+            int32_t frameCount = 0;
 
             avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
             UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
-            metadata.sourceCodec = mTestConfiguration.codec;
-            metadata.isDolbyAtmos = false;
-            metadata.numChannels = mTestConfiguration.numChannels;
-            metadata.channelTypes = mTestConfiguration.channelTypes;
-            metadata.sampleRate = mTestConfiguration.sampleRate;
-            metadata.format = mTestConfiguration.format;
-            metadata.planarFormat = false;
-            metadata.trimStartNs = 0;
-            metadata.trimEndNs = 0;
-            metadata.lowLatency = false;
-            metadata.endOfStream = false;
-            metadata.discontinuity = false;
-            metadata.source = AVSource::SYSTEM;
-
-            /* Create Audio Pool */
-            AVBUFFER_CREATE_AUDIOPOOL_SUCCESS(mAVBufferManager, mSecureBuffer, mDecoderId, bufferListener, audioPool);
 
             /* Open the Decoder */
             AUDIOSINK_OPEN_SUCCESS(mSinkHandle, mControlListener, audioSinkController, true);
@@ -273,20 +193,85 @@ private:
             /* Start the decoder */
             AUDIOSINK_START_SUCCESS(mSinkHandle, audioSinkController, true);
 
-            UT_LOG_INFO("[BHANU] pts size: %zu, value: %lld, framesize: %d", mTestConfiguration.pts.size(), mTestConfiguration.pts[0], mTestConfiguration.frameSizeInBytes);
-            for(const auto& pts: mTestConfiguration.pts)
+            while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
             {
-                /* Allocate the audio buffer */
-                AVBUFFER_ALLOC_SUCCESS(mAVBufferManager, audioPool, mTestConfiguration.frameSizeInBytes, audioBufferHandle);
+                frameCount++;
+                if (frameCount == 1 && !decodedFrame.isMetaAvailable)
+                {
+                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                    UT_ASSERT_TRUE(false);
+                    break;
+                }
+                if(decodedFrame.isMetaAvailable)
+                {
+                    metadata.channelTypes = decodedFrame.metadata.channelTypes;
+                    metadata.numChannels = decodedFrame.metadata.numChannels;
+                    metadata.sampleRate = decodedFrame.metadata.sampleRate;
+                    metadata.format = decodedFrame.metadata.format;
+                    metadata.planarFormat = decodedFrame.metadata.planarFormat;
+                    metadata.isDolbyAtmos = decodedFrame.metadata.isDolbyAtmos;
+                    metadata.trimStartNs = decodedFrame.metadata.trimStartNs;
+                    metadata.trimEndNs = decodedFrame.metadata.trimEndNs;
+                    metadata.lowLatency = decodedFrame.metadata.lowLatency;
+                    metadata.endOfStream = decodedFrame.metadata.endOfStream;
+                    metadata.discontinuity = decodedFrame.metadata.discontinuity;
+                    metadata.source = decodedFrame.metadata.source;
+                    metadata.sourceCodec = decodedFrame.metadata.sourceCodec;
+                }
+                if(mTestConfiguration.decoderDelay > 0)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(mTestConfiguration.decoderDelay));
+                }
+                if(mTestConfiguration.eosPts == decodedFrame.framePTS)
+                {
+                    metadata.endOfStream = true;
+                }
+                if(mTestConfiguration.flushPts == decodedFrame.framePTS)
+                {
+                    AUDIOSINK_FLUSH_SUCCESS(mSinkHandle, audioSinkController, true);
+                    UT_LOG_INFO("[SinkID: %d] Flushed the decoder at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
+                }
+                auto now = std::chrono::high_resolution_clock::now();
+                auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+                UT_LOG_ERROR("[SinkID: %d] Current time: %lld us", mSinkId.value, static_cast<long long>(us));
+                AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, audioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata);
+            }
 
-                AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(audioSinkController, pts, audioBufferHandle, metadata);
+            if(mTestConfiguration.decoderDelay > 0)
+            {
+                int64_t resumedPTS = -1;
+                UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) > 0);
+                UT_ASSERT_TRUE(mControlListener->getNextAudioResumedPTS(resumedPTS));
+                UT_ASSERT_TRUE(resumedPTS >= 0);
+            }
+            else
+            {
+                int64_t resumedPTS = -1;
+                UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) == 0);
+                UT_ASSERT_FALSE(mControlListener->getNextAudioResumedPTS(resumedPTS));
+            }
+
+            if(mTestConfiguration.eosPts >= 0)
+            {
+                int64_t endOfStreamPTS = -1;
+                UT_ASSERT_TRUE(mControlListener->getNextEndOfStreamPTS(endOfStreamPTS));
+                UT_ASSERT_TRUE(endOfStreamPTS >= 0);
+            }
+
+            if(mTestConfiguration.flushPts >= 0)
+            {
+                UT_ASSERT_TRUE(mControlListener->getFlushCompleteCount(true));
+            }
+            else
+            {
+                UT_ASSERT_FALSE(mControlListener->getFlushCompleteCount(true));
             }
 
             /* Stop the Audio sink */
             AUDIOSINK_STOP_SUCCESS(mSinkHandle, audioSinkController, true);
 
-            /* Destroy audio pool */
-            AVBUFFER_DESTROY_POOL_SUCCESS(mAVBufferManager, audioPool);
+            /* Close the Audio sink */
+            AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, audioSinkController, true);
 
         } catch (const std::exception& ex) {
             UT_LOG_ERROR("[SinkID: %d] Exception in decodeAndConsumeAudioStreams: %s", mSinkId.value, ex.what());
@@ -312,17 +297,25 @@ VTS_L3_AudioSink() : UTCore() {}
 
 public:
     std::vector<std::tuple<IAudioSink::Id, sp<IAudioSink>, sp<AudioSinkControllerListener>, sp<AudioSinkEventListener>>> mAudioSinkList;
+    vector<tuple<IAudioDecoder::Id, sp<IAudioDecoder>, sp<AudioDecoderControllerListener>, sp<AudioDecoderEventListener>, audiodecoder::Capabilities *>> mAudioDecoderList;
     sp<IAVBuffer> mAVBufferManager;
+    IAVBufferHelper* mAVbufferHelper;
 
     void SetUp() override
     {
         std::vector<IAudioSink::Id> sinkIds;
+        vector<IAudioDecoder::Id> decoderIds;
 
         mAVBufferManager = vts_avbuffer_getService();
         gTestConfiguration = vts_kvp_create_instance(VTS_TEST_CONFIG_PATH);
 
+        mAVbufferHelper = getAVBufferHelperInstance();
+
         /* Get the Audio Sink IDs */
         AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+        /* Get the Audio decoder IDs */
+        AUDIODECODER_MANAGER_GETAUDIODECODERIDS(decoderIds);
 
         android::ProcessState::self()->startThreadPool();
 
@@ -345,6 +338,30 @@ public:
             //AUDIOSINK_GETCAPABILITIES(audioSink, capabilities);
 
             mAudioSinkList.push_back({_sinkId, audioSink, controlListener, eventListener});
+        }
+        for(const auto& _decoderId: decoderIds)
+        {
+            sp<IAudioDecoder> audioDecoder;
+
+            audiodecoder::Capabilities *capabilities = new audiodecoder::Capabilities();
+
+            sp<AudioDecoderEventListener> eventListener = new AudioDecoderEventListener();
+
+            sp<AudioDecoderControllerListener> controlListener = new AudioDecoderControllerListener();
+
+            controlListener->setDecoderID(_decoderId.value);
+            eventListener->setDecoderID(_decoderId.value);
+
+            /* Get Audio decoder handle */
+            AUDIODECODER_MANAGER_GETAUDIODECODER(_decoderId, audioDecoder);
+
+            /* Register events */
+            AUDIODECODER_REGISTER_EVENT_SUCCESS(audioDecoder, eventListener);
+
+            /* Get Capabilities of Audio Decoder */
+            AUDIODECODER_GETCAPABILITIES(audioDecoder, capabilities);
+
+            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, capabilities});
         }
     }
 
@@ -393,21 +410,33 @@ public:
                 continue;
             }
 
-            /* Get heap metrics */
-            AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
+            if (!mAudioDecoderList.empty())
+            {
+                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList.front();
 
-            SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener,
-                              mAVBufferManager, gAudiosinks_hfp[0].audioDecoderIds[0], secureDecode, isTunnel, testConfig);
+                DecoderTest decodeTest(_decoderId, decoderHandle, decoderControlListener,
+                                        decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig);
 
-            sinkTest.run();
+                std::thread decodeThread(&DecoderTest::run, &decodeTest, false);
 
-            /* Get heap metrics */
-            AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
+                /* Get heap metrics */
+                AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
-            /* check if the decoder freed all the buffer pools */
-            UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
-            UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
-            UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
+                SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
+                                  mAVBufferManager, _decoderId, secureDecode, isTunnel, testConfig);
+
+                sinkTest.run();
+
+                decodeThread.join();
+
+                /* Get heap metrics */
+                AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
+
+                /* check if the decoder freed all the buffer pools */
+                UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
+                UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
+                UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
+            }
 
             /* TODO: check if this required or not */
             //controlListener->shutdown();
@@ -426,7 +455,7 @@ public:
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
             std::vector<std::unique_ptr<SinkTest>> decoderTests;
-            for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
+            /*for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
             {
                 auto decoderTest = std::make_unique<SinkTest>(_sinkId, sinkHandle,
                                                                 controlListener, eventListener,
@@ -440,7 +469,7 @@ public:
             {
                 if (t.joinable())
                     t.join();
-            }
+            }*/
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
@@ -462,7 +491,7 @@ public:
     {
         vector<testConfiguration_t> testConfiguration;
 
-        vts_audiosink_parse_testconfig(gTestConfiguration, gModuleName, gTestGroup, testName, testConfiguration);
+        vts_audiodecoder_parse_testconfig(gTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
 
         if(isConcurrentMode)
         {
@@ -508,7 +537,7 @@ public:
 */
 UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure)
 {
-    const char *testName = "QueueFrames";
+    const char *testName = "Decode";
     bool isSecureMode = false;
     bool isConcurrentMode = false;
     bool isTunnel = false;

@@ -155,7 +155,7 @@ bool AudioSinkControllerListener::getNextFirstFrameRenderedPTS(int64_t &firstFra
 
     if (!gotEvent)
     {
-        UT_LOG_ERROR("Frist Frame Rendered Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
 
@@ -201,7 +201,7 @@ bool AudioSinkControllerListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_ERROR("End of Stream Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     endOfStreamPTS = mEndofstream.front();
@@ -275,7 +275,7 @@ bool AudioSinkControllerListener::getNextAudioResumedPTS(int64_t &audioResumedPT
     );
     if (!gotEvent)
     {
-        UT_LOG_ERROR("Audio Resumed Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     audioResumedPTS = mAudioresumed.front();
@@ -418,7 +418,7 @@ bool AudioSinkEventListener::getNextFirstFrameRenderedPTS(int64_t &firstFramePTS
 
     if (!gotEvent)
     {
-        UT_LOG_ERROR("Frist Frame Rendered Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
 
@@ -464,7 +464,7 @@ bool AudioSinkEventListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_ERROR("End of Stream Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     endOfStreamPTS = mEndofstream.front();
@@ -538,7 +538,7 @@ bool AudioSinkEventListener::getNextAudioResumedPTS(int64_t &audioResumedPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_ERROR("Audio Resumed Event not received after %d msec", MAX_WAIT_TIME);
+        UT_LOG_WARNING("[SinkID: %d] Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     audioResumedPTS = mAudioresumed.front();

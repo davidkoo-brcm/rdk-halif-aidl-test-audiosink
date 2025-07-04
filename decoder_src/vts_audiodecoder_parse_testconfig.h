@@ -67,38 +67,46 @@
 
 #include <ut.h>
 #include <ut_log.h>
-#include <vector>
 #include "ut_kvp_profile.h"
-#include "vts_audiosink_helper_functions.h"
-#include "vts_audiosink_parse_hfp.h"
+
+#include "com/rdk/hal/audiodecoder/IAudioDecoderManager.h"
+#include "com/rdk/hal/audiodecoder/BnAudioDecoderControllerListener.h"
+#include "com/rdk/hal/audiodecoder/BnAudioDecoderEventListener.h"
+
+#define VTS_TEST_CONFIG_PATH "./test_configuration/vts_l3_test_config.yaml"
+#define VTS_STREAM_CONFIG_PATH "./test_configuration/vts_stream_list.yaml"
+#define STREAM_DOWNLOAD_PATH "IAudioDecoderManager.stream_download_path"
+#define STREAM_INPUT_PATH "IAudioDecoderManager.input_streams_path"
+#define STREAM_REF_PATH "IAudioDecoderManager.reference_streams_path"
 
 using namespace std;
 using namespace com::rdk::hal;
-using namespace com::rdk::hal::audiodecoder;
-
-#define VTS_TEST_CONFIG_PATH "./test_configuration/vts_l3_test_config.yaml"
 
 typedef struct testConfiguration
 {
     std::string input;
-    Codec codec;
+    std::string reference;
+    audiodecoder::Codec codec;
     int32_t sampleRate;
     int32_t numChannels;
-    PCMFormat format;
+    audiodecoder::PCMFormat format;
     int32_t numOfFrames;
-    int32_t frameSize;
-    int32_t frameSizeInBytes;
-    int32_t sinkDelay;
+    double rms_diff_threashold;
+    int64_t decodeTime;
+    int64_t trimStartNs;
+    int64_t trimEndNs;
+    int32_t decoderDelay;
     int64_t stopPts;
+    int64_t discontinuityPts;
     int64_t flushPts;
+    int64_t flushRestPts;
     int64_t eosPts;
-    vector<audiodecoder::ChannelType> channelTypes;
-    vector<int64_t> pts;
+    /* Frame size, PTS, error frame */
+    std::vector<std::tuple<int32_t, int64_t, bool>> frameDetails;
 }testConfiguration_t;
 
 void* vts_kvp_create_instance(char *fileName);
-UT_status_t vts_audiosink_parse_testconfig(void* pTestInstance, const char *module, const char *testGroup,
-                                           const char *testName, std::vector<testConfiguration_t>& streamDetails);
+UT_status_t vts_audiodecoder_parse_testconfig(void* pTestInstance, const char *module, const char *testGroup, const char *testName, std::vector<testConfiguration_t>& streamDetails);
 void vts_kvp_destroy_instance(void *instance);
 
 #endif //__VTS_AUDIODECODER_PARSE_TESTCONFIG_H__
