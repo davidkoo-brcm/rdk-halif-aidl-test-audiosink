@@ -183,8 +183,7 @@ private:
 
             avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
-            UT_LOG_ERROR("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
-
+            UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
             /* Open the Decoder */
             AUDIOSINK_OPEN_SUCCESS(mSinkHandle, mControlListener, audioSinkController, true);
@@ -516,9 +515,7 @@ public:
         {
             for(auto& test: testConfiguration)
             {
-
                 runSequentialSink(test, isSecureMode, isTunnel);
-
             }
         }
     }
