@@ -89,6 +89,7 @@ struct sinkmanager
     std::vector<int32_t> ids;
     std::vector<int32_t> availableIds;
     std::vector<platformcap> supportedcaps;
+    bool supportsSecure;
     std::vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
 };
 

@@ -1,0 +1,48 @@
+IAudioDecoderManager:
+  L3: #Test Level
+    Decode_Underflow: #Test Name
+      Controls:
+        delay_between_decode_calls: 200 # Insert delay in msec between each `decodeBuffer()` call
+        stop_start_pts: -1 #`pts` value in nano seconds at which the decoder should be stopped and restarted during the test. -1 indicates that decoder should not be restarted
+        signal_discontinuity_pts: -1 #`pts` value in nano seconds at which the test should signal discontinuity to the decoder. -1 indicates that no discontinuity signal should be sent
+        flush_pts: -1 #`pts` value in nano seconds that determine when the test should flush the decoder. -1 indicates that test should not flush
+        flush_reset_pts: -1 #`pts` value in nano seconds that determine when the test should flush with reset the decoder. -1 indicates that test should not flush
+        eos_pts: -1 #`pts` value in nano seconds that determine when the test should sent `eos` signal to decoder. -1 indicates that test should not signal `eos`
+        sink_eos_pts: -1
+        sink_flush_pts: -1
+      Inputs:
+        Streams:
+          - Name: tones_48k_2_256_aac
+            PTS:
+              - 0
+              - 21333333
+              - 42666666
+              - 63999999
+              - 85333332
+              - 106666665
+              - 127999998
+              - 149333331
+              - 170666664
+              - 191999997
+            trim:
+              - 0
+              - 0
+            decode_time_threshold: 100000
+            rms_diff_threshold: 0.5
+          - Name: tones_48k_2_192_ac3
+            PTS:
+              - 0
+              - 21333333
+              - 42666666
+              - 63999999
+              - 85333332
+              - 106666665
+              - 127999998
+              - 149333331
+              - 170666664
+              - 191999997
+            trim:
+              - 0
+              - 0
+            rms_diff_threshold: 0.5
+            decode_time_threshold: 100000

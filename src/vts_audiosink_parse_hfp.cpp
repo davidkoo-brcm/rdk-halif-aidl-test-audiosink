@@ -108,6 +108,8 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         temporary.audioDecoderIds.push_back(decoderId);
     }
 
+    temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("IAudioSinkManager.supportsSecure");
+
     string availableIDPath = string(AUDIOSINKMGR) + ".availableSinks";
     available_sinks_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableIDPath.c_str());
     for(int32_t i = 0; i < available_sinks_count; ++i)

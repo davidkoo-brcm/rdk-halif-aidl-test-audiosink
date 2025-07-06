@@ -231,6 +231,8 @@ UT_status_t vts_audiodecoder_parse_testconfig(void* pTestInstance, const char *m
         string flushPts     = controlList + "." + "flush_pts";
         string flushRestPts = controlList + "." + "flush_reset_pts";
         string eosPts       = controlList + "." + "eos_pts";
+        string sinkEosPts       = controlList + "." + "sink_eos_pts";
+        string sinkFlushPts       = controlList + "." + "sink_flush_pts";
 
         ut_kvp_getStringField(kvpTestInstance, input.c_str(), resultKVP, UT_KVP_MAX_ELEMENT_SIZE);
         fullPath = currentPath;
@@ -294,6 +296,8 @@ UT_status_t vts_audiodecoder_parse_testconfig(void* pTestInstance, const char *m
         testDetails.flushPts     = ut_kvp_getUInt64Field(kvpTestInstance, flushPts.c_str());
         testDetails.flushRestPts = ut_kvp_getUInt64Field(kvpTestInstance, flushRestPts.c_str());
         testDetails.eosPts       = ut_kvp_getUInt64Field(kvpTestInstance, eosPts.c_str());
+        testDetails.sinkEosPts   = ut_kvp_getUInt64Field(kvpTestInstance, sinkEosPts.c_str());
+        testDetails.sinkFlushPts = ut_kvp_getUInt64Field(kvpTestInstance, sinkFlushPts.c_str());
 
         testConfiguration.push_back(testDetails);
     }

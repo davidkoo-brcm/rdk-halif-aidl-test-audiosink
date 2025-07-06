@@ -226,14 +226,15 @@ private:
                 {
                     this_thread::sleep_for(chrono::milliseconds(mTestConfiguration.decoderDelay));
                 }
-                if(mTestConfiguration.eosPts == decodedFrame.framePTS)
+                if(mTestConfiguration.sinkEosPts == decodedFrame.framePTS)
                 {
+                    UT_LOG_WARNING("[SinkID: %d] set EOS at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
                     metadata.endOfStream = true;
                 }
-                if(mTestConfiguration.flushPts == decodedFrame.framePTS)
+                if(mTestConfiguration.sinkFlushPts == decodedFrame.framePTS)
                 {
                     AUDIOSINK_FLUSH_SUCCESS(mSinkHandle, audioSinkController, true);
-                    UT_LOG_INFO("[SinkID: %d] Flushed the decoder at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
+                    UT_LOG_WARNING("[SinkID: %d] Flushed the decoder at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
                 }
                 //auto now = std::chrono::high_resolution_clock::now();
                 //auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
@@ -243,40 +244,72 @@ private:
 
             /* Validate the callback */
             {
+                /* Control listener */
                 int64_t firstFrameRenderedPTS = -1;
                 UT_ASSERT_TRUE(mControlListener->getNextFirstFrameRenderedPTS(firstFrameRenderedPTS));
+                UT_ASSERT_EQUAL(firstFramePTS, firstFrameRenderedPTS);
+
+                /* Event listener */
+                firstFrameRenderedPTS = -1;
+                UT_ASSERT_TRUE(mEventListener->getNextFirstFrameRenderedPTS(firstFrameRenderedPTS));
                 UT_ASSERT_EQUAL(firstFramePTS, firstFrameRenderedPTS);
             }
 
             if(mTestConfiguration.decoderDelay > 0)
             {
+                /* Control listener */
                 int64_t resumedPTS = -1;
                 UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) > 0);
                 UT_ASSERT_TRUE(mControlListener->getNextAudioResumedPTS(resumedPTS));
                 UT_ASSERT_TRUE(resumedPTS >= 0);
+
+                /* Event listener */
+                resumedPTS = -1;
+                UT_ASSERT_TRUE(mEventListener->getUnderFlowCount(true) > 0);
+                UT_ASSERT_TRUE(mEventListener->getNextAudioResumedPTS(resumedPTS));
+                UT_ASSERT_TRUE(resumedPTS >= 0);
             }
             else
             {
+                /* Control listener */
                 int64_t resumedPTS = -1;
                 UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) == 0);
                 UT_ASSERT_FALSE(mControlListener->getNextAudioResumedPTS(resumedPTS));
+
+                /* Event listener */
+                resumedPTS = -1;
+                UT_ASSERT_TRUE(mEventListener->getUnderFlowCount(true) == 0);
+                UT_ASSERT_FALSE(mEventListener->getNextAudioResumedPTS(resumedPTS));
             }
 
-            if(mTestConfiguration.eosPts >= 0)
+            if(mTestConfiguration.sinkEosPts >= 0)
             {
+                /* Control listener */
                 int64_t endOfStreamPTS = -1;
                 UT_ASSERT_TRUE(mControlListener->getNextEndOfStreamPTS(endOfStreamPTS));
                 UT_ASSERT_TRUE(endOfStreamPTS >= 0);
+
+                /* Event listener */
+                endOfStreamPTS = -1;
+                UT_ASSERT_TRUE(mEventListener->getNextEndOfStreamPTS(endOfStreamPTS));
+                UT_ASSERT_TRUE(endOfStreamPTS >= 0);
             }
 
-            if(mTestConfiguration.flushPts >= 0)
+            if(mTestConfiguration.sinkFlushPts >= 0)
             {
                 UT_ASSERT_TRUE(mControlListener->getFlushCompleteCount(true));
+                UT_ASSERT_TRUE(mEventListener->getFlushCompleteCount(true));
             }
             else
             {
                 UT_ASSERT_FALSE(mControlListener->getFlushCompleteCount(true));
+                UT_ASSERT_FALSE(mEventListener->getFlushCompleteCount(true));
             }
+
+            std::optional<PropertyValue> latencyValue;
+            AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
+
+            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
 
             /* Stop the Audio sink */
             AUDIOSINK_STOP_SUCCESS(mSinkHandle, audioSinkController, true);
@@ -401,8 +434,10 @@ public:
 
     bool isSinkUsable(const IAudioSink::Id& sinkId)
     {
-        for (const auto& item : gAudiosinks_hfp) {
-            if (std::find(item.availableIds.begin(), item.availableIds.end(), sinkId.value) != item.availableIds.end()) {
+        for (const auto& item : gAudiosinks_hfp)
+        {
+            if (std::find(item.availableIds.begin(), item.availableIds.end(), sinkId.value) != item.availableIds.end())
+            {
                 return true;
             }
         }
@@ -436,6 +471,7 @@ public:
                 SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
                                   mAVBufferManager, _decoderId, secureDecode, isTunnel, testConfig);
 
+                this_thread::sleep_for(chrono::milliseconds(500));
                 sinkTest.run();
 
                 decodeThread.join();
@@ -457,30 +493,53 @@ public:
     void runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
         try {
-            vector<thread> threads;
-            vector<SinkTest> decoderTestList;
             HeapMetrics beforeHeapMetrics, afterHeapMetrics;
+            vector<thread> decoderThreads;
+            vector<thread> sinkThreads;
 
             //TODO: add check of decoder metrics
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
-            std::vector<std::unique_ptr<SinkTest>> decoderTests;
-            /*for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
+            std::vector<std::unique_ptr<DecoderTest>> decoderTests;
+            std::vector<std::unique_ptr<SinkTest>> sinkTests;
+            size_t count = std::min(mAudioSinkList.size(), mAudioDecoderList.size());
+            for (size_t i = 0; i < count; ++i)
             {
-                auto decoderTest = std::make_unique<SinkTest>(_sinkId, sinkHandle,
-                                                                controlListener, eventListener,
-                                                                mAVBufferManager, gAudiosinks_hfp[0].audioDecoderIds[0], secureDecode, isTunnel,
-                                                                testConfig);
-                threads.emplace_back(&SinkTest::run, decoderTest.get());
+                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList[i];
+
+                auto decoderTest = std::make_unique<DecoderTest>(_decoderId, decoderHandle,
+                                                                decoderControlListener, decoderEventListener,
+                                                                mAVBufferManager, mAVbufferHelper,
+                                                                secureDecode, testConfig);
+                decoderThreads.emplace_back(&DecoderTest::run, decoderTest.get(), false);
 
                 decoderTests.push_back(std::move(decoderTest));
             }
-            for (auto& t : threads)
+            for (size_t i = 0; i < count; ++i)
+            {
+                auto& [_sinkId, sinkHandle, controlListener, eventListener] = mAudioSinkList[i];
+                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList[i];
+
+                auto sinkTest = std::make_unique<SinkTest>(_sinkId, sinkHandle,
+                                                            controlListener, eventListener, decoderControlListener,
+                                                            mAVBufferManager, _decoderId, secureDecode, isTunnel,
+                                                            testConfig);
+
+                sinkThreads.emplace_back(&SinkTest::run, sinkTest.get());
+
+                sinkTests.push_back(std::move(sinkTest));
+            }
+            for (auto& t : decoderThreads)
             {
                 if (t.joinable())
                     t.join();
-            }*/
+            }
+            for (auto& t : sinkThreads)
+            {
+                if (t.joinable())
+                    t.join();
+            }
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
@@ -503,6 +562,18 @@ public:
         vector<testConfiguration_t> testConfiguration;
 
         vts_audiodecoder_parse_testconfig(gTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
+
+        if(isSecureMode && !gAudiosinks_hfp[0].supportsSecure)
+        {
+            UT_LOG_WARNING("Audio Sink does not support secure mode, skipping test");
+            return;
+        }
+
+        if(isTunnel)
+        {
+            UT_LOG_WARNING("Audio Sink does not support tunnel mode, skipping test");
+            return;
+        }
 
         if(isConcurrentMode)
         {
@@ -534,9 +605,9 @@ public:
 };
 
 /**
-* @brief Test the audio sink underflow events
+* @brief Test the audio sink functionality (sequential, non-tunnel, non-secure)
 *
-* This test verifies the functionality of underflow events.
+* This test verifies the basic decode functionality.
 *
 * **Test Group ID:** 03@n
 * **Test Case ID:** 001@n
@@ -550,6 +621,657 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure)
     bool isSecureMode = false;
     bool isConcurrentMode = false;
     bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (sequential, non-tunnel, non-secure)
+*
+* This test verifies the flush scenario.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 002@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (sequential, non-tunnel, non-secure)
+*
+* This test verifies the EOS scenario.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 003@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (sequential, non-tunnel, non-secure)
+*
+* This test verifies the underflow scenario.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 004@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (sequential, non-tunnel, secure)
+*
+* This test verifies the basic decode functionality in secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 005@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (sequential, non-tunnel, secure)
+*
+* This test verifies the flush scenario in secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 006@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (sequential, non-tunnel, secure)
+*
+* This test verifies the EOS scenario in secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 007@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (sequential, non-tunnel, secure)
+*
+* This test verifies the underflow scenario in secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 008@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (sequential, tunnel, non-secure)
+*
+* This test verifies the basic decode functionality in tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 009@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (sequential, tunnel, non-secure)
+*
+* This test verifies the flush scenario in tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 010@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (sequential, tunnel, non-secure)
+*
+* This test verifies the EOS scenario in tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 011@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (sequential, tunnel, non-secure)
+*
+* This test verifies the underflow scenario in tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 012@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = false;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (sequential, tunnel, secure)
+*
+* This test verifies the basic decode functionality in tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 013@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (sequential, tunnel, secure)
+*
+* This test verifies the flush scenario in tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 014@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (sequential, tunnel, secure)
+*
+* This test verifies the EOS scenario in tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 015@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (sequential, tunnel, secure)
+*
+* This test verifies the underflow scenario in tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 016@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = true;
+    bool isConcurrentMode = false;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (concurrent, non-tunnel, non-secure)
+*
+* This test verifies concurrent decode functionality.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 017@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (concurrent, non-tunnel, non-secure)
+*
+* This test verifies the flush scenario in concurrent mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 018@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (concurrent, non-tunnel, non-secure)
+*
+* This test verifies the EOS scenario in concurrent mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 019@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (concurrent, non-tunnel, non-secure)
+*
+* This test verifies the underflow scenario in concurrent mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 020@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (concurrent, non-tunnel, secure)
+*
+* This test verifies concurrent decode functionality in secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 021@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (concurrent, non-tunnel, secure)
+*
+* This test verifies the flush scenario in concurrent and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 022@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (concurrent, non-tunnel, secure)
+*
+* This test verifies the EOS scenario in concurrent and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 023@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (concurrent, non-tunnel, secure)
+*
+* This test verifies the underflow scenario in concurrent and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 024@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = false;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (concurrent, tunnel, non-secure)
+*
+* This test verifies concurrent decode functionality in tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 025@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (concurrent, tunnel, non-secure)
+*
+* This test verifies the flush scenario in concurrent tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 026@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (concurrent, tunnel, non-secure)
+*
+* This test verifies the EOS scenario in concurrent tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 027@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (concurrent, tunnel, non-secure)
+*
+* This test verifies the underflow scenario in concurrent tunnel mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 028@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = false;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink functionality (concurrent, tunnel, secure)
+*
+* This test verifies concurrent decode functionality in tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 029@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure)
+{
+    const char *testName = "Decode";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink flush functionality (concurrent, tunnel, secure)
+*
+* This test verifies the flush scenario in concurrent tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 030@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Flush)
+{
+    const char *testName = "Decode_Flush";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink EOS (End Of Stream) functionality (concurrent, tunnel, secure)
+*
+* This test verifies the EOS scenario in concurrent tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 031@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_EOS)
+{
+    const char *testName = "Decode_EOS";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
+
+    runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
+}
+
+/**
+* @brief Test the audio sink underflow events (concurrent, tunnel, secure)
+*
+* This test verifies the underflow scenario in concurrent tunnel and secure mode.
+*
+* **Test Group ID:** 03@n
+* **Test Case ID:** 032@n
+*
+* **Test Procedure:**
+* Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
+*/
+UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Underflow)
+{
+    const char *testName = "Decode_Underflow";
+    bool isSecureMode = true;
+    bool isConcurrentMode = true;
+    bool isTunnel = true;
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }

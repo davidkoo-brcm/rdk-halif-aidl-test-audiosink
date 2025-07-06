@@ -31,3 +31,6 @@ IAudioSinkManager:     # Component object begins
       - id: 2
     availableSinks:
       - 0
+      - 1
+      - 2
+    supportsSecure: false
