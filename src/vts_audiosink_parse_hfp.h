@@ -73,6 +73,7 @@
 #include <ut_kvp.h>
 #include <ut_log.h>
 
+using namespace std;
 using namespace com::rdk::hal;
 //using namespace com::rdk::hal::audiodecoder;
 
@@ -90,7 +91,8 @@ struct sinkmanager
     std::vector<int32_t> availableIds;
     std::vector<platformcap> supportedcaps;
     bool supportsSecure;
-    std::vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
+    vector<int32_t> availableDecoderIds;
+    vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
 };
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;

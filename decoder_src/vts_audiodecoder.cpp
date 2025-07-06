@@ -226,7 +226,7 @@ bool AudioDecoderControllerListener::getNextFrame(DecodedAudioFrame_t &frameInfo
 
     if (!gotFrame)
     {
-        UT_LOG_WARNING("Decoded frame not received after %d msec", waitTime);
+        UT_LOG_WARNING("[DecoderID: %d] Decoded frame not received after %d msec", mDecoderID, waitTime);
         return false;
     }
 

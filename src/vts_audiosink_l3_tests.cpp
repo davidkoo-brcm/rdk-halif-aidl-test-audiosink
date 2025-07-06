@@ -444,49 +444,84 @@ public:
         return false;
     }
 
+    bool isDecoderUsable(const IAudioDecoder::Id& decoderId)
+    {
+        if (std::find(gAudiosinks_hfp[0].availableDecoderIds.begin(),
+                gAudiosinks_hfp[0].availableDecoderIds.end(),
+                decoderId.value) == gAudiosinks_hfp[0].availableDecoderIds.end())
+        {
+            return false;
+        }
+        return true;
+    }
+
     void runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
-        for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
-        {
-            HeapMetrics beforeHeapMetrics, afterHeapMetrics;
-
-            if(!isSinkUsable(_sinkId))
+        try {
+            for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
             {
-                UT_LOG_INFO("Sink ID %d is not usable for this test configuration, skipping.", _sinkId.value);
-                continue;
-            }
+                if (!isSinkUsable(_sinkId))
+                {
+                    UT_LOG_INFO("[SinkID: %d] is not usable for this test configuration, skipping.", _sinkId.value);
+                    continue;
+                }
 
-            if (!mAudioDecoderList.empty())
-            {
-                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList.front();
+                // Find a usable decoder
+                IAudioDecoder::Id decoderId;
+                sp<AudioDecoderControllerListener> decoderControlListener;
+                sp<IAudioDecoder> decoderHandle;
+                sp<AudioDecoderEventListener> decoderEventListener;
+                bool foundDecoder = false;
 
-                DecoderTest decodeTest(_decoderId, decoderHandle, decoderControlListener,
-                                        decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig);
+                for (const auto& [_decoderId, _decoderHandle, _controlListener, _eventListener, _capabilities] : mAudioDecoderList)
+                {
+                    if (isDecoderUsable(_decoderId))
+                    {
+                        decoderId = _decoderId;
+                        decoderHandle = _decoderHandle;
+                        decoderEventListener = _eventListener;
+                        decoderControlListener = _controlListener;
+                        foundDecoder = true;
+                        break;
+                    }
+                }
+
+                if (!foundDecoder)
+                {
+                    UT_LOG_WARNING("No usable decoder found for Sink ID %d, skipping.", _sinkId.value);
+                    return;
+                }
+
+                HeapMetrics beforeHeapMetrics, afterHeapMetrics;
+                AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
+
+                DecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
+                                    decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig);
 
                 std::thread decodeThread(&DecoderTest::run, &decodeTest, false);
 
-                /* Get heap metrics */
-                AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
-
                 SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
-                                  mAVBufferManager, _decoderId, secureDecode, isTunnel, testConfig);
+                                mAVBufferManager, decoderId, secureDecode, isTunnel, testConfig);
 
-                this_thread::sleep_for(chrono::milliseconds(500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 sinkTest.run();
 
-                decodeThread.join();
+                if (decodeThread.joinable())
+                    decodeThread.join();
 
-                /* Get heap metrics */
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
-                /* check if the decoder freed all the buffer pools */
+                // Check if the decoder freed all the buffer pools
                 UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
                 UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
                 UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
             }
-
-            /* TODO: check if this required or not */
-            //controlListener->shutdown();
+        } catch (const std::exception& ex) {
+            UT_LOG_ERROR("Exception in runSequentialSink: %s", ex.what());
+            UT_ASSERT_TRUE(false);
+        } catch (...) {
+            UT_LOG_ERROR("Unknown exception in runSequentialSink");
+            UT_ASSERT_TRUE(false);
         }
     }
 
@@ -496,40 +531,52 @@ public:
             HeapMetrics beforeHeapMetrics, afterHeapMetrics;
             vector<thread> decoderThreads;
             vector<thread> sinkThreads;
+            vector<unique_ptr<DecoderTest>> decoderTests;
+            vector<unique_ptr<SinkTest>> sinkTests;
+            vector<pair<IAudioDecoder::Id, sp<AudioDecoderControllerListener>>> availableDecoderList;
 
-            //TODO: add check of decoder metrics
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
-            std::vector<std::unique_ptr<DecoderTest>> decoderTests;
-            std::vector<std::unique_ptr<SinkTest>> sinkTests;
-            size_t count = std::min(mAudioSinkList.size(), mAudioDecoderList.size());
-            for (size_t i = 0; i < count; ++i)
+            for (const auto& [_decoderId, decoderHandle, controlListener, eventListener, capabilities] : mAudioDecoderList)
             {
-                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList[i];
-
-                auto decoderTest = std::make_unique<DecoderTest>(_decoderId, decoderHandle,
-                                                                decoderControlListener, decoderEventListener,
+                // Check if _decoderId is available in availableDecoderIds
+                if (isDecoderUsable(_decoderId))
+                {
+                   auto decoderTest = make_unique<DecoderTest>(_decoderId, decoderHandle,
+                                                                controlListener, eventListener,
                                                                 mAVBufferManager, mAVbufferHelper,
                                                                 secureDecode, testConfig);
-                decoderThreads.emplace_back(&DecoderTest::run, decoderTest.get(), false);
+                    decoderThreads.emplace_back(&DecoderTest::run, decoderTest.get(), false);
 
-                decoderTests.push_back(std::move(decoderTest));
+                    decoderTests.push_back(move(decoderTest));
+
+                    availableDecoderList.push_back({_decoderId, controlListener});
+                }
             }
-            for (size_t i = 0; i < count; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            for(int32_t i = 0; i < availableDecoderList.size(); i++)
             {
-                auto& [_sinkId, sinkHandle, controlListener, eventListener] = mAudioSinkList[i];
-                auto& [_decoderId, decoderHandle, decoderControlListener, decoderEventListener, capabilities] = mAudioDecoderList[i];
+                auto& [sinkId, sinkHandle, controlListener, eventListener] = mAudioSinkList[i];
+                if(!isSinkUsable(sinkId))
+                {
+                    UT_LOG_INFO("[SinkID: %d] is not usable for this test configuration, skipping.", sinkId.value);
+                    continue;
+                }
+                auto& [decoderId, decoderControlListener] = availableDecoderList[i];
 
-                auto sinkTest = std::make_unique<SinkTest>(_sinkId, sinkHandle,
-                                                            controlListener, eventListener, decoderControlListener,
-                                                            mAVBufferManager, _decoderId, secureDecode, isTunnel,
+                auto sinkTest = std::make_unique<SinkTest>(sinkId, sinkHandle,
+                                                            controlListener, eventListener,
+                                                            decoderControlListener,
+                                                            mAVBufferManager, decoderId,
+                                                            secureDecode, isTunnel,
                                                             testConfig);
 
                 sinkThreads.emplace_back(&SinkTest::run, sinkTest.get());
 
                 sinkTests.push_back(std::move(sinkTest));
             }
+
             for (auto& t : decoderThreads)
             {
                 if (t.joinable())
@@ -549,10 +596,10 @@ public:
             UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
 
         } catch (const std::exception& ex) {
-            UT_LOG_ERROR("Exception in runConcurrentDecode: %s", ex.what());
+            UT_LOG_ERROR("Exception in runConcurrentSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
         } catch (...) {
-            UT_LOG_ERROR("Unknown exception in runConcurrentDecode");
+            UT_LOG_ERROR("Unknown exception in runConcurrentSink");
             UT_ASSERT_TRUE(false);
         }
     }

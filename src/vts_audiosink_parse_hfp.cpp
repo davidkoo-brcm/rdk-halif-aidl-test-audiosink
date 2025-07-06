@@ -67,6 +67,8 @@
 
 using namespace std;
 
+#define AUDIODECODERMGR_AVAILABLEDECODERS "IAudioDecoderManager.availableDecoders"
+
 vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP()
@@ -74,7 +76,8 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
     std::string audiodecoderPath = "IAudioDecoderManager.IAudioDecoder";
     string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
-    int32_t number_of_audiosinks, available_sinks_count;
+    std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
+    int32_t number_of_audiosinks, available_sinks_count, available_decoders;
     int32_t platformcapabilites_count;
     sinkmanager temporary;
     platformcap caps;
@@ -106,6 +109,15 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         int32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderId.value = id;
         temporary.audioDecoderIds.push_back(decoderId);
+    }
+
+    available_decoders = UT_KVP_PROFILE_GET_LIST_COUNT(availableDecodersPath.c_str());
+
+    for(int32_t i = 0; i < available_decoders; i++)
+    {
+        std::string decoderIdPath = availableDecodersPath + "." + std::to_string(i);
+        int32_t id = UT_KVP_PROFILE_GET_UINT32(decoderIdPath.c_str());
+        temporary.availableDecoderIds.push_back(id);
     }
 
     temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("IAudioSinkManager.supportsSecure");

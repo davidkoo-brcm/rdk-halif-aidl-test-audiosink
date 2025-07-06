@@ -18,6 +18,8 @@ IAudioDecoderManager:           # Component object begins
            - AAC_LC
            - DOLBY_AC3
         supportsSecure: false
+    availableDecoders:
+      - 2
 IAudioSinkManager:     # Component object begins
     interfaceVersion: 1         # Integer value
     platformCapabilities:
