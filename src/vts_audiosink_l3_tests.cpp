@@ -228,7 +228,7 @@ private:
                 }
                 if(mTestConfiguration.sinkEosPts == decodedFrame.framePTS)
                 {
-                    UT_LOG_WARNING("[SinkID: %d] set EOS at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
+                    UT_LOG_WARNING("[SinkID: %d] Set EOS at PTS: %lld", mSinkId.value, decodedFrame.framePTS);
                     metadata.endOfStream = true;
                 }
                 if(mTestConfiguration.sinkFlushPts == decodedFrame.framePTS)
@@ -240,6 +240,11 @@ private:
                 //auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
                 //UT_LOG_ERROR("[SinkID: %d] Current time: %lld us", mSinkId.value, static_cast<long long>(us));
                 AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, audioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata);
+
+                std::optional<PropertyValue> latencyValue;
+                AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
+
+                UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
             }
 
             /* Validate the callback */
@@ -305,11 +310,6 @@ private:
                 UT_ASSERT_FALSE(mControlListener->getFlushCompleteCount(true));
                 UT_ASSERT_FALSE(mEventListener->getFlushCompleteCount(true));
             }
-
-            std::optional<PropertyValue> latencyValue;
-            AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
-
-            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
 
             /* Stop the Audio sink */
             AUDIOSINK_STOP_SUCCESS(mSinkHandle, audioSinkController, true);

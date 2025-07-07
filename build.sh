@@ -215,13 +215,13 @@ dist_clean_test()
     rm -rf $BUILD_DIR
     rm -rf src/*.o
     rm -rf ${MOCK_SERVICE_DIR}/src/*.o
+    rm -rf decoder_src/*.o
     rm -rf $RDK_HAL_DIR
     rm -rf ${UT_CORE_DIR}
 }
 
 clean_test()
 {
-    rm -rf $BUILD_DIR
     rm -rf src/*.o
     rm -rf decoder_src/*.o
     rm -rf ${MOCK_SERVICE_DIR}/src/*.o
