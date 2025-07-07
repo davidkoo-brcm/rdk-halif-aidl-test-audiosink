@@ -676,9 +676,9 @@ extern sp<IAudioDecoderManager> gAudioDecoderManager;
     do { \
         bool _aidl_return = false; \
         Status status; \
-        UT_LOG_DEBUG("Calling destroyPool(IN:poolHandle:[%d], OUT:_aidl_return:[])", pool); \
+        UT_LOG_DEBUG("Calling destroyPool(IN:poolHandle:[%p], OUT:_aidl_return:[])", pool); \
         status = avBufferManager->destroyPool(pool, &_aidl_return); \
-        UT_LOG_DEBUG("Result destroyPool with (IN:poolHandle:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result destroyPool with (IN:poolHandle:[%p], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
                     pool.handle, UT_Control_GetMapString(bool_mapTable, _aidl_return), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \

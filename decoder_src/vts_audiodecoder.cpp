@@ -474,7 +474,7 @@ void DecoderTest::decodeAndConsumeAudioStreams(bool validateMetrics)
 
         avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
-        UT_LOG_INFO("[DecoderID: %d] Start of Testing Stream: %s", mDecoderId.value, mTestConfiguration.input.c_str());
+        UT_LOG_WARNING("[DecoderID: %d] Start of Testing Stream: %s", mDecoderId.value, mTestConfiguration.input.c_str());
 
         /* Create Audio Pool */
         AVBUFFER_CREATE_AUDIOPOOL_SUCCESS(mAVBufferManager, mSecureDecode, mDecoderId, bufferListener, audioPool);
@@ -512,6 +512,12 @@ void DecoderTest::decodeAndConsumeAudioStreams(bool validateMetrics)
 
             inputBuffer.resize(frameSize);
             inputFile.read(reinterpret_cast<char*>(inputBuffer.data()), frameSize);
+            if (inputFile.eof() || inputFile.gcount() < frameSize) {
+                // Reached end of file or not enough data, reopen from start
+                inputFile.clear(); // Clear EOF flag
+                inputFile.seekg(0, std::ios::beg);
+                inputFile.read(reinterpret_cast<char*>(inputBuffer.data()), frameSize);
+            }
 
             if(mSecureDecode)
             {
