@@ -1,0 +1,42 @@
+.PHONY: all
+
+MOCK_SERVICE_BIN := MockAudioSinkService
+AUDIOSINK_AIDL_LIB_NAME := audiosinkaidl
+AUDIODECODER_AIDL_LIB_NAME := audiodecoderaidl
+AUDIO_SINK_AIDL_GEN_DIR ?= $(BUILD_DIR)/audiosink_gen/current
+VIDEO_DECODER_AIDL_GEN_DIR ?= $(BUILD_DIR)/videodecoder_gen/current
+AUDIO_DECODER_AIDL_GEN_DIR ?= $(BUILD_DIR)/audiodecoder_gen/current
+
+MOCK_SERVICE_DIR ?= $(CURDIR)/src
+
+BUILD_DIR ?= $(CURDIR)/../build
+
+MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSink.cpp
+MOCK_SERVICE_BIN_SRC += $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
+
+MOCK_SERVICE_INC_FLAGS := -I$(AUDIO_DECODER_AIDL_GEN_DIR)/h
+MOCK_SERVICE_INC_FLAGS += -I$(AUDIO_SINK_AIDL_GEN_DIR)/h
+MOCK_SERVICE_INC_FLAGS += -I$(VIDEO_DECODER_AIDL_GEN_DIR)/h
+MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/usr/include
+MOCK_SERVICE_INC_FLAGS += -I$(MOCK_SERVICE_DIR)
+
+MOCK_SERVICE_LD_LIBS := -lbinder -lutils
+
+MOCK_SERVICE_LDFLAGS := -L$(BUILD_DIR)/usr/lib
+MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
+
+MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
+
+MOCK_SERVICE_BIN := $(BUILD_DIR)/usr/lib/$(MOCK_SERVICE_BIN)
+
+all: $(MOCK_SERVICE_BIN)
+
+$(MOCK_SERVICE_BIN): $(MOCK_SERVICE_BIN_SRC:%.cpp=%.o)
+	g++ $(MOCK_SERVICE_LDFLAGS) \
+		$(MOCK_SERVICE_BIN_SRC:%.cpp=%.o) -o $@ \
+		$(MOCK_SERVICE_LD_LIBS) -l$(AUDIODECODER_AIDL_LIB_NAME) -l$(AUDIOSINK_AIDL_LIB_NAME)
+
+# do not clash with `ut-core` by chaning the object file name to .o.1
+%.o: %.cpp
+	g++ $(MOCK_SERVICE_CFLAGS) $(MOCK_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
+

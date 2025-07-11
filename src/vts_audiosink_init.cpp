@@ -66,13 +66,32 @@
 #include <ut_log.h>
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
+#include "vts_audiodecoder_parse_testconfig.h"
 
 UT_status_t vts_audiosink_getAudioSinkService();
 sp<IAudioSinkManager> gAudioSinkManager;
+sp<audiodecoder::IAudioDecoderManager> gAudioDecoderManager;
+void *gTestConfiguration;
+
+UT_status_t vts_audiodecoder_getAudioDecoderService()
+{
+    gAudioDecoderManager = android::interface_cast<audiodecoder::IAudioDecoderManager>(
+            defaultServiceManager()->getService(String16(audiodecoder::IAudioDecoderManager::serviceName().c_str())));
+    if (gAudioDecoderManager == nullptr)
+    {
+        UT_LOG_ERROR("AudioDecoder Service not available");
+        return UT_STATUS_FAILURE;
+    }
+    return UT_STATUS_OK;
+}
 
 UT_status_t VTS_AudioSink_init()
 {
     if(vts_audiosink_getAudioSinkService() != UT_STATUS_OK)
+    {
+        return UT_STATUS_FAILURE;
+    }
+    if(vts_audiodecoder_getAudioDecoderService() != UT_STATUS_OK)
     {
         return UT_STATUS_FAILURE;
     }
@@ -81,8 +100,14 @@ UT_status_t VTS_AudioSink_init()
         UT_LOG_ERROR("Failed to process the HFP file");
         return UT_STATUS_FAILURE;
     }
+    //gTestConfiguration = vts_kvp_create_instance(VTS_TEST_CONFIG_PATH);
 
     return UT_STATUS_OK;
+}
+
+void VTS_AudioSink_destroy()
+{
+    vts_kvp_destroy_instance(gTestConfiguration);
 }
 
 /** @} */ // End of AUDIO_SINK_HALTEST_INIT
