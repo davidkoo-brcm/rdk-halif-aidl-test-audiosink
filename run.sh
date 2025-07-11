@@ -61,19 +61,19 @@ else
     sleep 2
 fi
 
-# Check if either  EmulateAudioSinkService or AudioSinkService is running
-if check_process " EmulateAudioSinkService" || check_process "AudioSinkService"; then
+# Check if either  MockAudioSinkService or AudioSinkService is running
+if check_process " MockAudioSinkService" || check_process "AudioSinkService"; then
     echo "Audio Sink service is already running"
-    if check_process " EmulateAudioSinkService"; then
-        AudioSinkService_pid=$(pgrep -f "EmulateAudioSinkService")
+    if check_process " MockAudioSinkService"; then
+        AudioSinkService_pid=$(pgrep -f "MockAudioSinkService")
     else
         AudioSinkService_pid=$(pgrep -f "AudioSinkService")
     fi
 else
-    # Prompt user to start EmulateAudioSinkService
-    if prompt_yes_no "Do you want to start  EmulateAudioSinkService?"; then
-        echo "Execute [EmulateAudioSinkService]"
-        ${RUN_DIR}/EmulateAudioSinkService &
+    # Prompt user to start MockAudioSinkService
+    if prompt_yes_no "Do you want to start  MockAudioSinkService?"; then
+        echo "Execute [MockAudioSinkService]"
+        ${RUN_DIR}/MockAudioSinkService &
         AudioSinkService_pid=$!
         # Wait for service to be ready
         sleep 2
