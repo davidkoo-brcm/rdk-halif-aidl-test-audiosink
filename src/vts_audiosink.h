@@ -85,33 +85,7 @@ using namespace com::rdk::hal;
 using namespace std;
 using namespace com::rdk::hal::audiosink;
 
-extern void *gTestConfiguration;
-
-/* Status::Exception */
-const static ut_control_keyStringMapping_t statusException_mapTable[] =
-{
-    {"EX_NONE",                  (int32_t) Status::EX_NONE},
-    {"EX_SECURITY",              (int32_t) Status::EX_SECURITY},
-    {"EX_BAD_PARCELABLE",        (int32_t) Status::EX_BAD_PARCELABLE},
-    {"EX_ILLEGAL_ARGUMENT",      (int32_t) Status::EX_ILLEGAL_ARGUMENT},
-    {"EX_NULL_POINTER",          (int32_t) Status::EX_NULL_POINTER},
-    {"EX_ILLEGAL_STATE",         (int32_t) Status::EX_ILLEGAL_STATE},
-    {"EX_NETWORK_MAIN_THREAD",   (int32_t) Status::EX_NETWORK_MAIN_THREAD},
-    {"EX_UNSUPPORTED_OPERATION", (int32_t) Status::EX_UNSUPPORTED_OPERATION},
-    {"EX_SERVICE_SPECIFIC",      (int32_t) Status::EX_SERVICE_SPECIFIC},
-    {"EX_PARCELABLE",            (int32_t) Status::EX_PARCELABLE},
-    {"EX_HAS_REPLY_HEADER",      (int32_t) Status::EX_HAS_REPLY_HEADER},
-    {"EX_TRANSACTION_FAILED",    (int32_t) Status::EX_TRANSACTION_FAILED},
-    {NULL, -1}
-};
-
-/* bool */
-const static ut_control_keyStringMapping_t bool_mapTable[] =
-{
-    {"false", (int32_t) false},
-    {"true",  (int32_t) true},
-    {NULL, -1}
-};
+extern void *gAudioSinkTestConfiguration;
 
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500

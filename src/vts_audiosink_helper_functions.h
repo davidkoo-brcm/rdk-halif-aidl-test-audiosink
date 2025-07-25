@@ -78,6 +78,7 @@
 #include <optional>
 #include <algorithm>
 #include <unordered_set>
+#include "vts_helper_functions.h"
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
@@ -95,7 +96,7 @@ using android::binder::Status;
 using namespace com::rdk::hal;
 using namespace com::rdk::hal::audiosink;
 
-bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const Property );
+bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const audiosink::Property );
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
 audiodecoder::PCMFormat vts_audiosink_helper_StringToFormat(const std::string& format);

@@ -67,6 +67,8 @@
 
 UT_status_t VTS_AudioSink_init();
 
+void VTS_AudioSink_destroy();
+
 #endif //__VTS_AUDIOSINK_INIT_H__
 
 /** @} */ // End of AUDIO_SINK_HALTEST_INIT_HEADER

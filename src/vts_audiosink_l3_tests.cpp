@@ -81,21 +81,22 @@
 #include "com/rdk/hal/avbuffer/IAVBuffer.h"
 #include "com/rdk/hal/avbuffer/BnAVBufferSpaceListener.h"
 
+#include "vts_audiodecoder_parse_testconfig.h"
+#include "vts_audiodecoder.h"
+
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
 #include "vts_avbuffer.h"
 
 #include "IAVBufferHelper.h"
-#include "vts_audiodecoder_parse_testconfig.h"
-#include "vts_audiodecoder.h"
 
 static const char *gModuleName = "IAudioSinkManager";
 static const char *gAudioModuleName = "IAudioDecoderManager";
 static const char *gTestGroup = "L3";
 static IAVBufferHelper* gAVbufferHelper;
 
-sp<IAVBuffer> vts_avbuffer_getService()
+static sp<IAVBuffer> vts_avbuffer_getService()
 {
     return
         android::interface_cast<IAVBuffer>(
@@ -351,7 +352,6 @@ public:
         vector<IAudioDecoder::Id> decoderIds;
 
         mAVBufferManager = vts_avbuffer_getService();
-        gTestConfiguration = vts_kvp_create_instance(VTS_TEST_CONFIG_PATH);
 
         mAVbufferHelper = getAVBufferHelperInstance();
 
@@ -495,10 +495,10 @@ public:
                 HeapMetrics beforeHeapMetrics, afterHeapMetrics;
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
-                DecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
+                AudioDecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
                                     decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig);
 
-                std::thread decodeThread(&DecoderTest::run, &decodeTest, false);
+                std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
 
                 SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
                                 mAVBufferManager, decoderId, secureDecode, isTunnel, testConfig);
@@ -531,7 +531,7 @@ public:
             HeapMetrics beforeHeapMetrics, afterHeapMetrics;
             vector<thread> decoderThreads;
             vector<thread> sinkThreads;
-            vector<unique_ptr<DecoderTest>> decoderTests;
+            vector<unique_ptr<AudioDecoderTest>> decoderTests;
             vector<unique_ptr<SinkTest>> sinkTests;
             vector<pair<IAudioDecoder::Id, sp<AudioDecoderControllerListener>>> availableDecoderList;
 
@@ -543,11 +543,11 @@ public:
                 // Check if _decoderId is available in availableDecoderIds
                 if (isDecoderUsable(_decoderId))
                 {
-                   auto decoderTest = make_unique<DecoderTest>(_decoderId, decoderHandle,
+                   auto decoderTest = make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
                                                                 controlListener, eventListener,
                                                                 mAVBufferManager, mAVbufferHelper,
                                                                 secureDecode, testConfig);
-                    decoderThreads.emplace_back(&DecoderTest::run, decoderTest.get(), false);
+                    decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
 
                     decoderTests.push_back(move(decoderTest));
 
@@ -608,7 +608,7 @@ public:
     {
         vector<testConfiguration_t> testConfiguration;
 
-        vts_audiodecoder_parse_testconfig(gTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
+        vts_audiodecoder_parse_testconfig(gAudioSinkTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
 
         if(isSecureMode && !gAudiosinks_hfp[0].supportsSecure)
         {

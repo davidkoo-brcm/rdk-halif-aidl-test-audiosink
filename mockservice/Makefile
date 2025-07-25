@@ -27,7 +27,7 @@ MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
 
 MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
 
-MOCK_SERVICE_BIN := $(BUILD_DIR)/usr/lib/$(MOCK_SERVICE_BIN)
+MOCK_SERVICE_BIN := $(BUILD_DIR)/bin/$(MOCK_SERVICE_BIN)
 
 all: $(MOCK_SERVICE_BIN)
 
