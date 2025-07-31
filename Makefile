@@ -36,30 +36,42 @@ $(info RDK_HALIF_AIDL_VERSION: $(RDK_HALIF_AIDL_VERSION))
 
 # Assign VERSION and RDK_HALIF_AIDL_VERSION to CXXFLAGS
 CXXFLAGS := -DHALIF_TEST_TAG_VERSION=\"$(VERSION)\" -DRDK_HALIF_AIDL_VERSION=\"$(RDK_HALIF_AIDL_VERSION)\"
+
+# TODO: remove this once the ut-core implements runtime logging configuration
+ifeq ($(DISABLE_UT_DEBUG_LOGGING),1)
+CXXFLAGS += -DDISABLE_UT_DEBUG_LOGGING
+endif
+
 $(info CXXFLAGS: $(CXXFLAGS))
 
 ROOT_DIR := $(CURDIR)
 SRC_DIRS := $(ROOT_DIR)/src
+SRC_DIRS += $(ROOT_DIR)/decoder_src
 SRC_DIRS += $(ROOT_DIR)/test
 BIN_DIR := $(ROOT_DIR)/build/bin
 LIB_DIR := $(ROOT_DIR)/build/$(TARGET)/lib
 BUILD_DIR := $(ROOT_DIR)/build/$(TARGET)/obj
 INC_DIRS := $(ROOT_DIR)/build/audiosink_gen/current/h
+INC_DIRS += $(ROOT_DIR)/build/avbuffer_gen/current/h
+INC_DIRS += $(ROOT_DIR)/build/videodecoder_gen/current/h
+INC_DIRS += $(ROOT_DIR)/build/audiodecoder_gen/current/h
 INC_DIRS += $(ROOT_DIR)/build/usr/include
+INC_DIRS += $(ROOT_DIR)/mockservice/avbufferhelper
 INC_DIRS += $(ROOT_DIR)/src/
+INC_DIRS += $(ROOT_DIR)/decoder_src/
 
 
 XLDFLAGS := -L$(ROOT_DIR)/build/usr/lib
 XLDFLAGS += -Wl,-rpath-link=$(ROOT_DIR)/build/usr/lib
-XLDFLAGS += -lbinder -lutils 
-XLDFLAGS += -laudiosinkaidl 
-XLDFLAGS += -laudiodecoderaidl 
+XLDFLAGS += -lbinder -lutils
+XLDFLAGS += -laudiosinkaidl
+XLDFLAGS += -laudiodecoderaidl -lavbufferaidl -lvideodecoderaidl  -lavbufferhelper
 
 
 # required for std::optional
 CXXFLAGS += -std=c++17
 
-UT_CORE_DIR := $(CURDIR)/ut/ut-core
+UT_CORE_DIR := $(CURDIR)/ut-core
 
 export BIN_DIR
 export LIB_DIR
@@ -75,7 +87,7 @@ export CXXFLAGS
 all: $(TARGET_EXEC)
 
 $(TARGET_EXEC):
-	make -C $(UT_CORE_DIR) -j $(shell nproc) TARGET=$(TARGET) VARIANT=$(VARIANT) 
+	make -C $(UT_CORE_DIR) -j $(shell nproc) TARGET=$(TARGET) VARIANT=$(VARIANT)
 
 clean:
 	make -C $(UT_CORE_DIR) -j TARGET=$(TARGET) VARIANT=$(VARIANT) clean
