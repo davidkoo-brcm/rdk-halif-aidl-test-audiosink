@@ -248,7 +248,8 @@ extern void *gAudioSinkTestConfiguration;
         UT_LOG_DEBUG("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
         status = (audioSink)->open((controllerListener), &(audioSinkController)); \
-        UT_LOG_DEBUG("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", controllerListener,\
+            (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
