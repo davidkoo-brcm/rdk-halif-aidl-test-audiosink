@@ -106,10 +106,10 @@ build/bin/
 │   ├── vts_audio_mp2_streams.yaml
 │   └── vts_audio_mp3_streams.yaml
 ├── test_configuration
-│   ├── vts_l3_Decode_EOS.yaml
-│   ├── vts_l3_Decode_Flush.yaml
-│   ├── vts_l3_Decode_Underflow.yaml
-│   ├── vts_l3_Decode.yaml
+│   ├── vts_l3_AudioDecode_EOS.yaml
+│   ├── vts_l3_AudioDecode_Flush.yaml
+│   ├── vts_l3_AudioDecode_Underflow.yaml
+│   ├── vts_l3_AudioDecode.yaml
 │   └── vts_l3_test_config.yaml
 └── vts_audiosink_hal_test
 ```
