@@ -90,7 +90,7 @@ extern void *gAudioSinkTestConfiguration;
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500
 
-#ifdef DISABLE_UT_DEBUG_LOGGING
+#ifndef ENABLE_UT_INFO_LOGGING
 #define UT_LOG_DEBUG(...)
 #define UT_LOG_INFO(...)
 #endif
@@ -248,7 +248,8 @@ extern void *gAudioSinkTestConfiguration;
         UT_LOG_DEBUG("Calling open failure(IN:controllerListener[0x%p], OUT:audioDecoderController[])", \
                      controllerListener); \
         status = (audioSink)->open((controllerListener), &(audioSinkController)); \
-        UT_LOG_DEBUG("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result open failure (IN:controllerListener[0x%p], OUT:audioSinkController[0x%X]), status:[isOK:%s, exception:%s]", controllerListener,\
+            (audioSinkController).get(),\
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \

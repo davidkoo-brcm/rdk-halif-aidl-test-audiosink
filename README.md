@@ -49,10 +49,10 @@ export AIDL_BIN=/path/linux_binder_idl/out/aidl
 export LINUX_BINDER_OUT_DIR=/path//linux_binder_idl/local/
 ```
 
-By default, UT logs are Enabled. To disable them, Set below environment variable
+By default, UT logs are disabled. To enable them, Set below environment variable
 
 ```bash
-export DISABLE_UT_DEBUG_LOGGING=1
+export ENABLE_UT_INFO_LOGGING=1
 ```
 
 Run the build script:
@@ -106,10 +106,10 @@ build/bin/
 │   ├── vts_audio_mp2_streams.yaml
 │   └── vts_audio_mp3_streams.yaml
 ├── test_configuration
-│   ├── vts_l3_Decode_EOS.yaml
-│   ├── vts_l3_Decode_Flush.yaml
-│   ├── vts_l3_Decode_Underflow.yaml
-│   ├── vts_l3_Decode.yaml
+│   ├── vts_l3_AudioDecode_EOS.yaml
+│   ├── vts_l3_AudioDecode_Flush.yaml
+│   ├── vts_l3_AudioDecode_Underflow.yaml
+│   ├── vts_l3_AudioDecode.yaml
 │   └── vts_l3_test_config.yaml
 └── vts_audiosink_hal_test
 ```

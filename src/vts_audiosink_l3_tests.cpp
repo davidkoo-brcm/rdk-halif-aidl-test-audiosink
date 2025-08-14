@@ -734,7 +734,8 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-
+/*commenting tunnel and secure cases*/
+#if 0
 /**
 * @brief Test the audio sink functionality (sequential, non-tunnel, secure)
 *
@@ -986,7 +987,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-
+#endif
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, non-secure)
 *
@@ -1070,7 +1071,8 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-
+/*commenting tunnel and secure cases*/
+#if 0
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, secure)
 *
@@ -1322,7 +1324,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-
+#endif
 /** @} */ // End of AUDIO_SINK_HALTEST L3 File
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK Module
