@@ -1,5 +1,4 @@
 profile: TV                     # String value TV or STB
-hal version: 1.0.0              # String value
 IAudioSinkManager:     # Component object begins
     interfaceVersion: 1         # Integer value
     platformCapabilities:
