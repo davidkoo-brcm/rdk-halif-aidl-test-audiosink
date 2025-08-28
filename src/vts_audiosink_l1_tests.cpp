@@ -97,6 +97,13 @@ static std::multimap<audiosink::Property, int32_t> validIntPropertyReady =
     {audiosink::Property::DOLBY_ATMOS_LOCK, 1},
 };
 
+static std::multimap<audiosink::Property, int32_t> readOnlyProperty =
+{
+    {audiosink::Property::RESOURCE_ID, 2},
+    {audiosink::Property::RENDER_LATENCY_NS , 10},
+    {audiosink::Property::QUEUE_DEPTH_NS , 4},
+};
+
 static std::multimap<audiosink::Property, int32_t> invalidIntPropertyReady =
 {
     {audiosink::Property::REFERENCE_LEVEL, -100},
@@ -584,6 +591,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
 
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+
+         /* set the read only properties */
+        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, readOnlyProperty, intValue, Status::EX_UNSUPPORTED_OPERATION);
 
         /* set the properties which can be set after Ready */
         AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_ARGUMENT);
@@ -1681,6 +1691,18 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+
+        // Log the API call in Ready state
+        AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_STATE);
+
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+        
+        // Log the API call in Started state
+        AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_ARGUMENT);
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
         // Log the API call in Ready state
         AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_STATE);
