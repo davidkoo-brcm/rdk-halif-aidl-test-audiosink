@@ -350,8 +350,20 @@ public:
     {
         std::vector<IAudioSink::Id> sinkIds;
         vector<IAudioDecoder::Id> decoderIds;
+        if(gAudioSinkManager == NULL)
+        {
+            UT_FAIL_FATAL("AudioSink Service not available");
+        }
+        if(gAudioDecoderManager== NULL)
+        {
+            UT_FAIL_FATAL("AudioDecoder Service not available");
+        }
 
         mAVBufferManager = vts_avbuffer_getService();
+        if(mAVBufferManager == NULL)
+        {
+            UT_FAIL_FATAL("AVBufferManager Service not available");
+        }
 
         mAVbufferHelper = getAVBufferHelperInstance();
 

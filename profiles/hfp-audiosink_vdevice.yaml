@@ -1,27 +1,4 @@
 profile: TV                     # String value TV or STB
-hal version: 1.0.0              # String value
-IAudioDecoderManager:           # Component object begins
-    interfaceVersion: current
-    IAudioDecoder:              # Resource list
-      - id: 0                   # Resource object begins
-        supportedCodecs:       # Array of codec capabilities
-           - AAC_LC
-           - DOLBY_AC3
-        supportsSecure: false
-      - id: 1                  # Resource object begins
-        supportedCodecs:       # Array of codec capabilities
-           - AAC_LC
-           - DOLBY_AC3
-        supportsSecure: false
-      - id: 2                  # Resource object begins
-        supportedCodecs:       # Array of codec capabilities
-           - AAC_LC
-           - DOLBY_AC3
-        supportsSecure: false
-    availableDecoders:
-      - 0
-      - 1
-      - 2
 IAudioSinkManager:     # Component object begins
     interfaceVersion: 1         # Integer value
     platformCapabilities:

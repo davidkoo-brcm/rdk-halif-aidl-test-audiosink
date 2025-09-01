@@ -113,6 +113,10 @@ VTS_L2_AudioSink() : UTCore() {}
 
         void SetUp() override
         {
+            if(gAudioSinkManager == NULL)
+            {
+                UT_FAIL_FATAL("AudioSink Service not available");
+            }
             std::vector<IAudioSink::Id> sinkIds;
             /* Get the Audio Sink IDs */
             AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
