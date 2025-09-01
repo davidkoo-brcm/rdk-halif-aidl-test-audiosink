@@ -134,6 +134,10 @@ public:
 
     void SetUp() override
     {
+        if(gAudioSinkManager == NULL)
+        {
+            UT_FAIL_FATAL("AudioSink Service not available");
+        }
     }
 
     void TearDown() override
@@ -1697,7 +1701,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-        
+
         // Log the API call in Started state
         AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_ARGUMENT);
 
