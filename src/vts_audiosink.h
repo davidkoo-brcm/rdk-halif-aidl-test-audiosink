@@ -70,6 +70,7 @@
 #include <queue>
 #include <condition_variable>
 #include <mutex>
+#include <inttypes.h>
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
@@ -478,10 +479,10 @@ extern void *gAudioSinkTestConfiguration;
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        UT_LOG_DEBUG("[SinkID: %d] Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+        UT_LOG_DEBUG("[SinkID: %d] Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
                     sindkId, nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
         status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_DEBUG("[SinkID: %d] Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("[SinkID: %d] Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     sindkId, nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(aidl_return); \
@@ -493,10 +494,10 @@ extern void *gAudioSinkTestConfiguration;
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
         status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%X], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(aidl_return); \
