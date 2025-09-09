@@ -109,8 +109,6 @@ static sp<IAVBuffer> vts_avbuffer_getService()
 /* Test class registration with UT_Core */
 UT_ADD_TEST_TO_GROUP(VTS_L3_AudioSink, UT_TESTS_L3);
 
-extern sp<IAudioSinkManager> gAudioSinkManager;
-
 class AVBufferSpaceListener : public BnAVBufferSpaceListener
 {
 public:
