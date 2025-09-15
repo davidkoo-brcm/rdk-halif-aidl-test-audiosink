@@ -78,7 +78,6 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
     std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
     int32_t number_of_audiosinks, available_sinks_count, available_decoders;
-    int32_t platformcapabilites_count;
     sinkmanager temporary;
     platformcap caps;
     char lowlatency_buffer[UT_KVP_MAX_ELEMENT_SIZE];

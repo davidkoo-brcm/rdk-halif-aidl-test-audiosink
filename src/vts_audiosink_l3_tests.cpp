@@ -94,7 +94,7 @@
 static const char *gModuleName = "IAudioSinkManager";
 static const char *gAudioModuleName = "IAudioDecoderManager";
 static const char *gTestGroup = "L3";
-static IAVBufferHelper* gAVbufferHelper;
+//static IAVBufferHelper* gAVbufferHelper;
 
 static sp<IAVBuffer> vts_avbuffer_getService()
 {
@@ -171,7 +171,6 @@ private:
     {
         try {
             sp<IAudioSinkController> audioSinkController;
-            int64_t audioBufferHandle;
             Pool audioPool;
             PropertyValue avSourcePropertyValue;
             sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
@@ -565,7 +564,7 @@ public:
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            for(int32_t i = 0; i < availableDecoderList.size(); i++)
+            for(uint32_t i = 0; i < availableDecoderList.size(); i++)
             {
                 auto& [sinkId, sinkHandle, controlListener, eventListener] = mAudioSinkList[i];
                 if(!isSinkUsable(sinkId))
