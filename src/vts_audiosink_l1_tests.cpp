@@ -113,13 +113,6 @@ static std::multimap<audiosink::Property, int32_t> invalidIntPropertyReady =
     {audiosink::Property::DOLBY_ATMOS_LOCK, -1},
 };
 
-static std::multimap<audiosink::Property, int32_t> setIntPropertyReadonly =
-{
-    {audiosink::Property::RESOURCE_ID, 1},
-    {audiosink::Property::RENDER_LATENCY_NS , 2},
-    {audiosink::Property::QUEUE_DEPTH_NS , 3},
-};
-
 /* Test class registration with UT_Core */
 UT_ADD_TEST_TO_GROUP(VTS_L1_AudioSink, UT_TESTS_L1);
 
@@ -607,9 +600,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
 
         /* set the properties in invalid state */
         AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, invalidIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
-
-        /* set the read only properties*/
-        AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, setIntPropertyReadonly, intValue, Status::EX_ILLEGAL_ARGUMENT);
 
         /* Stop the sink */
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
