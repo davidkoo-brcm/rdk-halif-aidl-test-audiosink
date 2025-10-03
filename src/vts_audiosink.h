@@ -87,13 +87,20 @@ using namespace std;
 using namespace com::rdk::hal::audiosink;
 
 extern void *gAudioSinkTestConfiguration;
+extern sp<IAudioSinkManager> gAudioSinkManager;
 
 #define MAX_TRANSITORY_STATE_WAIT_MS  5
 #define MAX_FINAL_STATE_WAIT_MS  500
 
 #ifndef ENABLE_UT_INFO_LOGGING
+#ifdef UT_LOG_DEBUG
+#undef UT_LOG_DEBUG
 #define UT_LOG_DEBUG(...)
+#endif
+#ifdef UT_LOG_INFO
+#undef UT_LOG_INFO
 #define UT_LOG_INFO(...)
+#endif
 #endif
 
 #define AUDIOSINK_MANAGER_GETAUDIOSINKIDS(audioSinkIds) \
@@ -136,7 +143,6 @@ extern void *gAudioSinkTestConfiguration;
 #define AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(_sinkId, audioSink, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
         UT_LOG_DEBUG("Calling getAudioSink(IN:_sinkId:[%d], OUT:audioSink[])", _sinkId.value); \
         status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
         UT_LOG_DEBUG("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
@@ -163,7 +169,6 @@ extern void *gAudioSinkTestConfiguration;
 #define AUDIOSINK_GET_PROPERTY_SUCCESS(audioSink, property, propertyValue) \
     do { \
         ::android::binder::Status status; \
-        ::com::rdk::hal::State state; \
         UT_LOG_DEBUG("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
         status = (audioSink)->getProperty(property, &propertyValue); \
         switch (propertyValue->value.value().getTag()) \
@@ -180,6 +185,8 @@ extern void *gAudioSinkTestConfiguration;
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
                 break; \
+            default: \
+                break; \
         } \
         UT_ASSERT_TRUE(status.isOk()); \
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
@@ -188,7 +195,6 @@ extern void *gAudioSinkTestConfiguration;
 #define AUDIOSINK_GET_PROPERTY_FAILURE(audioSink, property, propertyValue, exception) \
     do { \
         ::android::binder::Status status; \
-        ::com::rdk::hal::State state; \
         UT_LOG_DEBUG("Calling getProperty(IN:property[%s], OUT:propertyValue[]", audiosink::toString(property).c_str()); \
         status = (audioSink)->getProperty(property, &propertyValue); \
         UT_LOG_DEBUG("Result getProperty(IN:property[%s], OUT:propertyValue[]), status:[isOK:%s, exception:%s]", audiosink::toString(property).c_str(), \
@@ -479,10 +485,10 @@ extern void *gAudioSinkTestConfiguration;
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        UT_LOG_DEBUG("[SinkID: %d] Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+        UT_LOG_DEBUG("[SinkID: %d] Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
                     sindkId, nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
         status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_DEBUG("[SinkID: %d] Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("[SinkID: %d] Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     sindkId, nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(aidl_return); \
@@ -494,10 +500,10 @@ extern void *gAudioSinkTestConfiguration;
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
+        UT_LOG_DEBUG("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source)); \
         status = (audioSinkController)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016"PRIx64"], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
                     nsPresentationTime, bufferHandle, static_cast<int>(metadata.sourceCodec), metadata.isDolbyAtmos, metadata.numChannels, metadata.sampleRate, static_cast<int>(metadata.format), static_cast<int>(metadata.source), \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(aidl_return); \
@@ -601,7 +607,6 @@ extern void *gAudioSinkTestConfiguration;
 #define AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, volumeGet) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
         UT_LOG_DEBUG("Calling getVolume(OUT:volumeGet[])"); \
         status = (audioSinkController)->getVolume(&volumeGet); \
         UT_LOG_DEBUG("Result getVolume(OUT:volumeGet[volume:%f, muted:%s]), status:[isOK:%s, exception:%s]", \

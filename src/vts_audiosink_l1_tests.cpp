@@ -169,7 +169,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
     std::vector<IAudioSink::Id> secondaudiosinkIds;
     std::vector<int32_t> sinkId;
     std::unordered_set<int> sinkId_from_profile;
-    size_t expected_count = 0;
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(initialaudiosinkIds);
@@ -504,8 +503,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -569,8 +566,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    bool aidl_return = false;
-    bool closed = false;
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -644,8 +639,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
     State state = State::UNKNOWN;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -760,9 +753,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    State state = State::UNKNOWN;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -818,9 +808,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    State state = State::UNKNOWN;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -868,9 +855,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_neg)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    State state = State::UNKNOWN;
-    bool aidl_return = false;
-    bool closed = false;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -1032,7 +1016,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    bool _aidl_return;
 
     /* Get the Audio decoder IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -1135,7 +1118,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
@@ -1201,7 +1183,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
@@ -1289,7 +1270,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
  UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
  {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     ::com::rdk::hal::audiodecoder::IAudioDecoder::Id decoderId;
     ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audiodecoderId;
@@ -1420,7 +1400,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1476,7 +1455,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1533,7 +1511,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1589,7 +1566,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1650,7 +1626,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1732,7 +1707,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1790,7 +1764,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1851,7 +1824,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -1987,7 +1959,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -2063,7 +2034,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -2133,7 +2103,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
 UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
@@ -2200,7 +2169,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
 UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
 {
     android::binder::Status status;
-    bool aidl_return = false;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
 
