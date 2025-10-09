@@ -4,7 +4,7 @@ IAudioSinkManager:     # Component object begins
     platformCapabilities:
       supportsLowLatency: false
       systemMixerSampleRateHz: 48000
-      systemMixerPCMFormat: S32BE
+      systemMixerPCMFormat: S16LE
       supportsPlanarFormat: false
     IAudioSink:                 # Resource list
       - id: 0                   # Resource object begins

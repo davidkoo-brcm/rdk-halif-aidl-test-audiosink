@@ -108,7 +108,7 @@ using namespace com::rdk::hal::audiosink;
  */
 Status AudioSinkControllerListener::onStateChanged(State oldState,State newState)
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
     {
         std::lock_guard<std::mutex> lock(mStateMutex);
         mStateChanges.emplace_back(oldState, newState);
@@ -126,7 +126,7 @@ Status AudioSinkControllerListener::onStateChanged(State oldState,State newState
  */
 Status AudioSinkControllerListener::onFirstFrameRendered(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener First Frame Rendered received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener First Frame Rendered received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mFFMutex);
         mFirstframerendered.push(nsPresentationTime);
@@ -155,7 +155,7 @@ bool AudioSinkControllerListener::getNextFirstFrameRenderedPTS(int64_t &firstFra
 
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] ControllerListener Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] ControllerListener Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
 
@@ -174,7 +174,7 @@ bool AudioSinkControllerListener::getNextFirstFrameRenderedPTS(int64_t &firstFra
  */
 Status AudioSinkControllerListener::onEndOfStream(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener EOS received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener EOS received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mEOSMutex);
         mEndofstream.push(nsPresentationTime);
@@ -201,7 +201,7 @@ bool AudioSinkControllerListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] ControllerListener End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] ControllerListener End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     endOfStreamPTS = mEndofstream.front();
@@ -216,7 +216,7 @@ bool AudioSinkControllerListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
  */
 Status AudioSinkControllerListener::onAudioUnderflow()
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener Underflow Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Underflow Event received: %lld\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mUnderFlowMutex);
         mUnderFlowCount++;
@@ -249,7 +249,7 @@ int32_t AudioSinkControllerListener::getUnderFlowCount(bool reset)
  */
 Status AudioSinkControllerListener::onAudioResumed(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener Resumed Event received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Resumed Event received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mResumeMutex);
         mAudioresumed.push(nsPresentationTime);
@@ -275,7 +275,7 @@ bool AudioSinkControllerListener::getNextAudioResumedPTS(int64_t &audioResumedPT
     );
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] ControllerListener Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] ControllerListener Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     audioResumedPTS = mAudioresumed.front();
@@ -290,7 +290,7 @@ bool AudioSinkControllerListener::getNextAudioResumedPTS(int64_t &audioResumedPT
  */
 Status AudioSinkControllerListener::onFlushComplete()
 {
-    UT_LOG_INFO("[SinkID: %d] ControllerListener Flush Complete Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Flush Complete Event received: %lld\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mFlushMutex);
         mFlushCompleteCount++;
@@ -371,7 +371,7 @@ bool AudioSinkControllerListener::checkStateTransistion(State expOldState, State
  */
 Status AudioSinkEventListener::onStateChanged(State oldState,State newState)
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
     {
         std::lock_guard<std::mutex> lock(mStateMutex);
         mStateChanges.emplace_back(oldState, newState);
@@ -389,7 +389,7 @@ Status AudioSinkEventListener::onStateChanged(State oldState,State newState)
  */
 Status AudioSinkEventListener::onFirstFrameRendered(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener First Frame Rendered received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener First Frame Rendered received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mFFMutex);
         mFirstframerendered.push(nsPresentationTime);
@@ -418,7 +418,7 @@ bool AudioSinkEventListener::getNextFirstFrameRenderedPTS(int64_t &firstFramePTS
 
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] EventListener Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] EventListener Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
 
@@ -437,7 +437,7 @@ bool AudioSinkEventListener::getNextFirstFrameRenderedPTS(int64_t &firstFramePTS
  */
 Status AudioSinkEventListener::onEndOfStream(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener EOS received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener EOS received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mEOSMutex);
         mEndofstream.push(nsPresentationTime);
@@ -464,7 +464,7 @@ bool AudioSinkEventListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] EventListener End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] EventListener End of Stream Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     endOfStreamPTS = mEndofstream.front();
@@ -479,7 +479,7 @@ bool AudioSinkEventListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
  */
 Status AudioSinkEventListener::onAudioUnderflow()
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener Underflow Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener Underflow Event received: %lld\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mUnderFlowMutex);
         mUnderFlowCount++;
@@ -512,7 +512,7 @@ int32_t AudioSinkEventListener::getUnderFlowCount(bool reset)
  */
 Status AudioSinkEventListener::onAudioResumed(int64_t nsPresentationTime)
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener Resumed Event received: %lld\n", mSinkID, nsPresentationTime);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener Resumed Event received: %lld\n", mSinkID, nsPresentationTime);
     {
         std::lock_guard<std::mutex> lock(mResumeMutex);
         mAudioresumed.push(nsPresentationTime);
@@ -538,7 +538,7 @@ bool AudioSinkEventListener::getNextAudioResumedPTS(int64_t &audioResumedPTS)
     );
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[SinkID: %d] EventListener Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] EventListener Audio Resumed Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
     audioResumedPTS = mAudioresumed.front();
@@ -553,7 +553,7 @@ bool AudioSinkEventListener::getNextAudioResumedPTS(int64_t &audioResumedPTS)
  */
 Status AudioSinkEventListener::onFlushComplete()
 {
-    UT_LOG_INFO("[SinkID: %d] EventListener Flush Complete Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener Flush Complete Event received: %lld\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mFlushMutex);
         mFlushCompleteCount++;
