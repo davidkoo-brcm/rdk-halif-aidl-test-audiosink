@@ -68,6 +68,46 @@
 
 using namespace com::rdk::hal;
 
+/* ContentType mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t contentType_mapTable[] =
+{
+    {"UNKNOWN",       (int32_t) ContentType::UNKNOWN},
+    {"SPEECH",        (int32_t) ContentType::SPEECH},
+    {"MUSIC",         (int32_t) ContentType::MUSIC},
+    {"MOVIE",         (int32_t) ContentType::MOVIE},
+    {"SONIFICATION",  (int32_t) ContentType::SONIFICATION},
+    {NULL, -1}
+};
+
+/* State mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t state_mapTable[] =
+{
+    {"UNKNOWN",   (int32_t) ::com::rdk::hal::State::UNKNOWN},
+    {"CLOSED",    (int32_t) ::com::rdk::hal::State::CLOSED},
+    {"OPENING",   (int32_t) ::com::rdk::hal::State::OPENING},
+    {"READY",     (int32_t) ::com::rdk::hal::State::READY},
+    {"STARTING",  (int32_t) ::com::rdk::hal::State::STARTING},
+    {"STARTED",   (int32_t) ::com::rdk::hal::State::STARTED},
+    {"FLUSHING",  (int32_t) ::com::rdk::hal::State::FLUSHING},
+    {"STOPPING",  (int32_t) ::com::rdk::hal::State::STOPPING},
+    {"CLOSING",   (int32_t) ::com::rdk::hal::State::CLOSING},
+    {NULL, -1}
+};
+
+/* AudioSink Property mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t audiosinkProperty_mapTable[] =
+{
+    {"RESOURCE_ID",       (int32_t) audiosink::Property::RESOURCE_ID},
+    {"REFERENCE_LEVEL",   (int32_t) audiosink::Property::REFERENCE_LEVEL},
+    {"RENDER_LATENCY_NS", (int32_t) audiosink::Property::RENDER_LATENCY_NS},
+    {"QUEUE_DEPTH_NS",    (int32_t) audiosink::Property::QUEUE_DEPTH_NS},
+    {"MIXER_ID",          (int32_t) audiosink::Property::MIXER_ID},
+    {"AV_SOURCE",         (int32_t) audiosink::Property::AV_SOURCE},
+    {"DOLBY_ATMOS_LOCK",  (int32_t) audiosink::Property::DOLBY_ATMOS_LOCK},
+    {"METRIC_xxxx",       (int32_t) audiosink::Property::METRIC_xxxx},
+    {NULL, -1}
+};
+
 /*currently HAL FEATURE PROFILE contain string value for codec instead of enum. so the helper required to convert*/
 audiodecoder::Codec vts_audiosink_helper_StringTocodec(const std::string& format)
 {

@@ -96,6 +96,10 @@ using android::binder::Status;
 using namespace com::rdk::hal;
 using namespace com::rdk::hal::audiosink;
 
+extern const ut_control_keyStringMapping_t contentType_mapTable[];
+extern const ut_control_keyStringMapping_t state_mapTable[];
+extern const ut_control_keyStringMapping_t audiosinkProperty_mapTable[];
+
 bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const audiosink::Property );
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
