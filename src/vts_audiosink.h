@@ -72,6 +72,10 @@
 #include <mutex>
 #include <inttypes.h>
 
+#include "vts_audiodecoder.h"
+#include "vts_avbuffer.h"
+#include "IAVBufferHelper.h"
+
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkEventListener.h"
@@ -768,6 +772,46 @@ private:
     int32_t mFlushCompleteCount;
     int32_t mSinkID;
 };
+
+class AudioSinkTest
+{
+public:
+    AudioSinkTest(IAudioSink::Id sinkId, sp<IAudioSink> sinkHandle,
+             sp<AudioSinkControllerListener> controlListener,
+             sp<AudioSinkEventListener> eventListener, sp<AudioDecoderControllerListener> decoderControlListener,
+             sp<IAVBuffer> AVBufferManager, IAudioDecoder::Id decoderId,
+             bool secureDecode, bool isTunnel, testConfiguration_t config)
+    {
+        mSinkId = sinkId;
+        mDecoderId = decoderId;
+        mSinkHandle = sinkHandle;
+        mControlListener = controlListener;
+        mSecureBuffer = secureDecode;
+        mEventListener = eventListener;
+        mTestConfiguration = config;
+        mAVBufferManager = AVBufferManager;
+        mdecoderControlListener = decoderControlListener;
+        mIsTunnel = isTunnel;
+    }
+
+    void run();
+
+private:
+    IAudioSink::Id mSinkId;
+    IAudioDecoder::Id mDecoderId;
+    sp<IAudioSink> mSinkHandle;
+    sp<AudioSinkControllerListener> mControlListener;
+    sp<AudioSinkEventListener> mEventListener;
+    sp<IAVBuffer> mAVBufferManager;
+    sp<AudioDecoderControllerListener> mdecoderControlListener;
+    bool mSecureBuffer;
+    bool mIsTunnel;
+    testConfiguration_t mTestConfiguration;
+
+    void audioSinkNonTunnelTest();
+    void audioSinkTunnelTest();
+};
+
 #endif //__VTS_AUDIOSINK_H__
 
 /** @} */ // End of AUDIO_SINK_HALTEST_HEADER
