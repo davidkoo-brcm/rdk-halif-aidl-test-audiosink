@@ -89,7 +89,7 @@
 #include "vts_audiosink.h"
 #include "vts_avbuffer.h"
 
-#include "IAVBufferHelper.h"
+#include "avbufferhelper.h"
 
 static const char *gModuleName = "IAudioSinkManager";
 static const char *gAudioModuleName = "IAudioDecoderManager";
