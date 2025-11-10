@@ -106,7 +106,7 @@ using namespace com::rdk::hal::audiosink;
  * @param newState New state
  * @return Status
  */
-Status AudioSinkControllerListener::onStateChanged(State oldState,State newState)
+Status AudioSinkControllerListener::onStateChanged(::com::rdk::hal::State oldState, ::com::rdk::hal::State newState)
 {
     UT_LOG_INFO("[Audio SinkID: %d] ControllerListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
     {
@@ -321,7 +321,7 @@ int32_t AudioSinkControllerListener::getFlushCompleteCount(bool reset)
  * @param timeout The maximum time to wait
  * @return true if the state changed to the desired state, false if timed out
  */
-bool AudioSinkControllerListener::waitForState(State desiredState, std::chrono::milliseconds timeout)
+bool AudioSinkControllerListener::waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout)
 {
     std::unique_lock<std::mutex> lock(mStateMutex);
     // Wait until mCurrentState == desiredState or until timeout
@@ -346,7 +346,7 @@ void AudioSinkControllerListener::resetStateChanges()
  * @param expNewState Expected new state
  * @return true if the transition has occurred, false otherwise
  */
-bool AudioSinkControllerListener::checkStateTransistion(State expOldState, State expNewState)
+bool AudioSinkControllerListener::checkStateTransistion(::com::rdk::hal::State expOldState, ::com::rdk::hal::State expNewState)
 {
     bool foundClosedToOpening = false;
     for (const auto &[oldState, newState] : mStateChanges)
@@ -369,7 +369,7 @@ bool AudioSinkControllerListener::checkStateTransistion(State expOldState, State
  * @param newState New state
  * @return Status
  */
-Status AudioSinkEventListener::onStateChanged(State oldState,State newState)
+Status AudioSinkEventListener::onStateChanged(::com::rdk::hal::State oldState, ::com::rdk::hal::State newState)
 {
     UT_LOG_INFO("[Audio SinkID: %d] EventListener State Change received: %s -> %s\n", mSinkID, com::rdk::hal::toString(oldState).c_str(), com::rdk::hal::toString(newState).c_str());
     {
@@ -584,7 +584,7 @@ int32_t AudioSinkEventListener::getFlushCompleteCount(bool reset)
  * @param timeout The maximum time to wait
  * @return true if the state changed to the desired state, false if timed out
  */
-bool AudioSinkEventListener::waitForState(State desiredState, std::chrono::milliseconds timeout)
+bool AudioSinkEventListener::waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout)
 {
     std::unique_lock<std::mutex> lock(mStateMutex);
     // Wait until mCurrentState == desiredState or until timeout
@@ -609,7 +609,7 @@ void AudioSinkEventListener::resetStateChanges()
  * @param expNewState Expected new state
  * @return true if the transition has occurred, false otherwise
  */
-bool AudioSinkEventListener::checkStateTransistion(State expOldState, State expNewState)
+bool AudioSinkEventListener::checkStateTransistion(::com::rdk::hal::State expOldState, ::com::rdk::hal::State expNewState)
 {
     bool foundClosedToOpening = false;
     for (const auto &[oldState, newState] : mStateChanges)

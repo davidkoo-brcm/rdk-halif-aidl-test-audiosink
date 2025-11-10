@@ -68,84 +68,56 @@
 
 using namespace com::rdk::hal;
 
-/*currently HAL FEATURE PROFILE contain string value for codec instead of enum. so the helper required to convert*/
-audiodecoder::Codec vts_audiosink_helper_StringTocodec(const std::string& format)
+/* ContentType mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t contentType_mapTable[] =
 {
-    static const std::unordered_map<std::string, audiodecoder::Codec> formatMap = {
-    {"PCM", audiodecoder::Codec::PCM},
-    {"AAC_LC", audiodecoder::Codec::AAC_LC},
-    {"HE_AAC", audiodecoder::Codec::HE_AAC},
-    {"HE_AAC2", audiodecoder::Codec::HE_AAC2},
-    {"AAC_ELD", audiodecoder::Codec::AAC_ELD},
-    {"DOLBY_AC3", audiodecoder::Codec::DOLBY_AC3},
-    {"DOLBY_AC3_PLUS", audiodecoder::Codec::DOLBY_AC3_PLUS},
-    {"DOLBY_AC3_PLUS_JOC", audiodecoder::Codec::DOLBY_AC3_PLUS_JOC},
-    {"DOLBY_AC4", audiodecoder::Codec::DOLBY_AC4},
-    {"DOLBY_MAT", audiodecoder::Codec::DOLBY_MAT},
-    {"DOLBY_MAT2", audiodecoder::Codec::DOLBY_MAT2},
-    {"DOLBY_TRUEHD", audiodecoder::Codec::DOLBY_TRUEHD},
-    {"MPEG2", audiodecoder::Codec::MPEG2},
-    {"MP3", audiodecoder::Codec::MP3},
-    {"FLAC", audiodecoder::Codec::FLAC},
-    {"VORBIS", audiodecoder::Codec::VORBIS},
-    {"DTS", audiodecoder::Codec::DTS},
-    {"OPUS", audiodecoder::Codec::OPUS},
-    {"WMA", audiodecoder::Codec::WMA},
-    {"REALAUDIO", audiodecoder::Codec::REALAUDIO},
-    {"USAC", audiodecoder::Codec::USAC},
-    {"X_HE_AAC", audiodecoder::Codec::X_HE_AAC}
-    };
+    {"UNKNOWN",       (int32_t) ContentType::UNKNOWN},
+    {"SPEECH",        (int32_t) ContentType::SPEECH},
+    {"MUSIC",         (int32_t) ContentType::MUSIC},
+    {"MOVIE",         (int32_t) ContentType::MOVIE},
+    {"SONIFICATION",  (int32_t) ContentType::SONIFICATION},
+    {NULL, -1}
+};
 
-    auto it = formatMap.find(format);
-    if (it != formatMap.end())
-    {
-        return it->second;
-    }
-    return static_cast<audiodecoder::Codec>(-1);
-}
-
-audiodecoder::PCMFormat vts_audiosink_helper_StringToFormat(const std::string& format)
+/* State mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t state_mapTable[] =
 {
-    static const std::unordered_map<std::string, audiodecoder::PCMFormat> formatMap = {
-        {"F64LE", audiodecoder::PCMFormat::F64LE},
-        {"F64BE", audiodecoder::PCMFormat::F64BE},
-        {"F32LE", audiodecoder::PCMFormat::F32LE},
-        {"F32BE", audiodecoder::PCMFormat::F32BE},
-        {"S32LE", audiodecoder::PCMFormat::S32LE},
-        {"S32BE", audiodecoder::PCMFormat::S32BE},
-        {"U32LE", audiodecoder::PCMFormat::U32LE},
-        {"U32BE", audiodecoder::PCMFormat::U32BE},
-        {"S24_32LE", audiodecoder::PCMFormat::S24_32LE},
-        {"S24_32BE", audiodecoder::PCMFormat::S24_32BE},
-        {"U24_32LE", audiodecoder::PCMFormat::U24_32LE},
-        {"U24_32BE", audiodecoder::PCMFormat::U24_32BE},
-        {"S24LE", audiodecoder::PCMFormat::S24LE},
-        {"S24BE", audiodecoder::PCMFormat::S24BE},
-        {"U24LE", audiodecoder::PCMFormat::U24LE},
-        {"U24BE", audiodecoder::PCMFormat::U24BE},
-        {"S20LE", audiodecoder::PCMFormat::S20LE},
-        {"S20BE", audiodecoder::PCMFormat::S20BE},
-        {"U20LE", audiodecoder::PCMFormat::U20LE},
-        {"U20BE", audiodecoder::PCMFormat::U20BE},
-        {"S18LE", audiodecoder::PCMFormat::S18LE},
-        {"S18BE", audiodecoder::PCMFormat::S18BE},
-        {"U18LE", audiodecoder::PCMFormat::U18LE},
-        {"U18BE", audiodecoder::PCMFormat::U18BE},
-        {"S16LE", audiodecoder::PCMFormat::S16LE},
-        {"S16BE", audiodecoder::PCMFormat::S16BE},
-        {"U16LE", audiodecoder::PCMFormat::U16LE},
-        {"U16BE", audiodecoder::PCMFormat::U16BE},
-        {"S8", audiodecoder::PCMFormat::S8},
-        {"U8", audiodecoder::PCMFormat::U8},
-    };
+    {"UNKNOWN",   (int32_t) ::com::rdk::hal::State::UNKNOWN},
+    {"CLOSED",    (int32_t) ::com::rdk::hal::State::CLOSED},
+    {"OPENING",   (int32_t) ::com::rdk::hal::State::OPENING},
+    {"READY",     (int32_t) ::com::rdk::hal::State::READY},
+    {"STARTING",  (int32_t) ::com::rdk::hal::State::STARTING},
+    {"STARTED",   (int32_t) ::com::rdk::hal::State::STARTED},
+    {"FLUSHING",  (int32_t) ::com::rdk::hal::State::FLUSHING},
+    {"STOPPING",  (int32_t) ::com::rdk::hal::State::STOPPING},
+    {"CLOSING",   (int32_t) ::com::rdk::hal::State::CLOSING},
+    {NULL, -1}
+};
 
-    auto it = formatMap.find(format);
-    if (it != formatMap.end())
-    {
-        return it->second;
-    }
-    return static_cast<audiodecoder::PCMFormat>(-1);
-}
+/* AudioSink Property mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t audiosinkProperty_mapTable[] =
+{
+    {"RESOURCE_ID",       (int32_t) audiosink::Property::RESOURCE_ID},
+    {"REFERENCE_LEVEL",   (int32_t) audiosink::Property::REFERENCE_LEVEL},
+    {"RENDER_LATENCY_NS", (int32_t) audiosink::Property::RENDER_LATENCY_NS},
+    {"QUEUE_DEPTH_NS",    (int32_t) audiosink::Property::QUEUE_DEPTH_NS},
+    {"MIXER_ID",          (int32_t) audiosink::Property::MIXER_ID},
+    {"AV_SOURCE",         (int32_t) audiosink::Property::AV_SOURCE},
+    {"DOLBY_ATMOS_LOCK",  (int32_t) audiosink::Property::DOLBY_ATMOS_LOCK},
+    {"METRIC_xxxx",       (int32_t) audiosink::Property::METRIC_xxxx},
+    {NULL, -1}
+};
+
+/* VolumeRamp mapping table for UT_Control_GetMapString */
+const ut_control_keyStringMapping_t volumeRamp_mapTable[] =
+{
+    {"LINEAR",    (int32_t) audiosink::VolumeRamp::LINEAR},
+    {"IN_CUBIC",  (int32_t) audiosink::VolumeRamp::IN_CUBIC},
+    {"OUT_CUBIC", (int32_t) audiosink::VolumeRamp::OUT_CUBIC},
+    {NULL, -1}
+};
+
+
 
 audiodecoder::ChannelType vts_audiosink_helper_StringToChannelType(const std::string& channelType)
 {
@@ -200,7 +172,7 @@ void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& capab
     UT_ASSERT_EQUAL(std::stoi(_sinkmanager[0].supportedcaps[0].samplerate), capabilities.systemMixerSampleRateHz);
 
     /* checking mixer pcmformat from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(vts_audiosink_helper_StringToFormat(_sinkmanager[0].supportedcaps[0].mixer_pcmformat), capabilities.systemMixerPCMFormat);
+    UT_ASSERT_EQUAL(vts_audioDecoder_helper_StringToPCMFormat(_sinkmanager[0].supportedcaps[0].mixer_pcmformat), capabilities.systemMixerPCMFormat);
 
     /* checking supports PlanarFormat from getPlatformCapabilities() and hfp platformcapabilites */
     UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsPlanarFormat), capabilities.supportsPlanarFormat);
