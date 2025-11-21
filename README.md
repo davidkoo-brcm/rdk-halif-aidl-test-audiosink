@@ -16,7 +16,6 @@ While the Unified VTS can run all tests at once, you can execute the `VTS_L1_Aud
 
 |SNo|Document Name|Document Description|Document Link|
 |---|-------------|--------------------|-------------|
-|1|High Level Test Specification Document|High Level Test Specification Documentation this module|[audioSink_High-Level_TestSpecification.md](docs/pages/audioSink_High-Level_TestSpecification.md.md)|
-|2|`L2` L2 Low Level Test Specification and Procedure Document|`L2` Test Specification and Procedure Documentation|[audioSink_L2_Low-Level_TestSpecification.md](docs/pages/audioSink_L2_Low-Level_TestSpecification.md)|
-|3|`L3` L3 Low Level Test Specification and Procedure Document|`L3` Test Specification and Procedure Documentation|[audioSink_L3_Low-Level_TestSpecification.md](docs/pages/audioSink_L3_Low-Level_TestSpecification.md)|
-
+|1|High Level Test Specification Document|High Level Test Specification Documentation this module|[audioSink_High-Level_TestSpecification.md](docs/pages/audioSink_High-Level_TestSpecification.md)|
+|2|`L2` Low Level Test Specification and Procedure Document|`L2` Test Specification and Procedure Documentation|[audioSink_L2_Low-Level_TestSpecification.md](docs/pages/audioSink_L2_Low-Level_TestSpecification.md)|
+|3|`L3` Low Level Test Specification and Procedure Document|`L3` Test Specification and Procedure Documentation|[audioSink_L3_Low-Level_TestSpecification.md](docs/pages/audioSink_L3_Low-Level_TestSpecification.md)|
