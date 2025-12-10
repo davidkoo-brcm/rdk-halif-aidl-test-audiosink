@@ -300,13 +300,13 @@ private:
 
             if(mTestConfiguration.sinkFlushPts >= 0)
             {
-                UT_ASSERT_TRUE(mControlListener->getFlushCompleteCount(true));
-                UT_ASSERT_TRUE(mEventListener->getFlushCompleteCount(true));
+                UT_ASSERT_GREATER_EQUAL(1,mControlListener->getFlushCompleteCount(true));
+                UT_ASSERT_GREATER_EQUAL(1,mEventListener->getFlushCompleteCount(true));
             }
             else
             {
-                UT_ASSERT_FALSE(mControlListener->getFlushCompleteCount(true));
-                UT_ASSERT_FALSE(mEventListener->getFlushCompleteCount(true));
+                UT_ASSERT_LESS(1,mControlListener->getFlushCompleteCount(true));
+                UT_ASSERT_LESS(1,mEventListener->getFlushCompleteCount(true));
             }
 
             /* Stop the Audio sink */
