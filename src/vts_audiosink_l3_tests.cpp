@@ -89,7 +89,7 @@
 #include "vts_audiosink.h"
 #include "vts_avbuffer.h"
 
-#include "IAVBufferHelper.h"
+#include "avbufferhelper.h"
 
 static const char *gModuleName = "IAudioSinkManager";
 static const char *gAudioModuleName = "IAudioDecoderManager";
@@ -184,7 +184,7 @@ private:
             UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
             /* Open the Decoder */
-            AUDIOSINK_OPEN_SUCCESS(mSinkHandle, mControlListener, audioSinkController, true);
+            AUDIOSINK_OPEN_SUCCESS(mSinkHandle, ContentType::UNKNOWN, mControlListener, audioSinkController, true);
 
             AUDIOSINK_SETAUDIODECODER_SUCCESS(mDecoderId.value, audioSinkController);
 
@@ -419,8 +419,8 @@ public:
     }
 
     void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener,
-                                      sp<AudioSinkControllerListener> controlListener, State oldState,
-                                      State intermediateState, State newState)
+                                      sp<AudioSinkControllerListener> controlListener, ::com::rdk::hal::State oldState,
+                                      ::com::rdk::hal::State intermediateState, ::com::rdk::hal::State newState)
     {
         ::com::rdk::hal::State currentState;
 

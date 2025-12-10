@@ -144,7 +144,7 @@ VTS_L2_AudioSink() : UTCore() {}
             }
         }
 
-    void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener, sp<AudioSinkControllerListener> controlListener, State oldState, State intermediateState, State newState)
+    void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener, sp<AudioSinkControllerListener> controlListener, ::com::rdk::hal::State oldState, ::com::rdk::hal::State intermediateState, ::com::rdk::hal::State newState)
     {
         ::com::rdk::hal::State currentState;
 
@@ -197,7 +197,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestReadWriteProperties)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         for (const auto& [property, value] : validIntPropertyReady)
         {
@@ -239,24 +239,24 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, false);
-        checkCompleteStateTransition(audioSink, eventListener, controlListener,  State::CLOSED, State::OPENING, State::READY);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, false);
+        checkCompleteStateTransition(audioSink, eventListener, controlListener,  ::com::rdk::hal::State::CLOSED, ::com::rdk::hal::State::OPENING, ::com::rdk::hal::State::READY);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, false);
-        checkCompleteStateTransition(audioSink, eventListener, controlListener, State::READY, State::STARTING, State::STARTED);
+        checkCompleteStateTransition(audioSink, eventListener, controlListener, ::com::rdk::hal::State::READY, ::com::rdk::hal::State::STARTING, ::com::rdk::hal::State::STARTED);
 
         // Flush the audio sink
         AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, false);
-        checkCompleteStateTransition(audioSink, eventListener, controlListener, State::STARTED, State::FLUSHING, State::STARTED);
+        checkCompleteStateTransition(audioSink, eventListener, controlListener, ::com::rdk::hal::State::STARTED, ::com::rdk::hal::State::FLUSHING, ::com::rdk::hal::State::STARTED);
 
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, false);
-        checkCompleteStateTransition(audioSink, eventListener, controlListener, State::STARTED, State::STOPPING, State::READY);
+        checkCompleteStateTransition(audioSink, eventListener, controlListener, ::com::rdk::hal::State::STARTED, ::com::rdk::hal::State::STOPPING, ::com::rdk::hal::State::READY);
 
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, false);
-        checkCompleteStateTransition(audioSink, eventListener, controlListener, State::READY, State::CLOSING, State::CLOSED);
+        checkCompleteStateTransition(audioSink, eventListener, controlListener, ::com::rdk::hal::State::READY, ::com::rdk::hal::State::CLOSING, ::com::rdk::hal::State::CLOSED);
     }
 }
 
@@ -278,7 +278,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeControl)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Set and verify volume
         for (double volume = 0.0; volume <= 1.0; volume += 0.1)
@@ -317,7 +317,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkMuteUnmute)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Set and verify volume
         for (double volume = 0.1; volume <= 1.0; volume += 0.1)
@@ -380,7 +380,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRamp)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -439,7 +439,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampMute)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -504,7 +504,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestAudioSinkVolumeRampTwice)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -568,7 +568,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
         android::sp<IAudioSinkController> audioSinkController = nullptr;
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controlListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, true);
 
         // Set volume ramp
         double targetVolume = 0.5;

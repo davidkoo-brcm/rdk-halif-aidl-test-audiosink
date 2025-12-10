@@ -424,7 +424,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getProperty_pos)
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        /* Get RESOURCE_ID */
+        /* Get and validate properties */
         for (auto property : testProperties)
         {
             std::optional<PropertyValue> propertyValue;
@@ -516,7 +516,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, com::rdk::hal::audiosink::ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         /* set the properties which can be set after Ready */
         AUDIOSINK_SETPROPERTY_LIST_SUCCESS(audioSink, validIntPropertyReady, intValue);
@@ -582,7 +582,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_neg)
         AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, validIntPropertyReady, intValue, Status::EX_ILLEGAL_STATE);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
          /* set the read only properties */
         AUDIOSINK_SETPROPERTY_LIST_FAILURE(audioSink, readOnlyProperty, intValue, Status::EX_UNSUPPORTED_OPERATION);
@@ -638,7 +638,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    State state = State::UNKNOWN;
+    ::com::rdk::hal::State state = ::com::rdk::hal::State::UNKNOWN;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -652,7 +652,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         /* get the state of an audio sink */
         AUDIOSINK_GET_STATE(audioSink, state);
@@ -678,9 +678,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
 }
 
 /**
- * @brief Test the positive scenario of opening an audio sink.
+ * @brief Test the positive scenario of opening an audio sink with all ContentType values.
  *
- * This test verifies the successful opening of an audio sink using a controller listener. It checks if the audio sink controller is correctly initialized and the status returned is OK.
+ * This test verifies the successful opening of an audio sink using a controller listener with all possible ContentType values. It checks if the audio sink controller is correctly initialized for each content type and the status returned is OK.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 011@n
@@ -694,10 +694,11 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Initialize the controller listener object | controllerListener = new AudioSinkControllerListenerImpl | Object should be created successfully | Should be successful |
- * | 02 | Call the open function with the controller listener and audio sink controller | IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 03 | Log the result of the open function call | audioSinkController.get(), status.isOk(), status.exceptionCode() | Log should show correct status and controller address | Should be successful |
- * | 04 | Assert that the status is OK | status.isOk() | Assertion should pass | Should Pass |
- * | 05 | Assert that the audio sink controller is not nullptr | audioSinkController != nullptr | Assertion should pass | Should Pass |
+ * | 02 | Test opening with ContentType::UNKNOWN | contentType = UNKNOWN, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 03 | Test opening with ContentType::SPEECH | contentType = SPEECH, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 04 | Test opening with ContentType::MUSIC | contentType = MUSIC, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 05 | Test opening with ContentType::MOVIE | contentType = MOVIE, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 06 | Test opening with ContentType::SONIFICATION | contentType = SONIFICATION, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
 {
@@ -705,33 +706,60 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
 
+    // Define all possible ContentType values to test
+    std::vector<ContentType> contentTypes = {
+        ContentType::UNKNOWN,
+        ContentType::SPEECH,
+        ContentType::MUSIC,
+        ContentType::MOVIE,
+        ContentType::SONIFICATION
+    };
+
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     for (const auto& _sinkId : sinkIds )
     {
-        sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
-
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        // Test opening with each ContentType
+        for (const auto& contentType : contentTypes)
+        {
+            sp<IAudioSinkController> audioSinkController;
+            sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
-        /* Close the sink */
-        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+            UT_LOG_INFO("Testing open with ContentType: %s (%s)",
+                        com::rdk::hal::audiosink::toString(contentType).c_str(),
+                        UT_Control_GetMapString(contentType_mapTable, static_cast<int32_t>(contentType)));
 
+            //set state to READY by invoking `open` (set-up) with specific ContentType
+            AUDIOSINK_OPEN_SUCCESS(audioSink, contentType, controllerListener, audioSinkController, true);
+
+            // Verify the audio sink is in READY state after opening
+            ::com::rdk::hal::State currentState;
+            AUDIOSINK_GET_STATE(audioSink, currentState);
+            UT_ASSERT_EQUAL(currentState, ::com::rdk::hal::State::READY);
+
+            /* Close the sink */
+            AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+
+            // Verify the audio sink is in CLOSED state after closing
+            AUDIOSINK_GET_STATE(audioSink, currentState);
+            UT_ASSERT_EQUAL(currentState, ::com::rdk::hal::State::CLOSED);
+
+        }
     }
 }
+
 
 /**
  * @brief Test the negative scenarios for the AudioSink open function
  *
- * This test evaluates the behavior of the AudioSink open function when provided with invalid inputs or called in an invalid state. It ensures that the function handles these scenarios gracefully by returning appropriate error statuses and not altering the state inappropriately.
+ * This test evaluates the behavior of the AudioSink open function when provided with invalid inputs or called in an invalid state. It ensures that the function handles these scenarios gracefully by returning appropriate error statuses and not altering the state inappropriately. This includes testing all ContentType-related exceptions as specified in the AIDL interface.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 012@n
+ * **Test Case ID:** 014@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -742,10 +770,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Initialize the test environment and prepare the AudioSink for testing | None | None | Should be successful |
- * | 02 | Call open with a null listener to test negative scenario | audioSinkControllerListener = nullptr, controller = nullptr | status.isOk() = false, controller = nullptr | Should Fail |
- * | 03 | Create a valid AudioSinkControllerListenerImpl instance | mControllerListener = new AudioSinkControllerListenerImpl | None | Should be successful |
+ * | 02 | Call open with a null listener to test EX_NULL_POINTER | audioSinkControllerListener = nullptr, controller = nullptr | status.exceptionCode = EX_NULL_POINTER, controller = nullptr | Should Fail |
+ * | 03 | Call open with invalid ContentType values to test EX_ILLEGAL_ARGUMENT | contentType = invalid values (-1, 5, 999) | status.exceptionCode = EX_ILLEGAL_ARGUMENT | Should Fail |
  * | 04 | Call open with a valid listener to establish a valid state | audioSinkControllerListener = valid, controller = valid | status.isOk() = true, controller != nullptr | Should Pass |
- * | 05 | Call open again with the same valid listener to test negative scenario | audioSinkControllerListener = valid, secondController = nullptr | status.isOk() = false, secondController = nullptr | Should Fail |
+ * | 05 | Call open again with the same valid listener to test EX_ILLEGAL_STATE | audioSinkControllerListener = valid, secondController = nullptr | status.exceptionCode = EX_ILLEGAL_STATE, secondController = nullptr | Should Fail |
  * | 06 | Close the controller to clean up the test environment | controller = valid, closed = false | status.isOk() = true, closed = true | Done by Pre-requisite TearDown function |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
@@ -753,6 +781,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
+
+    // Define invalid ContentType values for testing EX_ILLEGAL_ARGUMENT
+    std::vector<ContentType> invalidContentTypes = {
+        static_cast<ContentType>(-1),                    // Before UNKNOWN (0)
+        static_cast<ContentType>(999),                   // Large invalid value
+        static_cast<ContentType>(static_cast<int32_t>(ContentType::SONIFICATION) + 1)  // Just after the last valid enum
+    };
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -766,14 +801,32 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        //send Null listener
-        AUDIOSINK_OPEN_FAILURE(audioSink, nullptr, audioSinkController_nullptr, Status::EX_NULL_POINTER);
+        // Test EX_NULL_POINTER exception - null listener
+        UT_LOG_INFO("Testing EX_NULL_POINTER: open with null listener");
+        AUDIOSINK_OPEN_FAILURE(audioSink, ContentType::UNKNOWN, nullptr, audioSinkController_nullptr, Status::EX_NULL_POINTER);
 
-        //open audio sink
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        // Test EX_ILLEGAL_ARGUMENT exception - invalid ContentType values
+        for (const auto& invalidContentType : invalidContentTypes)
+        {
+            UT_LOG_INFO("Testing EX_ILLEGAL_ARGUMENT: open with invalid ContentType: %d",
+                        static_cast<int32_t>(invalidContentType));
+            AUDIOSINK_OPEN_FAILURE(audioSink, invalidContentType, controllerListener, audioSinkController_nullptr, Status::EX_ILLEGAL_ARGUMENT);
+        }
 
-        //open audio sink again
-        AUDIOSINK_OPEN_FAILURE(audioSink, controllerListener, audioSinkController_nullptr, Status::EX_ILLEGAL_STATE);
+        // Test successful open to establish a valid state
+        UT_LOG_INFO("Opening audio sink successfully to test EX_ILLEGAL_STATE");
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        // Test EX_ILLEGAL_STATE exception - open again when already open
+        UT_LOG_INFO("Testing EX_ILLEGAL_STATE: open when already in open state");
+        AUDIOSINK_OPEN_FAILURE(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController_nullptr, Status::EX_ILLEGAL_STATE);
+
+        // Test EX_ILLEGAL_STATE with invalid ContentType when already open
+        UT_LOG_INFO("Testing EX_ILLEGAL_STATE: open with invalid ContentType when already open");
+        for (const auto& invalidContentType : invalidContentTypes)
+        {
+            AUDIOSINK_OPEN_FAILURE(audioSink, invalidContentType, controllerListener, audioSinkController_nullptr, Status::EX_ILLEGAL_STATE);
+        }
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -821,7 +874,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -869,7 +922,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, close_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //open audio sink
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //send NULL controller
         AUDIOSINK_CLOSE_FAILURE(audioSink, nullptr, Status::EX_NULL_POINTER);
@@ -1144,7 +1197,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
                 AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
@@ -1217,7 +1270,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
        // Test with invalid ID (least value -1)
        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
@@ -1298,7 +1351,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
                 decoderId.value = _decoderId;
@@ -1362,7 +1415,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
        //AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
 
        //set state to READY by invoking `open` (set-up)
-       //AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+       //AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
        //audiodecoderId.value = -1;
        //call get audio decoder with invalid id
@@ -1415,7 +1468,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -1470,7 +1523,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -1526,7 +1579,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -1581,7 +1634,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //Stop the Audio sink in non STARTED state
         AUDIOSINK_STOP_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
@@ -1659,7 +1712,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Log the API call in Ready state
         AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_STATE);
@@ -1722,7 +1775,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -1779,7 +1832,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_FLUSH_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
@@ -1839,7 +1892,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //Set volume
         Volume volumeSet;
@@ -1924,7 +1977,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
         //AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
 
         //set state to READY by invoking `open` (set-up)
-        //AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        //AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //close the Audio sink
         //AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -1974,7 +2027,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //Set volume
         Volume volumeSet;
@@ -2049,7 +2102,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         //setting invalid volume
         Volume volumeSet;
@@ -2118,7 +2171,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Ensure the audio sink is in State::STARTED
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -2184,7 +2237,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, controllerListener, audioSinkController, true);
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Ensure the audio sink is in State::STARTED
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);

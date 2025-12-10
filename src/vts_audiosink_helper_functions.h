@@ -96,11 +96,15 @@ using android::binder::Status;
 using namespace com::rdk::hal;
 using namespace com::rdk::hal::audiosink;
 
+extern const ut_control_keyStringMapping_t contentType_mapTable[];
+extern const ut_control_keyStringMapping_t state_mapTable[];
+extern const ut_control_keyStringMapping_t audiosinkProperty_mapTable[];
+extern const ut_control_keyStringMapping_t volumeRamp_mapTable[];
+
 bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const audiosink::Property );
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
 void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
-audiodecoder::PCMFormat vts_audiosink_helper_StringToFormat(const std::string& format);
-audiodecoder::Codec vts_audiosink_helper_StringTocodec(const std::string& );
+
 audiodecoder::ChannelType vts_audiosink_helper_StringToChannelType(const std::string& channelType);
 size_t vts_bytesPerSample(audiodecoder::PCMFormat format);
 
