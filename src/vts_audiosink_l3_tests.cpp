@@ -481,7 +481,7 @@ public:
                 sp<IAudioDecoder> decoderHandle;
                 sp<AudioDecoderEventListener> decoderEventListener;
                 bool foundDecoder = false;
-                bool isSinkAvailable = true;
+                bool isSinkAttached = true;
 
                 for (const auto& [_decoderId, _decoderHandle, _controlListener, _eventListener, _capabilities] : mAudioDecoderList)
                 {
@@ -506,7 +506,7 @@ public:
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
                 AudioDecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
-                                    decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig, isSinkAvailable);
+                                    decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig, isSinkAttached);
 
                 std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
 
@@ -544,7 +544,7 @@ public:
             vector<unique_ptr<AudioDecoderTest>> decoderTests;
             vector<unique_ptr<SinkTest>> sinkTests;
             vector<pair<IAudioDecoder::Id, sp<AudioDecoderControllerListener>>> availableDecoderList;
-            bool isSinkAvailable = true;
+            bool isSinkAttached = true;
 
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
@@ -557,7 +557,7 @@ public:
                    auto decoderTest = make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
                                                                 controlListener, eventListener,
                                                                 mAVBufferManager, mAVbufferHelper,
-                                                                secureDecode, testConfig, isSinkAvailable);
+                                                                secureDecode, testConfig, isSinkAttached);
                     decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
 
                     decoderTests.push_back(move(decoderTest));
