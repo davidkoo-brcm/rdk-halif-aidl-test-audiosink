@@ -481,7 +481,7 @@ public:
                 sp<IAudioDecoder> decoderHandle;
                 sp<AudioDecoderEventListener> decoderEventListener;
                 bool foundDecoder = false;
-                bool isSinkAttached = true;
+                bool isSinkAttached = (sinkHandle != nullptr);
 
                 for (const auto& [_decoderId, _decoderHandle, _controlListener, _eventListener, _capabilities] : mAudioDecoderList)
                 {
