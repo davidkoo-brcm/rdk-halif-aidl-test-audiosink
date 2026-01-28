@@ -74,7 +74,6 @@
 
 #include "vts_audiodecoder.h"
 #include "vts_avbuffer.h"
-#include "IAVBufferHelper.h"
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
