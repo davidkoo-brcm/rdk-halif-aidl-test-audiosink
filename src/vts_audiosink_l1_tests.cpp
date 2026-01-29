@@ -1696,17 +1696,25 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
         com::rdk::hal::audiodecoder::FrameMetadata metadata;
         metadata.sourceCodec = com::rdk::hal::audiodecoder::Codec::PCM;
         metadata.isDolbyAtmos = false;
-        metadata.numChannels = 2;
-        metadata.channelTypes = {com::rdk::hal::audiodecoder::ChannelType::FRONT_LEFT, com::rdk::hal::audiodecoder::ChannelType::FRONT_RIGHT};
-        metadata.sampleRate = 44100;
-        metadata.format = com::rdk::hal::audiodecoder::PCMFormat::S16LE;
-        metadata.planarFormat = false;
         metadata.trimStartNs = 0;
         metadata.trimEndNs = 0;
         metadata.lowLatency = false;
         metadata.endOfStream = false;
         metadata.discontinuity = false;
         metadata.source = AVSource::SYSTEM;
+
+        // PCM fields moved under FrameMetadata::metadata (optional<PCMMetadata>)
+        // Use emplace() to avoid deleted move assignment.
+        metadata.metadata.emplace();
+        auto& pcmRef = *metadata.metadata;
+        pcmRef.numChannels  = 2;
+        pcmRef.channelTypes = {
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_LEFT,
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_RIGHT
+        };
+        pcmRef.sampleRate   = 44100;
+        pcmRef.format       = com::rdk::hal::audiodecoder::PCMFormat::S16LE;
+        pcmRef.planarFormat = false;
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);

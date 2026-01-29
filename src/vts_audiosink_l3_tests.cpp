@@ -169,11 +169,17 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                 }
                 if(decodedFrame.isMetaAvailable)
                 {
-                    metadata.channelTypes = decodedFrame.metadata.channelTypes;
-                    metadata.numChannels = decodedFrame.metadata.numChannels;
-                    metadata.sampleRate = decodedFrame.metadata.sampleRate;
-                    metadata.format = decodedFrame.metadata.format;
-                    metadata.planarFormat = decodedFrame.metadata.planarFormat;
+                    // ---- PCM fields moved under FrameMetadata::metadata (optional<PCMMetadata>) ----
+                    if (!metadata.metadata.has_value())
+                        metadata.metadata.emplace();
+                    auto& pcm = *metadata.metadata;
+                    pcm.channelTypes = decodedFrame.metadata.channelTypes;
+                    pcm.numChannels = decodedFrame.metadata.numChannels;
+                    pcm.sampleRate = decodedFrame.metadata.sampleRate;
+                    pcm.format = decodedFrame.metadata.format;
+                    pcm.planarFormat = decodedFrame.metadata.planarFormat;
+
+                    // ---- FrameMetadata top-level fields (still exist) ----
                     metadata.isDolbyAtmos = decodedFrame.metadata.isDolbyAtmos;
                     metadata.trimStartNs = decodedFrame.metadata.trimStartNs;
                     metadata.trimEndNs = decodedFrame.metadata.trimEndNs;
@@ -183,6 +189,12 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                     metadata.source = decodedFrame.metadata.source;
                     metadata.sourceCodec = decodedFrame.metadata.sourceCodec;
                 }
+                else
+                {
+                    // Prevent stale PCM metadata being reused from a previous frame
+                    metadata.metadata.reset();
+                }
+
                 if(mTestConfiguration.decoderDelay > 0)
                 {
                     this_thread::sleep_for(chrono::milliseconds(mTestConfiguration.decoderDelay));
