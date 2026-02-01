@@ -82,17 +82,13 @@
 #include "com/rdk/hal/avbuffer/BnAVBufferSpaceListener.h"
 
 #include "vts_audiodecoder_parse_testconfig.h"
-#include "vts_audiodecoder.h"
 
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
-#include "vts_avbuffer.h"
-
-#include "avbufferhelper.h"
 
 static const char *gModuleName = "IAudioSinkManager";
-static const char *gAudioModuleName = "IAudioDecoderManager";
+const char *gAudioModuleName = "IAudioDecoderManager";
 static const char *gTestGroup = "L3";
 //static IAVBufferHelper* gAVbufferHelper;
 
@@ -122,54 +118,21 @@ public:
     }
 };
 
-class SinkTest
+void AudioSinkTest::run()
 {
-public:
-    SinkTest(IAudioSink::Id sinkId, sp<IAudioSink> sinkHandle,
-             sp<AudioSinkControllerListener> controlListener,
-             sp<AudioSinkEventListener> eventListener, sp<AudioDecoderControllerListener> decoderControlListener,
-             sp<IAVBuffer> AVBufferManager, IAudioDecoder::Id decoderId,
-             bool secureDecode, bool isTunnel, testConfiguration_t config)
+    if(mIsTunnel)
     {
-        mSinkId = sinkId;
-        mDecoderId = decoderId;
-        mSinkHandle = sinkHandle;
-        mControlListener = controlListener;
-        mSecureBuffer = secureDecode;
-        mEventListener = eventListener;
-        mTestConfiguration = config;
-        mAVBufferManager = AVBufferManager;
-        mdecoderControlListener = decoderControlListener;
-        mIsTunnel = isTunnel;
+        audioSinkTunnelTest();
     }
-
-    void run()
+    else
     {
-        if(mIsTunnel)
-        {
-            audioSinkTunnelTest();
-        }
-        else
-        {
-            audioSinkNonTunnelTest();
-        }
+        audioSinkNonTunnelTest();
     }
+}
 
-private:
-    IAudioSink::Id mSinkId;
-    IAudioDecoder::Id mDecoderId;
-    sp<IAudioSink> mSinkHandle;
-    sp<AudioSinkControllerListener> mControlListener;
-    sp<AudioSinkEventListener> mEventListener;
-    sp<IAVBuffer> mAVBufferManager;
-    sp<AudioDecoderControllerListener> mdecoderControlListener;
-    bool mSecureBuffer;
-    bool mIsTunnel;
-    testConfiguration_t mTestConfiguration;
-
-    void audioSinkNonTunnelTest()
-    {
-        try {
+void AudioSinkTest::audioSinkNonTunnelTest()
+{
+    try {
             sp<IAudioSinkController> audioSinkController;
             Pool audioPool;
             PropertyValue avSourcePropertyValue;
@@ -300,13 +263,13 @@ private:
 
             if(mTestConfiguration.sinkFlushPts >= 0)
             {
-                UT_ASSERT_TRUE(mControlListener->getFlushCompleteCount(true));
-                UT_ASSERT_TRUE(mEventListener->getFlushCompleteCount(true));
+                UT_ASSERT_GREATER_EQUAL(mControlListener->getFlushCompleteCount(true), 1);
+                UT_ASSERT_GREATER_EQUAL(mEventListener->getFlushCompleteCount(true), 1);
             }
             else
             {
-                UT_ASSERT_FALSE(mControlListener->getFlushCompleteCount(true));
-                UT_ASSERT_FALSE(mEventListener->getFlushCompleteCount(true));
+                UT_ASSERT_LESS(mControlListener->getFlushCompleteCount(true), 1);
+                UT_ASSERT_LESS(mEventListener->getFlushCompleteCount(true), 1);
             }
 
             /* Stop the Audio sink */
@@ -322,13 +285,12 @@ private:
             UT_LOG_ERROR("[SinkID: %d] Unknown exception in audioSinkNonTunnelTest", mSinkId.value);
             UT_ASSERT_TRUE(false);
         }
-    }
+}
 
-    void audioSinkTunnelTest()
-    {
+void AudioSinkTest::audioSinkTunnelTest()
+{
         //TODO: implement the tunnel test
-    }
-};
+}
 
 class VTS_L3_AudioSink : public UTCore
 {
@@ -481,6 +443,7 @@ public:
                 sp<IAudioDecoder> decoderHandle;
                 sp<AudioDecoderEventListener> decoderEventListener;
                 bool foundDecoder = false;
+                bool isSinkAttached = (sinkHandle != nullptr);
 
                 for (const auto& [_decoderId, _decoderHandle, _controlListener, _eventListener, _capabilities] : mAudioDecoderList)
                 {
@@ -505,15 +468,15 @@ public:
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
                 AudioDecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
-                                    decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig);
+                                    decoderEventListener, mAVBufferManager, mAVbufferHelper, secureDecode, testConfig, isSinkAttached);
 
                 std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
 
-                SinkTest sinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
+                AudioSinkTest audiosinkTest(_sinkId, sinkHandle, controlListener, eventListener, decoderControlListener,
                                 mAVBufferManager, decoderId, secureDecode, isTunnel, testConfig);
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                sinkTest.run();
+                audiosinkTest.run();
 
                 if (decodeThread.joinable())
                     decodeThread.join();
@@ -541,8 +504,9 @@ public:
             vector<thread> decoderThreads;
             vector<thread> sinkThreads;
             vector<unique_ptr<AudioDecoderTest>> decoderTests;
-            vector<unique_ptr<SinkTest>> sinkTests;
+            vector<unique_ptr<AudioSinkTest>> sinkTests;
             vector<pair<IAudioDecoder::Id, sp<AudioDecoderControllerListener>>> availableDecoderList;
+            bool isSinkAttached = true;
 
             /* Get heap metrics */
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
@@ -555,7 +519,7 @@ public:
                    auto decoderTest = make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
                                                                 controlListener, eventListener,
                                                                 mAVBufferManager, mAVbufferHelper,
-                                                                secureDecode, testConfig);
+                                                                secureDecode, testConfig, isSinkAttached);
                     decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
 
                     decoderTests.push_back(move(decoderTest));
@@ -574,14 +538,14 @@ public:
                 }
                 auto& [decoderId, decoderControlListener] = availableDecoderList[i];
 
-                auto sinkTest = std::make_unique<SinkTest>(sinkId, sinkHandle,
+                auto sinkTest = std::make_unique<AudioSinkTest>(sinkId, sinkHandle,
                                                             controlListener, eventListener,
                                                             decoderControlListener,
                                                             mAVBufferManager, decoderId,
                                                             secureDecode, isTunnel,
                                                             testConfig);
 
-                sinkThreads.emplace_back(&SinkTest::run, sinkTest.get());
+                sinkThreads.emplace_back(&AudioSinkTest::run, sinkTest.get());
 
                 sinkTests.push_back(std::move(sinkTest));
             }
@@ -603,8 +567,8 @@ public:
             UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
             UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
             UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
-
         } catch (const std::exception& ex) {
+
             UT_LOG_ERROR("Exception in runConcurrentSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
         } catch (...) {
