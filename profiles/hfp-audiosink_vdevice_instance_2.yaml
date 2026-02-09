@@ -31,7 +31,6 @@ audiosink:                      # Component object begins
       supportsSoCProprietary: false
       maxNumChannels: 0
       supportsDolbyAtmos: false
-
     IAudioSink:                   # Resource list
       - 0
       - 1
