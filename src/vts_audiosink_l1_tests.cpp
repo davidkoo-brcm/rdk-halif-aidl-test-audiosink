@@ -217,6 +217,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
  * | 04 | Check systemMixerSampleRateHz attribute against expected value | platformCapabilities.systemMixerSampleRateHz = value | platformCapabilities.systemMixerSampleRateHz = expectedSystemMixerSampleRateHz | Should Pass |
  * | 05 | Check systemMixerPCMFormat attribute against expected value | platformCapabilities.systemMixerPCMFormat = value | platformCapabilities.systemMixerPCMFormat = expectedSystemMixerPCMFormat | Should Pass |
  * | 06 | Check supportsPlanarFormat attribute against expected value | platformCapabilities.supportsPlanarFormat = value | platformCapabilities.supportsPlanarFormat = expectedSupportsPlanarFormat | Should Pass |
+ * | 07 | Validate SoC proprietary audio support | platformCapabilities.supportsSoCProprietary | platformCapabilities.supportsSoCProprietary = expectedSupportsSoCProprietary | Should Pass |
+ * | 08 | Validate maximum supported channels | platformCapabilities.maxNumChannels | platformCapabilities.maxNumChannels = expectedMaxNumChannels | Should Pass |
+ * | 09 | Validate Dolby Atmos support | platformCapabilities.supportsDolbyAtmos | platformCapabilities.supportsDolbyAtmos = expectedSupportsDolbyAtmos | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
 {
@@ -229,6 +232,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
     UT_LOG_INFO("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
     UT_LOG_INFO("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
     UT_LOG_INFO("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
+    UT_LOG_INFO("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
+    UT_LOG_INFO("maxNumChannels: %d", platformCapabilities.maxNumChannels);
+    UT_LOG_INFO("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
 
     /* validate platform capabilites using hfp profile*/
     vts_audiosink_helper_validateCapabilities(platformCapabilities);
