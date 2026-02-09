@@ -21,17 +21,21 @@
 #** ******************************************************************************
 
 profile: TV                     # String value TV or STB
-IAudioSinkManager:     # Component object begins
-    interfaceVersion: 1         # Integer value
+audiosink:                      # Component object begins
+    interfaceVersion: current
     platformCapabilities:
       supportsLowLatency: false
       systemMixerSampleRateHz: 48000
       systemMixerPCMFormat: S32BE
       supportsPlanarFormat: false
-    IAudioSink:                 # Resource list
-      - id: 0                   # Resource object begins
-      - id: 1
-      - id: 2
+      supportsSoCProprietary: false
+      maxNumChannels: 0
+      supportsDolbyAtmos: false
+
+    IAudioSink:                   # Resource list
+      - 0
+      - 1
+      - 2
     availableSinks:
       - 1
     supportsSecure: false

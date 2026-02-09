@@ -141,7 +141,6 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             DecodedAudioFrame_t decodedFrame;
             int32_t frameCount = 0;
             int64_t firstFramePTS = -1;
-
             avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
             UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
@@ -157,6 +156,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
             {
                 frameCount++;
+
                 if (frameCount == 1)
                 {
                     firstFramePTS = decodedFrame.framePTS;
@@ -167,19 +167,12 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                         break;
                     }
                 }
+
+                metadata = {};  // clears type/fields/optional + SoCPrivate
+
                 if(decodedFrame.isMetaAvailable)
                 {
                     // ---- PCM fields moved under FrameMetadata::metadata (optional<PCMMetadata>) ----
-                    if (!metadata.metadata.has_value())
-                        metadata.metadata.emplace();
-                    auto& pcm = *metadata.metadata;
-                    pcm.channelTypes = decodedFrame.metadata.channelTypes;
-                    pcm.numChannels = decodedFrame.metadata.numChannels;
-                    pcm.sampleRate = decodedFrame.metadata.sampleRate;
-                    pcm.format = decodedFrame.metadata.format;
-                    pcm.planarFormat = decodedFrame.metadata.planarFormat;
-
-                    // ---- FrameMetadata top-level fields (still exist) ----
                     metadata.isDolbyAtmos = decodedFrame.metadata.isDolbyAtmos;
                     metadata.trimStartNs = decodedFrame.metadata.trimStartNs;
                     metadata.trimEndNs = decodedFrame.metadata.trimEndNs;
@@ -188,11 +181,42 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                     metadata.discontinuity = decodedFrame.metadata.discontinuity;
                     metadata.source = decodedFrame.metadata.source;
                     metadata.sourceCodec = decodedFrame.metadata.sourceCodec;
+                    metadata.type = decodedFrame.frameType;
+
+                    if (metadata.type == com::rdk::hal::audiodecoder::FrameType::PCM)
+                    {
+                        // PCM => metadata.metadata MUST be present and filled
+                        metadata.metadata.emplace();
+                        auto& pcmRef = *metadata.metadata;
+                        pcmRef.channelTypes = decodedFrame.metadata.channelTypes;
+                        pcmRef.numChannels  = decodedFrame.metadata.numChannels;
+                        pcmRef.sampleRate   = decodedFrame.metadata.sampleRate;
+                        pcmRef.format       = decodedFrame.metadata.format;
+                        pcmRef.planarFormat = decodedFrame.metadata.planarFormat;
+
+                        // For PCM, SoCPrivate should be empty
+                        metadata.SoCPrivate.clear();
+                    }
+                    else if (metadata.type == com::rdk::hal::audiodecoder::FrameType::SOC_PROPRIETARY)
+                    {
+                        // SOC_PROPRIETARY => metadata.metadata MUST be null
+                        metadata.metadata.reset();
+
+                        // Opaque vendor metadata must be passed through to sink
+                        metadata.SoCPrivate = decodedFrame.soCPrivate;
+                    }
+                    else
+                    {
+                        // Defensive: unknown type
+                        metadata.metadata.reset();
+                        metadata.SoCPrivate.clear();
+                    }
                 }
                 else
                 {
                     // Prevent stale PCM metadata being reused from a previous frame
                     metadata.metadata.reset();
+                    metadata.SoCPrivate.clear();
                 }
 
                 if(mTestConfiguration.decoderDelay > 0)
@@ -286,10 +310,8 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
             /* Stop the Audio sink */
             AUDIOSINK_STOP_SUCCESS(mSinkHandle, audioSinkController, true);
-
             /* Close the Audio sink */
             AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, audioSinkController, true);
-
         } catch (const std::exception& ex) {
             UT_LOG_ERROR("[SinkID: %d] Exception in audioSinkNonTunnelTest: %s", mSinkId.value, ex.what());
             UT_ASSERT_TRUE(false);
