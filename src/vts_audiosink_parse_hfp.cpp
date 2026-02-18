@@ -67,14 +67,14 @@
 
 using namespace std;
 
-#define AUDIODECODERMGR_AVAILABLEDECODERS "IAudioDecoderManager.availableDecoders"
+#define AUDIODECODERMGR_AVAILABLEDECODERS "audiodecoder.availableDecoders"
 
 vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP()
 {
     string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
-    std::string audiodecoderPath = "IAudioDecoderManager.IAudioDecoder";
+    std::string audiodecoderPath = "audiodecoder.IAudioDecoder";
     string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
     std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
     int32_t number_of_audiosinks, available_sinks_count, available_decoders;
@@ -94,7 +94,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     for(int32_t i = 0; i < number_of_audiosinks; ++i)
     {
-        string audiosinkidpath = audiosinkpath + "." + std::to_string(i) + ".id";
+        string audiosinkidpath = audiosinkpath + "." + std::to_string(i);
         int32_t sink_id = UT_KVP_PROFILE_GET_UINT32(audiosinkidpath.c_str());
         temporary.ids.push_back(sink_id);
     }
@@ -104,9 +104,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     for (size_t i = 0; i < decoderCount; ++i)
     {
         audiodecoder::IAudioDecoder::Id decoderId;
-        std::string audiodecoderidpath = audiodecoderPath + "." +std::to_string(i) + ".id";
-        int32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
-        decoderId.value = id;
+        decoderId.value = (int32_t)i;
         temporary.audioDecoderIds.push_back(decoderId);
     }
 
@@ -119,7 +117,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         temporary.availableDecoderIds.push_back(id);
     }
 
-    temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("IAudioSinkManager.supportsSecure");
+    temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("audiosink.supportsSecure");
 
     string availableIDPath = string(AUDIOSINKMGR) + ".availableSinks";
     available_sinks_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableIDPath.c_str());

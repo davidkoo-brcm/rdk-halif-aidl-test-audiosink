@@ -97,9 +97,10 @@ struct sinkmanager
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
 
-#define AUDIOSINKMGR "IAudioSinkManager"
-#define AUDIOSINKMGR_IAUDIOSINK "IAudioSinkManager.IAudioSink"
-#define AUDIOSINKMGR_PLATFORMCAPS "IAudioSinkManager.platformCapabilities"
+/* Updated HFP schema base paths */
+#define AUDIOSINKMGR "audiosink"
+#define AUDIOSINKMGR_IAUDIOSINK "audiosink.IAudioSink"
+#define AUDIOSINKMGR_PLATFORMCAPS "audiosink.platformCapabilities"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
 
