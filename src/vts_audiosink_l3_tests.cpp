@@ -202,7 +202,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                         metadata.metadata.reset();
 
                         // Opaque vendor metadata must be passed through to sink
-                        metadata.SoCPrivate = decodedFrame.soCPrivate;
+                        metadata.SoCPrivate = decodedFrame.socPrivate;
                     }
                     else
                     {
