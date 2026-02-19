@@ -78,6 +78,11 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     sinkmanager temporary;
     platformcap caps;
     char mixer_pcmformat_buffer[UT_KVP_MAX_ELEMENT_SIZE];
+<<<<<<< HEAD
+=======
+
+    gAudiosinks_hfp.clear();
+>>>>>>> 9579d38 (gh #69 updating sink hfp logicx)
 
     number_of_audiosinks = UT_KVP_PROFILE_GET_LIST_COUNT(audiosinkpath.c_str());
     if (number_of_audiosinks <= 0)
@@ -116,7 +121,10 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     temporary.supportedcaps.push_back(caps);
     gAudiosinks_hfp.push_back(temporary);
+<<<<<<< HEAD
     temporary = sinkmanager{};
+=======
+>>>>>>> 9579d38 (gh #69 updating sink hfp logicx)
     return UT_STATUS_OK;
 }
 /** @} */ // End of AUDIO_SINK_HALTEST_PARSE_HFP

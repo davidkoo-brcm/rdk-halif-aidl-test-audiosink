@@ -93,7 +93,11 @@ using namespace com::rdk::hal::audiosink;
 extern void *gAudioSinkTestConfiguration;
 extern sp<IAudioSinkManager> gAudioSinkManager;
 
-#define MAX_TRANSITORY_STATE_WAIT_MS  5
+#ifdef MAX_TRANSITORY_STATE_WAIT_MS
+#undef MAX_TRANSITORY_STATE_WAIT_MS
+#endif
+#define MAX_TRANSITORY_STATE_WAIT_MS 5
+
 #define MAX_FINAL_STATE_WAIT_MS  500
 
 #ifndef ENABLE_UT_INFO_LOGGING
