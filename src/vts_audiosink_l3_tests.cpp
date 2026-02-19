@@ -216,6 +216,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                     // Prevent stale PCM metadata being reused from a previous frame
                     metadata.metadata.reset();
                     metadata.SoCPrivate.clear();
+                    metadata.type = {};
                 }
 
                 if(mTestConfiguration.decoderDelay > 0)

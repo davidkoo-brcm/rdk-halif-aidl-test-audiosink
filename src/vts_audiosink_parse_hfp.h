@@ -67,6 +67,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <string>
 
 #include <ut.h>
 #include <ut_kvp_profile.h>
@@ -75,7 +76,6 @@
 
 using namespace std;
 using namespace com::rdk::hal;
-//using namespace com::rdk::hal::audiodecoder;
 
 struct platformcap
 {
@@ -91,16 +91,9 @@ struct sinkmanager
     std::vector<int32_t> availableIds;
     std::vector<platformcap> supportedcaps;
     bool supportsSecure;
-    vector<int32_t> availableDecoderIds;
-    vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
 };
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
-
-/* Updated HFP schema base paths */
-#define AUDIOSINKMGR "audiosink"
-#define AUDIOSINKMGR_IAUDIOSINK "audiosink.IAudioSink"
-#define AUDIOSINKMGR_PLATFORMCAPS "audiosink.platformCapabilities"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
 
