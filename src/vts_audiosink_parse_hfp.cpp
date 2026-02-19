@@ -119,11 +119,17 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     const uint32_t systemMixerSampleRateHz = UT_KVP_PROFILE_GET_UINT32((platformCapabilitesPath + ".systemMixerSampleRateHz").c_str());
     UT_KVP_PROFILE_GET_STRING((platformCapabilitesPath + ".systemMixerPCMFormat").c_str(), mixer_pcmformat_buffer);
     const bool supportsPlanarFormat = UT_KVP_PROFILE_GET_BOOL((platformCapabilitesPath + ".supportsPlanarFormat").c_str());
+    const bool supportsSoCProprietary = UT_KVP_PROFILE_GET_BOOL((platformCapabilitesPath + ".supportsSoCProprietary").c_str());
+    const uint32_t maxNumChannels = UT_KVP_PROFILE_GET_UINT32((platformCapabilitesPath + ".maxNumChannels").c_str());
+    const bool supportsDolbyAtmos = UT_KVP_PROFILE_GET_BOOL((platformCapabilitesPath + ".supportsDolbyAtmos").c_str());
 
     caps.lowlatency = supportsLowLatency ? "true" : "false";
     caps.samplerate = std::to_string(systemMixerSampleRateHz);
     caps.mixer_pcmformat = std::string(mixer_pcmformat_buffer);
     caps.supportsPlanarFormat = supportsPlanarFormat ? "true" : "false";
+    caps.supportsSoCProprietary = supportsSoCProprietary ? "true" : "false";
+    caps.maxNumChannels = std::to_string(maxNumChannels);
+    caps.supportsDolbyAtmos = supportsDolbyAtmos ? "true" : "false";
 
     temporary.supportedcaps.push_back(caps);
     gAudiosinks_hfp.push_back(temporary);
@@ -134,3 +140,4 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK
+

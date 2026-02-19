@@ -42,7 +42,7 @@
  */
 
 /**
- * @defgroup AUDIO_SINK_HALTEST_PARSE_HFP_HEADER Audio Sink HAL Tests parse Hardware feature profile Header File
+ * @defgroup AUDIO_SINK_HALTEST_PARSE_HFP Audio Sink HAL Tests parse Hardware feature profile
  * @{
  * @parblock
  *
@@ -83,6 +83,9 @@ struct platformcap
     std::string samplerate;
     std::string mixer_pcmformat;
     std::string supportsPlanarFormat;
+    std::string supportsSoCProprietary;
+    std::string maxNumChannels;
+    std::string supportsDolbyAtmos;
 };
 
 struct sinkmanager
@@ -94,7 +97,6 @@ struct sinkmanager
     bool supportsSecure;
 };
 
-
 extern std::vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
@@ -105,3 +107,4 @@ UT_status_t vts_audiosink_parseAudioSinkHFP();
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK
+
