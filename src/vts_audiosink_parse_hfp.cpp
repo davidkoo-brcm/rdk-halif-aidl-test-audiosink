@@ -78,11 +78,8 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     sinkmanager temporary;
     platformcap caps;
     char mixer_pcmformat_buffer[UT_KVP_MAX_ELEMENT_SIZE];
-<<<<<<< HEAD
-=======
 
     gAudiosinks_hfp.clear();
->>>>>>> 9579d38 (gh #69 updating sink hfp logicx)
 
     number_of_audiosinks = UT_KVP_PROFILE_GET_LIST_COUNT(audiosinkpath.c_str());
     if (number_of_audiosinks <= 0)
@@ -109,6 +106,15 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         temporary.availableIds.push_back(sink_id);
     }
 
+    string availableDecoderIDPath = audiosinkRoot + ".availableDecoders";
+    int32_t available_decoders_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableDecoderIDPath.c_str());
+    for (int32_t i = 0; i < available_decoders_count; ++i)
+    {
+        string availableDecoderIDPathId = availableDecoderIDPath + "." + to_string(i);
+        int32_t decoder_id = UT_KVP_PROFILE_GET_UINT32(availableDecoderIDPathId.c_str());
+        temporary.availableDecoderIds.push_back(decoder_id);
+    }
+
     const bool supportsLowLatency = UT_KVP_PROFILE_GET_BOOL((platformCapabilitesPath + ".supportsLowLatency").c_str());
     const uint32_t systemMixerSampleRateHz = UT_KVP_PROFILE_GET_UINT32((platformCapabilitesPath + ".systemMixerSampleRateHz").c_str());
     UT_KVP_PROFILE_GET_STRING((platformCapabilitesPath + ".systemMixerPCMFormat").c_str(), mixer_pcmformat_buffer);
@@ -121,10 +127,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     temporary.supportedcaps.push_back(caps);
     gAudiosinks_hfp.push_back(temporary);
-<<<<<<< HEAD
     temporary = sinkmanager{};
-=======
->>>>>>> 9579d38 (gh #69 updating sink hfp logicx)
     return UT_STATUS_OK;
 }
 /** @} */ // End of AUDIO_SINK_HALTEST_PARSE_HFP

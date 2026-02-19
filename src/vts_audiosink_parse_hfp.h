@@ -89,9 +89,11 @@ struct sinkmanager
 {
     std::vector<int32_t> ids;
     std::vector<int32_t> availableIds;
+    std::vector<int32_t> availableDecoderIds;
     std::vector<platformcap> supportedcaps;
     bool supportsSecure;
 };
+
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
 
