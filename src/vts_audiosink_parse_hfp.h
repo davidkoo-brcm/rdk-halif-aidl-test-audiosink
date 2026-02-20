@@ -42,7 +42,7 @@
  */
 
 /**
- * @defgroup AUDIO_SINK_HALTEST_PARSE_HFP Audio Sink HAL Tests parse Hardware feature profile
+ * @defgroup AUDIO_SINK_HALTEST_PARSE_HFP_HEADER Audio Sink HAL Tests parse Hardware feature profile Header File
  * @{
  * @parblock
  *
