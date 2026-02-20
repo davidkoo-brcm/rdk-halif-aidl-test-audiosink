@@ -176,6 +176,15 @@ void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& capab
 
     /* checking supports PlanarFormat from getPlatformCapabilities() and hfp platformcapabilites */
     UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsPlanarFormat), capabilities.supportsPlanarFormat);
+
+    /* supportsSoCProprietary */
+    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsSoCProprietary), capabilities.supportsSoCProprietary);
+
+    /* maxNumChannels */
+    UT_ASSERT_EQUAL(std::stoi(_sinkmanager[0].supportedcaps[0].maxNumChannels), capabilities.maxNumChannels);
+
+    /* supportsDolbyAtmos */
+    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsDolbyAtmos), capabilities.supportsDolbyAtmos);
 }
 
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& values)

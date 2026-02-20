@@ -92,12 +92,17 @@ struct sinkmanager
 {
     std::vector<int32_t> ids;
     std::vector<int32_t> availableIds;
-    std::vector<int32_t> availableDecoderIds;
     std::vector<platformcap> supportedcaps;
     bool supportsSecure;
+    vector<int32_t> availableDecoderIds;
+    vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
 };
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
+
+#define AUDIOSINKMGR "audiosink"
+#define AUDIOSINKMGR_IAUDIOSINK      "audiosink.IAudioSink"
+#define AUDIOSINKMGR_PLATFORMCAPS    "audiosink.platformCapabilities"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
 

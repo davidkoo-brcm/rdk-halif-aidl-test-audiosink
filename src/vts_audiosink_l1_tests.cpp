@@ -1185,7 +1185,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
 
     for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i) + ".id";
+        std::string audiodecoderidpath = "audiodecoder.IAudioDecoder."+std::to_string(i) + ".id";
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
@@ -1246,14 +1246,14 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
+    std::string audiodecoder_count_path = "audiodecoder.IAudioDecoder";
     size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
 
     // Test Case 3: Invalid Audio Decoder ID
     std::vector<uint32_t> audioDecoderIds;
     for (size_t i = 0; i<expectedCount ; ++i)
     {
-        std::string audiodecoderid_path = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i)+".id";
+        std::string audiodecoderid_path = "audiodecoder.IAudioDecoder."+std::to_string(i)+".id";
         uint32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderid_path.c_str());
         audioDecoderIds.push_back(id);
     }
@@ -1335,11 +1335,11 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
+    std::string audiodecoder_count_path = "audiodecoder.IAudioDecoder";
     size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
 
     for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i) + ".id";
+        std::string audiodecoderidpath = "audiodecoder.IAudioDecoder."+std::to_string(i) + ".id";
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
