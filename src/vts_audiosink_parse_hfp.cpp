@@ -73,9 +73,9 @@ vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP()
 {
-    string audiosinkpath = "audiosink.IAudioSink";
-    std::string audiodecoderPath = "audiodecoder.IAudioDecoder";
-    string platformCapabilitesPath = "audiosink.platformCapabilities";
+    string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
+    std::string audiodecoderPath = AUDIODECODERMGR_AVAILABLEDECODERS;
+    string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
     std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
 
     int32_t number_of_audiosinks, available_sinks_count, available_decoders;
