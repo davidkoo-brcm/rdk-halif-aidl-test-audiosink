@@ -103,6 +103,7 @@ extern std::vector<sinkmanager> gAudiosinks_hfp;
 #define AUDIOSINKMGR "audiosink"
 #define AUDIOSINKMGR_IAUDIOSINK      "audiosink.IAudioSink"
 #define AUDIOSINKMGR_PLATFORMCAPS    "audiosink.platformCapabilities"
+#define AUDIODECODERMGR_IAUDIODECODER "audiodecoder.IAudioDecoder"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
 

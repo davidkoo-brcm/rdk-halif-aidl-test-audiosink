@@ -1181,11 +1181,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
     for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "audiodecoder.IAudioDecoder."+std::to_string(i) + ".id";
+        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
@@ -1194,8 +1193,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     // Ensure the resource is in the State::READY state
-      for(const auto& _sinkId : sinkIds)
-      {
+    for(const auto& _sinkId : sinkIds)
+    {
         sp<IAudioSinkController> audioSinkController = nullptr;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
@@ -1206,8 +1205,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
-                AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
+            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
         }
+
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
@@ -1246,14 +1246,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "audiodecoder.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
     // Test Case 3: Invalid Audio Decoder ID
     std::vector<uint32_t> audioDecoderIds;
     for (size_t i = 0; i<expectedCount ; ++i)
     {
-        std::string audiodecoderid_path = "audiodecoder.IAudioDecoder."+std::to_string(i)+".id";
+        std::string audiodecoderid_path = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
         uint32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderid_path.c_str());
         audioDecoderIds.push_back(id);
     }
@@ -1278,8 +1277,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
-       // Test with invalid ID (least value -1)
-       AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        // Test with invalid ID (least value -1)
+        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
 
         // Test with invalid ID (highest value +1)
         AUDIOSINK_SETAUDIODECODER_FAILURE(invalidHighId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
@@ -1297,7 +1296,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         //close the Audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
-
 }
 
 /**
@@ -1326,8 +1324,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
  * | 06 | Set the audio decoder again using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
  * | 07 | Get the audio decoder again and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
  */
- UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
- {
+UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
+{
     android::binder::Status status;
     std::vector<IAudioSink::Id> sinkIds;
     ::com::rdk::hal::audiodecoder::IAudioDecoder::Id decoderId;
@@ -1335,11 +1333,11 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "audiodecoder.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
-    for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "audiodecoder.IAudioDecoder."+std::to_string(i) + ".id";
+    for (size_t i = 0; i < expectedCount; ++i) {
+        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
+
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
@@ -1348,23 +1346,25 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     // Ensure the resource is in the State::READY state
-      for(const auto& _sinkId : sinkIds)
-      {
+    for (const auto& _sinkId : sinkIds) {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        //set state to READY by invoking `open` (set-up)
+        // set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
-                decoderId.value = _decoderId;
-                AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
-                AUDIOSINK_GETAUDIODECODER_SUCCESS(audiodecoderId, audioSinkController);
-                UT_ASSERT_EQUAL(decoderId.value , audiodecoderId.value);
+            decoderId.value = _decoderId;
+
+            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
+            AUDIOSINK_GETAUDIODECODER_SUCCESS(audiodecoderId, audioSinkController);
+
+            UT_ASSERT_EQUAL(decoderId.value, audiodecoderId.value);
         }
+
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
