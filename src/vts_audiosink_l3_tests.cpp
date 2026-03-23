@@ -188,9 +188,9 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                         metadata.metadata.emplace();
                         auto& pcmRef = *metadata.metadata;
                         pcmRef.channelTypes = decodedFrame.metadata.channelTypes;
-                        pcmRef.numChannels  = decodedFrame.metadata.numChannels;
-                        pcmRef.sampleRate   = decodedFrame.metadata.sampleRate;
-                        pcmRef.format       = decodedFrame.metadata.format;
+                        pcmRef.numChannels  = decodedFrame.metadata.pcm_metadata.numChannels;
+                        pcmRef.sampleRate   = decodedFrame.metadata.pcm_metadata.sampleRate;
+                        pcmRef.format       = decodedFrame.metadata.pcm_metadata.format;
                         pcmRef.planarFormat = decodedFrame.metadata.planarFormat;
 
                         // For PCM, SoCPrivate should be empty
