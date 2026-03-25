@@ -67,23 +67,28 @@
 
 using namespace std;
 
-#define AUDIODECODERMGR_AVAILABLEDECODERS "IAudioDecoderManager.availableDecoders"
+#define AUDIODECODERMGR_AVAILABLEDECODERS "audiodecoder.availableDecoders"
 
 vector<sinkmanager> gAudiosinks_hfp;
 
 UT_status_t vts_audiosink_parseAudioSinkHFP()
 {
     string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
-    std::string audiodecoderPath = "IAudioDecoderManager.IAudioDecoder";
+    std::string audiodecoderPath = AUDIODECODERMGR_AVAILABLEDECODERS;
     string platformCapabilitesPath = AUDIOSINKMGR_PLATFORMCAPS;
     std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
+
     int32_t number_of_audiosinks, available_sinks_count, available_decoders;
     sinkmanager temporary;
     platformcap caps;
+
     char lowlatency_buffer[UT_KVP_MAX_ELEMENT_SIZE];
     char samplerate_buffer[UT_KVP_MAX_ELEMENT_SIZE];
     char mixer_pcmformat_buffer[UT_KVP_MAX_ELEMENT_SIZE];
     char supportsPlanarFormat_buffer[UT_KVP_MAX_ELEMENT_SIZE];
+    char supportsSoCProprietary_buffer[UT_KVP_MAX_ELEMENT_SIZE];
+    char maxNumChannels_buffer[UT_KVP_MAX_ELEMENT_SIZE];
+    char supportsDolbyAtmos_buffer[UT_KVP_MAX_ELEMENT_SIZE];
 
     number_of_audiosinks = UT_KVP_PROFILE_GET_LIST_COUNT(audiosinkpath.c_str());
     if(number_of_audiosinks <= 0)
@@ -100,18 +105,16 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     }
 
     size_t decoderCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoderPath.c_str());
-
     for (size_t i = 0; i < decoderCount; ++i)
     {
         audiodecoder::IAudioDecoder::Id decoderId;
-        std::string audiodecoderidpath = audiodecoderPath + "." +std::to_string(i) + ".id";
+        std::string audiodecoderidpath = audiodecoderPath + "." + std::to_string(i) + ".id";
         int32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderId.value = id;
         temporary.audioDecoderIds.push_back(decoderId);
     }
 
     available_decoders = UT_KVP_PROFILE_GET_LIST_COUNT(availableDecodersPath.c_str());
-
     for(int32_t i = 0; i < available_decoders; i++)
     {
         std::string decoderIdPath = availableDecodersPath + "." + std::to_string(i);
@@ -119,7 +122,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         temporary.availableDecoderIds.push_back(id);
     }
 
-    temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("IAudioSinkManager.supportsSecure");
+    temporary.supportsSecure = UT_KVP_PROFILE_GET_BOOL("audiosink.supportsSecure");
 
     string availableIDPath = string(AUDIOSINKMGR) + ".availableSinks";
     available_sinks_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableIDPath.c_str());
@@ -130,29 +133,39 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         temporary.availableIds.push_back(sink_id);
     }
 
-    // Read platform capabilites attributes
-    string lowlatency_path = platformCapabilitesPath + ".supportsLowLatency";
-    string samplerate_path = platformCapabilitesPath + ".systemMixerSampleRateHz";
-    string mixer_pcmformat_path = platformCapabilitesPath + ".systemMixerPCMFormat";
-    string supportsPlanarFormat_path = platformCapabilitesPath + ".supportsPlanarFormat";
+    // Read platform capabilities attributes (existing)
+    string lowlatency_path            = platformCapabilitesPath + ".supportsLowLatency";
+    string samplerate_path            = platformCapabilitesPath + ".systemMixerSampleRateHz";
+    string mixer_pcmformat_path       = platformCapabilitesPath + ".systemMixerPCMFormat";
+    string supportsPlanarFormat_path  = platformCapabilitesPath + ".supportsPlanarFormat";
+    string supportsSoCProprietary_path = platformCapabilitesPath + ".supportsSoCProprietary";
+    string maxNumChannels_path         = platformCapabilitesPath + ".maxNumChannels";
+    string supportsDolbyAtmos_path     = platformCapabilitesPath + ".supportsDolbyAtmos";
 
     UT_KVP_PROFILE_GET_STRING(lowlatency_path.c_str(), lowlatency_buffer);
     UT_KVP_PROFILE_GET_STRING(samplerate_path.c_str(), samplerate_buffer);
     UT_KVP_PROFILE_GET_STRING(mixer_pcmformat_path.c_str(), mixer_pcmformat_buffer);
     UT_KVP_PROFILE_GET_STRING(supportsPlanarFormat_path.c_str(), supportsPlanarFormat_buffer);
+    UT_KVP_PROFILE_GET_STRING(supportsSoCProprietary_path.c_str(), supportsSoCProprietary_buffer);
+    UT_KVP_PROFILE_GET_STRING(maxNumChannels_path.c_str(), maxNumChannels_buffer);
+    UT_KVP_PROFILE_GET_STRING(supportsDolbyAtmos_path.c_str(), supportsDolbyAtmos_buffer);
 
-    caps.lowlatency = std::string(lowlatency_buffer);
-    caps.samplerate = std::string(samplerate_buffer);
-    caps.mixer_pcmformat = std::string(mixer_pcmformat_buffer);
-    caps.supportsPlanarFormat = std::string(supportsPlanarFormat_buffer);
+    caps.lowlatency              = std::string(lowlatency_buffer);
+    caps.samplerate              = std::string(samplerate_buffer);
+    caps.mixer_pcmformat         = std::string(mixer_pcmformat_buffer);
+    caps.supportsPlanarFormat    = std::string(supportsPlanarFormat_buffer);
+
+    caps.supportsSoCProprietary  = std::string(supportsSoCProprietary_buffer);
+    caps.maxNumChannels          = std::string(maxNumChannels_buffer);
+    caps.supportsDolbyAtmos      = std::string(supportsDolbyAtmos_buffer);
 
     temporary.supportedcaps.push_back(caps);
     gAudiosinks_hfp.push_back(temporary);
+
     temporary.ids.clear();
     temporary.supportedcaps.clear();
     return UT_STATUS_OK;
 }
-
 /** @} */ // End of AUDIO_SINK_HALTEST_PARSE_HFP
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK
