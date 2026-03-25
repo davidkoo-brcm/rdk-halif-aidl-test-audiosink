@@ -87,8 +87,8 @@
 #include "vts_audiosink_parse_hfp.h"
 #include "vts_audiosink.h"
 
-static const char *gModuleName = "IAudioSinkManager";
-const char *gAudioModuleName = "IAudioDecoderManager";
+static const char *gModuleName = "audiosink";
+const char *gAudioModuleName = "audiodecoder";
 static const char *gTestGroup = "L3";
 //static IAVBufferHelper* gAVbufferHelper;
 
