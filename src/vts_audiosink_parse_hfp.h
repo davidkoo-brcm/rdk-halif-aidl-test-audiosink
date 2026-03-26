@@ -67,6 +67,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <string>
 
 #include <ut.h>
 #include <ut_kvp_profile.h>
@@ -75,7 +76,6 @@
 
 using namespace std;
 using namespace com::rdk::hal;
-//using namespace com::rdk::hal::audiodecoder;
 
 struct platformcap
 {
@@ -83,6 +83,9 @@ struct platformcap
     std::string samplerate;
     std::string mixer_pcmformat;
     std::string supportsPlanarFormat;
+    std::string supportsSoCProprietary;
+    std::string maxNumChannels;
+    std::string supportsDolbyAtmos;
 };
 
 struct sinkmanager
@@ -97,9 +100,9 @@ struct sinkmanager
 
 extern std::vector<sinkmanager> gAudiosinks_hfp;
 
-#define AUDIOSINKMGR "IAudioSinkManager"
-#define AUDIOSINKMGR_IAUDIOSINK "IAudioSinkManager.IAudioSink"
-#define AUDIOSINKMGR_PLATFORMCAPS "IAudioSinkManager.platformCapabilities"
+#define AUDIOSINKMGR "audiosink"
+#define AUDIOSINKMGR_IAUDIOSINK      "audiosink.IAudioSink"
+#define AUDIOSINKMGR_PLATFORMCAPS    "audiosink.platformCapabilities"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
 
@@ -109,3 +112,4 @@ UT_status_t vts_audiosink_parseAudioSinkHFP();
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK
 /** @} */ // End of HPK
+

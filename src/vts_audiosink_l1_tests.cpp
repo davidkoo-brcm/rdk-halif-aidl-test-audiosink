@@ -217,6 +217,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
  * | 04 | Check systemMixerSampleRateHz attribute against expected value | platformCapabilities.systemMixerSampleRateHz = value | platformCapabilities.systemMixerSampleRateHz = expectedSystemMixerSampleRateHz | Should Pass |
  * | 05 | Check systemMixerPCMFormat attribute against expected value | platformCapabilities.systemMixerPCMFormat = value | platformCapabilities.systemMixerPCMFormat = expectedSystemMixerPCMFormat | Should Pass |
  * | 06 | Check supportsPlanarFormat attribute against expected value | platformCapabilities.supportsPlanarFormat = value | platformCapabilities.supportsPlanarFormat = expectedSupportsPlanarFormat | Should Pass |
+ * | 07 | Validate SoC proprietary audio support | platformCapabilities.supportsSoCProprietary | platformCapabilities.supportsSoCProprietary = expectedSupportsSoCProprietary | Should Pass |
+ * | 08 | Validate maximum supported channels | platformCapabilities.maxNumChannels | platformCapabilities.maxNumChannels = expectedMaxNumChannels | Should Pass |
+ * | 09 | Validate Dolby Atmos support | platformCapabilities.supportsDolbyAtmos | platformCapabilities.supportsDolbyAtmos = expectedSupportsDolbyAtmos | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
 {
@@ -229,6 +232,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
     UT_LOG_INFO("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
     UT_LOG_INFO("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
     UT_LOG_INFO("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
+    UT_LOG_INFO("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
+    UT_LOG_INFO("maxNumChannels: %d", platformCapabilities.maxNumChannels);
+    UT_LOG_INFO("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
 
     /* validate platform capabilites using hfp profile*/
     vts_audiosink_helper_validateCapabilities(platformCapabilities);
@@ -1175,11 +1181,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
     for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i) + ".id";
+        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
@@ -1188,8 +1193,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     // Ensure the resource is in the State::READY state
-      for(const auto& _sinkId : sinkIds)
-      {
+    for(const auto& _sinkId : sinkIds)
+    {
         sp<IAudioSinkController> audioSinkController = nullptr;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
@@ -1200,8 +1205,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
-                AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
+            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
         }
+
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
@@ -1240,14 +1246,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
     // Test Case 3: Invalid Audio Decoder ID
     std::vector<uint32_t> audioDecoderIds;
     for (size_t i = 0; i<expectedCount ; ++i)
     {
-        std::string audiodecoderid_path = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i)+".id";
+        std::string audiodecoderid_path = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
         uint32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderid_path.c_str());
         audioDecoderIds.push_back(id);
     }
@@ -1272,8 +1277,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
-       // Test with invalid ID (least value -1)
-       AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        // Test with invalid ID (least value -1)
+        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
 
         // Test with invalid ID (highest value +1)
         AUDIOSINK_SETAUDIODECODER_FAILURE(invalidHighId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
@@ -1291,7 +1296,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         //close the Audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
-
 }
 
 /**
@@ -1320,8 +1324,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
  * | 06 | Set the audio decoder again using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
  * | 07 | Get the audio decoder again and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
  */
- UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
- {
+UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
+{
     android::binder::Status status;
     std::vector<IAudioSink::Id> sinkIds;
     ::com::rdk::hal::audiodecoder::IAudioDecoder::Id decoderId;
@@ -1329,11 +1333,11 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    std::string audiodecoder_count_path = "IAudioDecoderManager.IAudioDecoder";
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(audiodecoder_count_path.c_str());
+    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
 
-    for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = "IAudioDecoderManager.IAudioDecoder."+std::to_string(i) + ".id";
+    for (size_t i = 0; i < expectedCount; ++i) {
+        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
+
         int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
         decoderIds.push_back(expectedIdValue);
     }
@@ -1342,23 +1346,25 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     // Ensure the resource is in the State::READY state
-      for(const auto& _sinkId : sinkIds)
-      {
+    for (const auto& _sinkId : sinkIds) {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        //set state to READY by invoking `open` (set-up)
+        // set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         for (const auto& _decoderId : decoderIds) {
-                decoderId.value = _decoderId;
-                AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
-                AUDIOSINK_GETAUDIODECODER_SUCCESS(audiodecoderId, audioSinkController);
-                UT_ASSERT_EQUAL(decoderId.value , audiodecoderId.value);
+            decoderId.value = _decoderId;
+
+            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
+            AUDIOSINK_GETAUDIODECODER_SUCCESS(audiodecoderId, audioSinkController);
+
+            UT_ASSERT_EQUAL(decoderId.value, audiodecoderId.value);
         }
+
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
@@ -1696,17 +1702,25 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
         com::rdk::hal::audiodecoder::FrameMetadata metadata;
         metadata.sourceCodec = com::rdk::hal::audiodecoder::Codec::PCM;
         metadata.isDolbyAtmos = false;
-        metadata.numChannels = 2;
-        metadata.channelTypes = {com::rdk::hal::audiodecoder::ChannelType::FRONT_LEFT, com::rdk::hal::audiodecoder::ChannelType::FRONT_RIGHT};
-        metadata.sampleRate = 44100;
-        metadata.format = com::rdk::hal::audiodecoder::PCMFormat::S16LE;
-        metadata.planarFormat = false;
         metadata.trimStartNs = 0;
         metadata.trimEndNs = 0;
         metadata.lowLatency = false;
         metadata.endOfStream = false;
         metadata.discontinuity = false;
         metadata.source = AVSource::SYSTEM;
+
+        // PCM fields moved under FrameMetadata::metadata (optional<PCMMetadata>)
+        // Use emplace() to avoid deleted move assignment.
+        metadata.metadata.emplace();
+        auto& pcmRef = *metadata.metadata;
+        pcmRef.numChannels  = 2;
+        pcmRef.channelTypes = {
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_LEFT,
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_RIGHT
+        };
+        pcmRef.sampleRate   = 44100;
+        pcmRef.format       = com::rdk::hal::audiodecoder::PCMFormat::S16LE;
+        pcmRef.planarFormat = false;
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
