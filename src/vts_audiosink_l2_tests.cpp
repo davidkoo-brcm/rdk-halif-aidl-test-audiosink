@@ -148,6 +148,8 @@ VTS_L2_AudioSink() : UTCore() {}
     {
         ::com::rdk::hal::State currentState;
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS)); // Sleep for a short duration to allow state changes to be captured by listeners
+
         UT_ASSERT_TRUE(eventListener->checkStateTransistion(oldState, intermediateState));
         UT_ASSERT_TRUE(controlListener->checkStateTransistion(oldState, intermediateState));
 
