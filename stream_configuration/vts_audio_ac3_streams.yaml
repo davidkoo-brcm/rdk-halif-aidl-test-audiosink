@@ -154,6 +154,7 @@ AudioStreams:
     channels: 2
     format: S16LE
     num_of_frames: 50
+    duration: 1600000000 # (1536 samples/frame x 50 frames x 1e9) / 48000 Hz
     frame_size:
       - 768
       - 768
