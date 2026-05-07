@@ -1413,6 +1413,214 @@ UT_ADD_TEST(VTS_L1_AudioSink, attachClock_pos)
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
 }
+
+/**
+ * @brief Test the negative scenario of attaching a clock to the AudioSinkController.
+ *
+ * This test verifies that attaching an invalid clock ID to the AudioSinkController fails as expected.
+ * The test covers both READY and STARTED states, using clock IDs outside the valid range (invalidLowId and invalidHighId).
+ *
+ * **Test Group ID:** Basic: 01@n
+ * **Test Case ID:** 024@n
+ * **Priority:** High@n
+ * @n
+ * **Pre-Conditions:** None@n
+ * **Dependencies:** None@n
+ * **User Interaction:** None@n
+ * @n
+ * **Test Procedure:**@n
+ * | Variation / Step | Description | Test Data | Expected Result | Notes |
+ * | :----: | --------- | ---------- |-------------- | ----- |
+ * | 01 | Ensure the audio sink is in READY state by opening it | AUDIOSINK_OPEN_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 02 | Attempt to attach invalidLowId (below valid range) | invalidLowId = min(clockIds) - 1 | attachClock should fail, status = EX_ILLEGAL_ARGUMENT | Should Fail |
+ * | 03 | Attempt to attach invalidHighId (above valid range) | invalidHighId = max(clockIds) + 1 | attachClock should fail, status = EX_ILLEGAL_ARGUMENT | Should Fail |
+ * | 04 | Transition the audio sink to STARTED state | AUDIOSINK_START_SUCCESS | Controller should be in STARTED state | Should be successful |
+ * | 05 | Attempt to attach invalidLowId in STARTED state | invalidLowId | attachClock should fail, status = EX_ILLEGAL_ARGUMENT | Should Fail |
+ * | 06 | Attempt to attach invalidHighId in STARTED state | invalidHighId | attachClock should fail, status = EX_ILLEGAL_ARGUMENT | Should Fail |
+ * | 07 | Stop the audio sink to return to READY state | AUDIOSINK_STOP_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 08 | Close the audio sink | AUDIOSINK_CLOSE_SUCCESS | Controller should be closed | Should be successful |
+ */
+
+UT_ADD_TEST(VTS_L1_AudioSink, attachClock_neg)
+{
+    android::binder::Status status;
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
+
+    std::vector<int32_t> clockIds = gAudiosinksHFP.availableClockIds;
+
+    std::sort(clockIds.begin(), clockIds.end());
+    int32_t invalidLowId = clockIds.front() - 1;
+    int32_t invalidHighId = clockIds.back() + 1;
+
+    /* Get the Audio sink IDs */
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+    // Ensure the resource is in the State::READY state
+    for(const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController = nullptr;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+
+        /* Get Audio sink handle */
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        AUDIOSINK_ATTACHCLOCK_FAILURE(audioSinkController, invalidLowId, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_ATTACHCLOCK_FAILURE(audioSinkController, invalidHighId, Status::EX_ILLEGAL_ARGUMENT);
+
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        // Attach and detach all available clocks in non-READY state
+        AUDIOSINK_ATTACHCLOCK_FAILURE(audioSinkController, invalidLowId, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_ATTACHCLOCK_FAILURE(audioSinkController, invalidHighId, Status::EX_ILLEGAL_ARGUMENT);
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Close the sink */
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
+
+/**
+ * @brief Test the positive scenario of detaching a clock from the AudioSinkController.
+ *
+ * This test verifies the successful detachment of a clock from the AudioSinkController. It ensures that the controller
+ * is in the READY state and that a valid clock instance can be detached without errors.
+ * The test checks the return status of the detachClock API call and confirms that the operation is successful.
+ * **Test Group ID:** Basic: 01@n
+ * **Test Case ID:** 024@n
+ * **Priority:** High@n
+ * @n
+ * **Pre-Conditions:** None@n
+ * **Dependencies:** None@n
+ * **User Interaction:** None@n
+ * @n
+ * **Test Procedure:**@n
+ * | Variation / Step | Description | Test Data | Expected Result | Notes |
+ * | :----: | --------- | ---------- |-------------- | ----- |
+ * | 01 | Ensure the audio sink is in READY state by opening it | AUDIOSINK_OPEN_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 02 | For each available clock ID, attach and detach the clock in READY state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 03 | Transition the audio sink to STARTED state | AUDIOSINK_START_SUCCESS | Controller should be in STARTED state | Should be successful |
+ * | 04 | For each available clock ID, attach and detach the clock in STARTED state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 05 | Stop the audio sink to return to READY state | AUDIOSINK_STOP_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 06 | Close the audio sink | AUDIOSINK_CLOSE_SUCCESS | Controller should be closed | Should be successful |
+ */
+
+UT_ADD_TEST(VTS_L1_AudioSink, detachClock_pos)
+{
+    android::binder::Status status;
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
+
+    /* Get the Audio sink IDs */
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+    // Ensure the resource is in the State::READY state
+    for(const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController = nullptr;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+
+        /* Get Audio sink handle */
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        // Attach and detach all available clocks
+        for (const auto& id : gAudiosinksHFP.availableClockIds)
+        {
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id);
+            AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController);
+        }
+
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        // Attach and detach all available clocks in non-READY state
+        for (const auto& id : gAudiosinksHFP.availableClockIds)
+        {
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id);
+            AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController);
+        }
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Close the sink */
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
+
+/**
+ * @brief Test the positive scenario of detaching a clock from the AudioSinkController.
+ *
+ * This test verifies the successful detachment of a clock from the AudioSinkController. It ensures that the controller
+ * is in the READY state and that a valid clock instance can be detached without errors.
+ * The test checks the return status of the detachClock API call and confirms that the operation is successful.
+ * **Test Group ID:** Basic: 01@n
+ * **Test Case ID:** 024@n
+ * **Priority:** High@n
+ * @n
+ * **Pre-Conditions:** None@n
+ * **Dependencies:** None@n
+ * **User Interaction:** None@n
+ * @n
+ * **Test Procedure:**@n
+ * | Variation / Step | Description | Test Data | Expected Result | Notes |
+ * | :----: | --------- | ---------- |-------------- | ----- |
+ * | 01 | Ensure the audio sink is in READY state by opening it | AUDIOSINK_OPEN_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 02 | For each available clock ID, attach and detach the clock in READY state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 03 | Transition the audio sink to STARTED state | AUDIOSINK_START_SUCCESS | Controller should be in STARTED state | Should be successful |
+ * | 04 | For each available clock ID, attach and detach the clock in STARTED state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 05 | Stop the audio sink to return to READY state | AUDIOSINK_STOP_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 06 | Close the audio sink | AUDIOSINK_CLOSE_SUCCESS | Controller should be closed | Should be successful |
+ */
+
+UT_ADD_TEST(VTS_L1_AudioSink, getClock_pos)
+{
+    android::binder::Status status;
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
+    IAVClock::Id clockId;
+
+    /* Get the Audio sink IDs */
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+    // Ensure the resource is in the State::READY state
+    for(const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController = nullptr;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+
+        /* Get Audio sink handle */
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        AUDIOSINK_GETCLOCK_SUCCESS(audioSinkController, clockId);
+        UT_ASSERT_EQUAL(clockId.value, IAVClock::Id::UNDEFINED);
+
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        AUDIOSINK_GETCLOCK_SUCCESS(audioSinkController, clockId);
+        UT_ASSERT_EQUAL(clockId.value, IAVClock::Id::UNDEFINED);
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Close the sink */
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
+
 /**
  * @brief Test the positive scenario of starting the AudioSinkController.
  *
@@ -1467,7 +1675,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
 }
-#if 0
+
 /**
  * @brief Test the negative scenario of starting the AudioSinkController when already started.
  *
@@ -1775,8 +1983,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
-         // Transition to a non-READY state (e.g., STARTED)
-         AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, true);
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, true);
 
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
@@ -1923,65 +2131,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
 }
-
-/**
- * @brief Test the functionality of setting and getting volume in AudioSinkController.
- *
- * This test verifies the ability of the AudioSinkController to correctly set and retrieve the volume settings. It ensures that the volume can be set and retrieved accurately in different states of the audio sink.
- *
- * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 029@n
- * **Priority:** High@n
- * @n
- * **Pre-Conditions:** None@n
- * **Dependencies:** None@n
- * **User Interaction:** None@n
- * @n
- * **Test Procedure:**@n
- * | Variation / Step | Description | Test Data | Expected Result | Notes |
- * | :----: | --------- | ---------- |-------------- | ----- |
- * | 01 | Ensure the audio sink is in State::READY | mNewState = READY | State should be READY | Should be successful |
- * | 02 | Set volume using setVolume function | volume = 1.0, muted = false | status.isOk() = true, volumeSetResult = true | Should Pass |
- * | 03 | Get volume using getVolume function | volumeGet | status.isOk() = true, volumeGet.volume = 1.0, volumeGet.muted = false | Should Pass |
- * | 04 | Start the audio sink to change state to State::STARTED | mNewState = STARTED | State should be STARTED | Should be successful |
- * | 05 | Set volume again using setVolume function | volume = 1.0, muted = false | status.isOk() = true, volumeSetResult = true | Should Pass |
- * | 06 | Get volume again using getVolume function | volumeGet | status.isOk() = true, volumeGet.volume = 1.0, volumeGet.muted = false | Should Pass |
- */
-// Cannot test the scenario as per the aidl spec
-//UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getVolume_neg)
-//{
-    //android::binder::Status status;
-    //bool aidl_return = false;
-    //std::vector<IAudioSink::Id> sinkIds;
-    //sp<IAudioSink> audioSink;
-
-    /* Get the Audio sink IDs */
-    //AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
-
-    //for (const auto& _sinkId : sinkIds)
-    //{
-        //sp<IAudioSinkController> audioSinkController;
-        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
-
-        /* Get Audio sink handle */
-        //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
-
-        //Get the volume in non ready state
-        //Get volume
-        //Volume volumeGet;
-        //AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
-
-        //set state to READY by invoking `open` (set-up)
-        //AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
-
-        //close the Audio sink
-        //AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        //Again Get the volume in non ready state
-        //Get volume
-        //AUDIOSINK_GETVOLUME_FAILURE(audioSinkController, volumeGet, Status::EX_ILLEGAL_STATE);
-    //}
-//}
 
 /**
  * @brief Test the functionality of setting volume in different states of AudioSinkController
@@ -2176,8 +2325,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
         int32_t overMs = 5000;
         std::vector<VolumeRamp> volumeRamps = {VolumeRamp::LINEAR, VolumeRamp::IN_CUBIC, VolumeRamp::OUT_CUBIC};
 
-        for (auto& targetVolume : targetVolumes) {
-            for (auto& volumeRamp : volumeRamps) {
+        for (auto& targetVolume : targetVolumes)
+        {
+            for (auto& volumeRamp : volumeRamps)
+            {
                 AUDIOSINK_SETVOLUMERAMP_SUCCESS(audioSinkController, targetVolume, overMs,volumeRamp);
                 // Add a delay to approximate the ramp duration
                 std::this_thread::sleep_for(std::chrono::milliseconds(overMs+500));
@@ -2260,7 +2411,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
 
     }
 }
-#endif
+
 /** @} */ // End of AUDIO_SINK_HALTEST L1 File
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK Module
