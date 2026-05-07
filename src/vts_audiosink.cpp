@@ -136,6 +136,18 @@ Status AudioSinkControllerListener::onFirstFrameRendered(int64_t nsPresentationT
 }
 
 /**
+ * Override Call-back function for frame buffer available event
+ *
+ * @param None
+ * @return Status
+ */
+Status AudioSinkControllerListener::onFrameBufferAvailable()
+{
+    // Minimal stub implementation
+    return Status::ok();
+}
+
+/**
  * Get the next first frame rendered PTS from the queue
  *
  * @param firstFramePTS Reference to store the first frame PTS

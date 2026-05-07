@@ -74,12 +74,18 @@
 
 #include "vts_audiodecoder.h"
 #include "vts_avbuffer.h"
+//#include "vts_avclock.h"
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkEventListener.h"
 #include "com/rdk/hal/audiosink/ContentType.h"
 #include "com/rdk/hal/audiodecoder/FrameMetadata.h"
+
+#include "com/rdk/hal/avclock/IAVClock.h"
+#include "com/rdk/hal/avclock/IAVClockManager.h"
+#include "com/rdk/hal/avclock/BnAVClockControllerListener.h"
+#include "com/rdk/hal/avclock/BnAVClockEventListener.h"
 
 using android::sp;
 using android::String16;
@@ -89,6 +95,7 @@ using android::binder::Status;
 using namespace com::rdk::hal;
 using namespace std;
 using namespace com::rdk::hal::audiosink;
+using namespace com::rdk::hal::avclock;
 
 extern void *gAudioSinkTestConfiguration;
 extern sp<IAudioSinkManager> gAudioSinkManager;
@@ -328,10 +335,14 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
             eventListener.get(), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        if (exception == Status::EX_NONE) \
+        if (exception == Status::EX_NONE) {\
             UT_ASSERT_TRUE(status.isOk()); \
-        else \
+            UT_ASSERT_FALSE(_aidl_return); \
+        } \
+        else {\
             UT_ASSERT_FALSE(status.isOk()); \
+            UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+        }\
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
     } while (0)
 
@@ -361,7 +372,14 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_FALSE(status.isOk()); \
-        UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+        if (exception == Status::EX_NONE) {\
+            UT_ASSERT_TRUE(status.isOk()); \
+            UT_ASSERT_FALSE(_aidl_return); \
+        } \
+        else {\
+            UT_ASSERT_FALSE(status.isOk()); \
+            UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+        }\
     } while (0)
 
 #define AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, stateCheck) \
@@ -424,7 +442,7 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
-#define AUDIOSINK_SETAUDIODECODER_SUCCESS(decoderId, audioSinkController) \
+#define AUDIOSINK_SETAUDIODECODER_SUCCESS(audioSinkController, decoderId) \
     do { \
         ::android::binder::Status status; \
         ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audioDecoderId; \
@@ -438,9 +456,10 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(aidl_return); \
         UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
-#define AUDIOSINK_SETAUDIODECODER_FAILURE(decoderId, audioSinkController, exception) \
+#define AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, decoderId, exception) \
     do { \
         ::android::binder::Status status; \
         ::com::rdk::hal::audiodecoder::IAudioDecoder::Id audioDecoderId; \
@@ -456,28 +475,87 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
-#define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioDecoderId, audioSinkController) \
+#define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioSinkController, audioDecoderId) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_DEBUG("Calling setAudioDecoder(IN:audioDecoderId:[], OUT:_aidl_return[])"); \
+        UT_LOG_DEBUG("Calling getAudioDecoder(OUT:audioDecoderId:[])"); \
         status = (audioSinkController)->getAudioDecoder(&audioDecoderId); \
-        UT_LOG_DEBUG("Result setAudioDecoder(IN:audioDecoderId:[%d], status:[isOK:%s, exception:%s]", \
+        UT_LOG_DEBUG("Result getAudioDecoder(OUT:audioDecoderId:[%d]), status:[isOK:%s, exception:%s]", \
                     audioDecoderId.value, \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
-#define AUDIOSINK_GETAUDIODECODER_FAILURE(audioDecoderId, audioSinkController, exception) \
+#define AUDIOSINK_GETAUDIODECODER_FAILURE(audioSinkController, audioDecoderId, exception) \
     do { \
         ::android::binder::Status status; \
-        UT_LOG_DEBUG("Calling getAudioDecoder(OUT:audioDecoderId:[]"); \
+        UT_LOG_DEBUG("Calling getAudioDecoder(OUT:audioDecoderId:[])"); \
         status = (audioSinkController)->getAudioDecoder(&audioDecoderId);\
         UT_LOG_DEBUG("Result getAudioDecoder(), status:[isOK:%s, exception:%s]", \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         UT_ASSERT_FALSE(status.isOk()); \
+    } while (0)
+
+#define AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id) \
+    do { \
+        ::android::binder::Status status; \
+        IAVClock::Id _clockId; \
+        _clockId.value = static_cast<int32_t>(id); \
+        bool aidl_return; \
+        UT_LOG_DEBUG("Calling attachClock(IN:clockId:[%d])", _clockId.value); \
+        status = (audioSinkController)->attachClock(_clockId); \
+        UT_LOG_DEBUG("Result attachClock(IN:clockId:[%d]), status:[isOK:%s, exception:%s]", \
+                    _clockId.value, \
+                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+    } while (0)
+
+#define AUDIOSINK_ATTACHCLOCK_FAILURE(audioSinkController, id, exception) \
+    do { \
+        ::android::binder::Status status; \
+        IAVClock::Id _clockId; \
+        _clockId.value = static_cast<int32_t>(id); \
+        bool aidl_return; \
+        UT_LOG_DEBUG("Calling attachClock(IN:clockId:[%d])", _clockId.value); \
+        status = (audioSinkController)->attachClock(_clockId); \
+        UT_LOG_DEBUG("Result attachClock(IN:clockId:[%d]), status:[isOK:%s, exception:%s]", \
+                    _clockId.value, \
+                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+        UT_ASSERT_FALSE(status.isOk()); \
+    } while (0)
+
+#define AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController) \
+    do { \
+        ::android::binder::Status status; \
+        bool aidl_return; \
+        UT_LOG_DEBUG("Calling detachClock()"); \
+        status = (audioSinkController)->detachClock(); \
+        UT_LOG_DEBUG("Result detachClock(), status:[isOK:%s, exception:%s]", \
+                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+    } while (0)
+
+#define AUDIOSINK_GETCLOCK_SUCCESS(audioSinkController, clockID) \
+    do { \
+        ::android::binder::Status status; \
+        UT_LOG_DEBUG("Calling getClock(OUT:clockId:[])"); \
+        status = (audioSinkController)->getClock(&clockID); \
+        UT_LOG_DEBUG("Result getClock(OUT:clockId:[%d]), status:[isOK:%s, exception:%s]", \
+                    clockID.value, \
+                    UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+                    UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
 #define AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(sindkId, audioSinkcontroller, nsPresentationTime, bufferHandle, metadata) \
@@ -697,6 +775,7 @@ public:
     Status onAudioUnderflow() override;
     Status onAudioResumed(int64_t nsPresentationTime) override;
     Status onFlushComplete() override;
+    Status onFrameBufferAvailable() override;
 
     bool waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();

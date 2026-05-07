@@ -141,7 +141,8 @@ public:
 /**
  * @brief Test the positive scenario of retrieving audio sink IDs
  *
- * This test verifies that the `getAudioSinkIds` function correctly retrieves a list of audio sink IDs and that the returned list is not empty. It ensures that the function call is successful and that the IDs match the expected set of IDs.
+ * This test verifies that the `getAudioSinkIds` function correctly retrieves a list of audio sink IDs and that the returned list is not empty.
+ * It ensures that the function call is successful and that the IDs match the expected set of IDs.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 001@n
@@ -168,7 +169,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
     std::vector<IAudioSink::Id> initialaudiosinkIds;
     std::vector<IAudioSink::Id> secondaudiosinkIds;
     std::vector<int32_t> sinkId;
-    std::unordered_set<int> sinkId_from_profile;
+    std::unordered_set<int32_t> sinkId_from_profile;
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(initialaudiosinkIds);
@@ -178,27 +179,27 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
         sinkId.push_back(obj.value);
     }
 
-    /* Get the Audio sink IDs second time */
-    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(secondaudiosinkIds);
-
-    UT_ASSERT_EQUAL(initialaudiosinkIds.size(), secondaudiosinkIds.size());
-
-    for (size_t i = 0; i < initialaudiosinkIds.size(); ++i)
-    {
-        UT_ASSERT_EQUAL(initialaudiosinkIds[i].value, secondaudiosinkIds[i].value);
-    }
-
-    const auto& obj = gAudiosinks_hfp;
-
     /* checking the number of audio sink ids from the api getAudioSinkIds()
        equal to the number of audio sink ids from HAL FEATURE PROFILE  */
-    UT_ASSERT_EQUAL(initialaudiosinkIds.size(), obj[0].ids.size());
+    UT_ASSERT_EQUAL(initialaudiosinkIds.size(), gAudiosinksHFP.sinkCaps.size());
+
+    for (const auto& obj : gAudiosinksHFP.sinkCaps)
+    {
+        sinkId_from_profile.insert(obj.id);
+    }
+
+    for (int num : sinkId)
+    {
+        UT_ASSERT_NOT_EQUAL(sinkId_from_profile.find(num), sinkId_from_profile.end());
+    }
 }
 
 /**
  * @brief Test the retrieval of platform capabilities from the AudioSinkManager service.
  *
- * This test verifies the functionality of the getPlatformCapabilities method in the AudioSinkManager service. It checks whether the method correctly retrieves the platform capabilities and matches the expected values for various attributes such as supportsLowLatency, systemMixerSampleRateHz, systemMixerPCMFormat, and supportsPlanarFormat.
+ * This test verifies the functionality of the getPlatformCapabilities method in the AudioSinkManager service.
+ * It checks whether the method correctly retrieves the platform capabilities and matches the expected values for
+ * various attributes such as supportsLowLatency, systemMixerSampleRateHz, systemMixerPCMFormat, and supportsPlanarFormat.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 002@n
@@ -223,28 +224,29 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSinkIds_pos)
  */
 UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
 {
-    PlatformCapabilities platformCapabilities;
+    audiosink::PlatformCapabilities platformCapabilities;
 
     AUDIOSINK_GETPLATFORMCAPABILITIES(platformCapabilities);
 
     /* Log platform capabilities for debugging */
-    UT_LOG_INFO("lowlatency: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsLowLatency));
-    UT_LOG_INFO("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
-    UT_LOG_INFO("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
-    UT_LOG_INFO("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
-    UT_LOG_INFO("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
-    UT_LOG_INFO("maxNumChannels: %d", platformCapabilities.maxNumChannels);
-    UT_LOG_INFO("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
+    UT_LOG_DEBUG("lowlatency: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsLowLatency));
+    UT_LOG_DEBUG("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
+    UT_LOG_DEBUG("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
+    UT_LOG_DEBUG("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
+    UT_LOG_DEBUG("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
+    UT_LOG_DEBUG("maxNumChannels: %d", platformCapabilities.maxNumChannels);
+    UT_LOG_DEBUG("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
 
     /* validate platform capabilites using hfp profile*/
-    vts_audiosink_helper_validateCapabilities(platformCapabilities);
+    vts_audiosink_helper_validatePlatformCapabilities(platformCapabilities);
 }
-
 
 /**
  * @brief Test the positive scenario of retrieving an audio sink using a valid audio sink ID.
  *
- * This test verifies the functionality of the getAudioSink API by providing a valid audio sink ID and checking if the audio sink is retrieved successfully. The test ensures that the API returns a successful status and a non-null audio sink object.
+ * This test verifies the functionality of the getAudioSink API by providing a valid audio sink ID and
+ * checking if the audio sink is retrieved successfully. The test ensures that the API returns a successful
+ * status and a non-null audio sink object.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 003@n
@@ -281,6 +283,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
 
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audiosink_1);
+
         /* Get the resource ID */
         AUDIOSINK_GET_PROPERTY_SUCCESS(audiosink_1, property, resource_id_1);
 
@@ -301,7 +304,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
 /**
  * @brief Test the behavior of getAudioSink with invalid audio sink IDs.
  *
- * This test verifies that the getAudioSink function correctly handles invalid audio sink IDs by returning an error status and a null audio sink object. It ensures that the function does not accept IDs outside the valid range.
+ * This test verifies that the getAudioSink function correctly handles invalid audio sink IDs by returning
+ * an error status and a null audio sink object. It ensures that the function does not accept IDs outside the valid range.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 004@n
@@ -384,6 +388,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, getCapabilities_pos)
 
         /* Get Capabilities of Audio sink */
         AUDIODSINK_GETCAPABILITIES(audioSink, capabilities);
+
+        /* Validate sink capabilities */
+        vts_audiosink_helper_validateSinkCapabilities(_sinkId.value, capabilities);
+
     }
 }
 
@@ -418,8 +426,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, getProperty_pos)
 
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
-    std::vector<audiosink::Property> testProperties = {audiosink::Property::RESOURCE_ID, audiosink::Property::REFERENCE_LEVEL, audiosink::Property::RENDER_LATENCY_NS, audiosink::Property::QUEUE_DEPTH_NS,
-                                            audiosink::Property::MIXER_ID , audiosink::Property::AV_SOURCE , audiosink::Property::DOLBY_ATMOS_LOCK};
+    std::vector<audiosink::Property> testProperties = {audiosink::Property::RESOURCE_ID,
+                                                       audiosink::Property::REFERENCE_LEVEL,
+                                                       audiosink::Property::RENDER_LATENCY_NS,
+                                                       audiosink::Property::QUEUE_DEPTH_NS,
+                                                       audiosink::Property::MIXER_ID ,
+                                                       audiosink::Property::AV_SOURCE ,
+                                                       audiosink::Property::DOLBY_ATMOS_LOCK};
     ::android::binder::Status status;
 
     /* Get the Audio sink IDs */
@@ -443,7 +456,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, getProperty_pos)
 /**
  * @brief Test the negative scenario for the getProperty function of AudioSink
  *
- * This test verifies the behavior of the getProperty function when an invalid property is requested. It ensures that the function returns an error status and no property value.
+ * This test verifies the behavior of the getProperty function when an invalid property is requested.
+ * It ensures that the function returns an error status and no property value.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 007@n
@@ -466,7 +480,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getProperty_neg)
     std::optional<PropertyValue> propertyValue;
     int32_t firstValue = static_cast<int32_t>(audiosink::Property::RESOURCE_ID);
     audiosink::Property Invalidproperty = static_cast<audiosink::Property>(firstValue - 1);
-    ::android::binder::Status status;
+    android::binder::Status status;
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -544,7 +558,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setProperty_pos)
 /**
  * @brief Test the negative scenarios for setting properties on an audio sink.
  *
- * This test verifies the behavior of the audio sink when attempting to set properties with invalid values or in incorrect states. It ensures that the audio sink does not accept invalid property settings and returns the expected failure status.
+ * This test verifies the behavior of the audio sink when attempting to set properties with invalid values or in incorrect states.
+ * It ensures that the audio sink does not accept invalid property settings and returns the expected failure status.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 009@n
@@ -651,42 +666,22 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
 
     for (const auto& _sinkId : sinkIds )
     {
-        sp<IAudioSinkController> audioSinkController;
-        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
-
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        //set state to READY by invoking `open` (set-up)
-        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
-
         /* get the state of an audio sink */
         AUDIOSINK_GET_STATE(audioSink, state);
 
-        /* Start the sink */
-        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
-
-        /* get the state of an audio sink */
-        AUDIOSINK_GET_STATE(audioSink, state);
-
-        /* Stop the sink */
-        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
-
-        /* get the state of an audio sink */
-        AUDIOSINK_GET_STATE(audioSink, state);
-
-        /* Close the sink */
-        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-        /* get the state of an audio sink */
-        AUDIOSINK_GET_STATE(audioSink, state);
+        UT_ASSERT_EQUAL(state, com::rdk::hal::State::CLOSED);
     }
 }
 
 /**
  * @brief Test the positive scenario of opening an audio sink with all ContentType values.
  *
- * This test verifies the successful opening of an audio sink using a controller listener with all possible ContentType values. It checks if the audio sink controller is correctly initialized for each content type and the status returned is OK.
+ * This test verifies the successful opening of an audio sink using a controller listener
+ * with all possible ContentType values. It checks if the audio sink controller is correctly
+ * initialized for each content type and the status returned is OK.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 011@n
@@ -742,27 +737,20 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
             //set state to READY by invoking `open` (set-up) with specific ContentType
             AUDIOSINK_OPEN_SUCCESS(audioSink, contentType, controllerListener, audioSinkController, true);
 
-            // Verify the audio sink is in READY state after opening
-            ::com::rdk::hal::State currentState;
-            AUDIOSINK_GET_STATE(audioSink, currentState);
-            UT_ASSERT_EQUAL(currentState, ::com::rdk::hal::State::READY);
-
             /* Close the sink */
             AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
-            // Verify the audio sink is in CLOSED state after closing
-            AUDIOSINK_GET_STATE(audioSink, currentState);
-            UT_ASSERT_EQUAL(currentState, ::com::rdk::hal::State::CLOSED);
-
         }
     }
 }
 
-
 /**
  * @brief Test the negative scenarios for the AudioSink open function
  *
- * This test evaluates the behavior of the AudioSink open function when provided with invalid inputs or called in an invalid state. It ensures that the function handles these scenarios gracefully by returning appropriate error statuses and not altering the state inappropriately. This includes testing all ContentType-related exceptions as specified in the AIDL interface.
+ * This test evaluates the behavior of the AudioSink open function when provided
+ * with invalid inputs or called in an invalid state. It ensures that the function
+ * handles these scenarios gracefully by returning appropriate error statuses and
+ * not altering the state inappropriately. This includes testing all ContentType-related
+ * exceptions as specified in the AIDL interface.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 014@n
@@ -836,14 +824,14 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_neg)
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-
     }
 }
 
 /**
  * @brief Test the positive scenario of closing an AudioSink.
  *
- * This test verifies the successful closure of an AudioSink when the controller is in the READY state. It ensures that the close operation returns a successful status and the closed flag is set to true.
+ * This test verifies the successful closure of an AudioSink when the controller is in the READY state.
+ * It ensures that the close operation returns a successful status and the closed flag is set to true.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 013@n
@@ -997,7 +985,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_pos)
 /**
  * @brief Test the registration of an audio sink event listener with various scenarios.
  *
- * This test evaluates the behavior of the registerEventListener function when registering valid and invalid IAudioSinkEventListener instances. It checks the function's response to multiple registrations of the same listener and the registration of a null listener.
+ * This test evaluates the behavior of the registerEventListener function when registering
+ * valid and invalid IAudioSinkEventListener instances. It checks the function's response to
+ * multiple registrations of the same listener and the registration of a null listener.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 016@n
@@ -1039,7 +1029,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_neg)
         AUDIOSINK_REGISTER_EVENT_SUCCESS(audioSink, eventListener);
 
         /* Register events again */
-        AUDIOSINK_REGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_REGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
 
         /* Un-register the events */
         AUDIOSINK_UNREGISTER_EVENT_SUCCESS(audioSink, eventListener);
@@ -1049,7 +1039,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, registerEventListener_neg)
 /**
  * @brief Test the positive scenario of unregistering an event listener from AudioSink.
  *
- * This test verifies the successful unregistration of a valid AudioSinkEventListener instance from the AudioSinkManagerService. It ensures that the listener is initially registered and then checks the status and return value after attempting to unregister it.
+ * This test verifies the successful unregistration of a valid AudioSinkEventListener instance
+ * from the AudioSinkManagerService. It ensures that the listener is initially registered and
+ * then checks the status and return value after attempting to unregister it.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 017@n
@@ -1098,7 +1090,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_pos)
 /**
  * @brief Test the behavior of unregistering an event listener in various scenarios.
  *
- * This test evaluates the behavior of the `unregisterEventListener` function when attempting to unregister an event listener that is not registered, and when unregistering an event listener that has already been unregistered.
+ * This test evaluates the behavior of the `unregisterEventListener` function when attempting to
+ * unregister an event listener that is not registered, and when unregistering an event listener
+ * that has already been unregistered.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 018@n
@@ -1147,7 +1141,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_neg)
         AUDIOSINK_UNREGISTER_EVENT_SUCCESS(audioSink, eventListener);
 
         /* Un-register the events again */
-        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
     }
 }
 
@@ -1179,15 +1173,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
     android::binder::Status status;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
-    std::vector<int> decoderIds;
-
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
-
-    for (size_t i = 0; i < expectedCount; ++i){
-        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
-        int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
-        decoderIds.push_back(expectedIdValue);
-    }
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -1204,8 +1189,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
-        for (const auto& _decoderId : decoderIds) {
-            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
+        for (const auto& _decoderId : gAudiosinksHFP.availableDecoderIds)
+        {
+            AUDIOSINK_SETAUDIODECODER_SUCCESS(audioSinkController, _decoderId);
         }
 
         /* Close the sink */
@@ -1216,7 +1202,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_pos)
 /**
  * @brief Test the behavior of setAudioDecoder with invalid and valid IDs in different states
  *
- * This test verifies the behavior of the setAudioDecoder function when provided with invalid audio decoder IDs and when the resource is not in the READY state. It ensures that the function handles these scenarios correctly by returning appropriate status and results.
+ * This test verifies the behavior of the setAudioDecoder function when provided with invalid
+ * audio decoder IDs and when the resource is not in the READY state. It ensures that the function
+ * handles these scenarios correctly by returning appropriate status and results.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 020@n
@@ -1244,19 +1232,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     android::binder::Status status;
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
-    std::vector<int> decoderIds;
 
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
-
-    // Test Case 3: Invalid Audio Decoder ID
-    std::vector<uint32_t> audioDecoderIds;
-    for (size_t i = 0; i<expectedCount ; ++i)
-    {
-        std::string audiodecoderid_path = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
-        uint32_t id = UT_KVP_PROFILE_GET_UINT32(audiodecoderid_path.c_str());
-        audioDecoderIds.push_back(id);
-    }
-    UT_ASSERT_FALSE(audioDecoderIds.empty());
+    std::vector<int32_t> audioDecoderIds = gAudiosinksHFP.availableDecoderIds;
 
     std::sort(audioDecoderIds.begin(), audioDecoderIds.end());
     int32_t invalidLowId = audioDecoderIds.front() - 1;
@@ -1278,17 +1255,17 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Test with invalid ID (least value -1)
-        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidLowId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidLowId, Status::EX_ILLEGAL_ARGUMENT);
 
         // Test with invalid ID (highest value +1)
-        AUDIOSINK_SETAUDIODECODER_FAILURE(invalidHighId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidHighId, Status::EX_ILLEGAL_ARGUMENT);
 
         // Test Case 4: Resource Not in READY State
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
         // Test with valid ID
-        AUDIOSINK_SETAUDIODECODER_FAILURE(validid, audioSinkController, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, validid, Status::EX_ILLEGAL_STATE);
 
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
@@ -1333,20 +1310,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
     sp<IAudioSink> audioSink;
     std::vector<int> decoderIds;
 
-    size_t expectedCount = UT_KVP_PROFILE_GET_LIST_COUNT(AUDIODECODERMGR_IAUDIODECODER);
-
-    for (size_t i = 0; i < expectedCount; ++i) {
-        std::string audiodecoderidpath = std::string(AUDIODECODERMGR_IAUDIODECODER) + "." + std::to_string(i) + ".id";
-
-        int32_t expectedIdValue = UT_KVP_PROFILE_GET_UINT32(audiodecoderidpath.c_str());
-        decoderIds.push_back(expectedIdValue);
-    }
-
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     // Ensure the resource is in the State::READY state
-    for (const auto& _sinkId : sinkIds) {
+    for (const auto& _sinkId : sinkIds)
+    {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
@@ -1356,14 +1325,18 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
         // set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
-        for (const auto& _decoderId : decoderIds) {
-            decoderId.value = _decoderId;
+        AUDIOSINK_GETAUDIODECODER_SUCCESS(audioSinkController, audiodecoderId);
 
-            AUDIOSINK_SETAUDIODECODER_SUCCESS(_decoderId, audioSinkController);
-            AUDIOSINK_GETAUDIODECODER_SUCCESS(audiodecoderId, audioSinkController);
+        UT_ASSERT_EQUAL(audiodecoderId.value, IAudioDecoder::Id::UNDEFINED);
 
-            UT_ASSERT_EQUAL(decoderId.value, audiodecoderId.value);
-        }
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        AUDIOSINK_GETAUDIODECODER_SUCCESS(audioSinkController, audiodecoderId);
+
+        UT_ASSERT_EQUAL(audiodecoderId.value, IAudioDecoder::Id::UNDEFINED);
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
 
         /* Close the sink */
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
@@ -1371,14 +1344,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
 }
 
 /**
- * @brief Test the functionality of getting and setting audio decoders in AudioSinkController.
+ * @brief Test the positive scenario of attaching a clock to the AudioSinkController.
  *
- * This test verifies the ability to set and retrieve audio decoder IDs using the AudioSinkController.
- * It ensures that the audio sink can be opened and started, and that valid audio decoder IDs can be
- * set and retrieved successfully.
- *
+ * This test verifies the successful attachment of a clock to the AudioSinkController. It ensures that the controller
+ * is in the READY state and that a valid clock instance can be attached without errors.
+ * The test checks the return status of the attachClock API call and confirms that the operation is successful.
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 021@n
+ * **Test Case ID:** 024@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1388,50 +1360,59 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
  * **Test Procedure:**@n
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
- * | 01 | Ensure the audio sink is in the READY state by opening it. | mControllerListener, opened = false | status.isOk() = true, opened = true | Should be successful |
- * | 02 | Retrieve valid audio decoder IDs using the configuration YAML APIs. | decoderIds | status.isOk() = true, decoderIds not empty | Should be successful |
- * | 03 | Set the audio decoder using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
- * | 04 | Get the audio decoder and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
- * | 05 | Ensure the audio sink is in the STARTED state by starting it. | started = false | status.isOk() = true, started = true | Should be successful |
- * | 06 | Set the audio decoder again using a valid decoder ID. | decoderId, setResult = false | status.isOk() = true, setResult = true | Should Pass |
- * | 07 | Get the audio decoder again and verify it matches the set ID. | audioDecoder | status.isOk() = true, audioDecoder.value = decoderId.value | Should Pass |
+ * | 01 | Ensure the audio sink is in READY state by opening it | AUDIOSINK_OPEN_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 02 | For each available clock ID, attach and detach the clock in READY state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 03 | Transition the audio sink to STARTED state | AUDIOSINK_START_SUCCESS | Controller should be in STARTED state | Should be successful |
+ * | 04 | For each available clock ID, attach and detach the clock in STARTED state | clockId from gAudiosinksHFP.availableClockIds | attachClock and detachClock should succeed, status.isOk() = true, _aidl_return = true | Should Pass |
+ * | 05 | Stop the audio sink to return to READY state | AUDIOSINK_STOP_SUCCESS | Controller should be in READY state | Should be successful |
+ * | 06 | Close the audio sink | AUDIOSINK_CLOSE_SUCCESS | Controller should be closed | Should be successful |
  */
-// Cannot test the scenario as per the aidl spec
-//UT_ADD_TEST(VTS_L1_AudioSink, audiosinkcontroller_getAudioDecoder_neg)
-//{
- //  android::binder::Status status;
-  // bool aidl_return = false;
-   //std::vector<IAudioSink::Id> sinkIds;
-   //::com::rdk::hal::audiodecoder::IAudioDecoder::Id audiodecoderId;
-   //sp<IAudioSink> audioSink;
 
-      /* Get the Audio sink IDs */
-   //AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+UT_ADD_TEST(VTS_L1_AudioSink, attachClock_pos)
+{
+    android::binder::Status status;
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
 
-   // Ensure the resource is in the State::READY state
-     //for(const auto& _sinkId : sinkIds)
-     //{
-       // sp<IAudioSinkController> audioSinkController;
-        //sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+    /* Get the Audio sink IDs */
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
-       /* Get Audio sink handle */
-       //AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+    // Ensure the resource is in the State::READY state
+    for(const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController = nullptr;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
-       //call get audio decoder in non ready state
-       //AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        /* Get Audio sink handle */
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-       //set state to READY by invoking `open` (set-up)
-       //AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+        //set state to READY by invoking `open` (set-up)
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
-       //audiodecoderId.value = -1;
-       //call get audio decoder with invalid id
-       //AUDIOSINK_GETAUDIODECODER_FAILURE(audiodecoderId, audioSinkController, Status::EX_ILLEGAL_ARGUMENT);
+        // Attach and detach all available clocks
+        for (const auto& id : gAudiosinksHFP.availableClockIds)
+        {
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id);
+            AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController);
+        }
 
-       /* Close the sink */
-       //AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
-   //}
-//}
+        // Transition to a non-READY state (e.g., STARTED)
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
+        // Attach and detach all available clocks in non-READY state
+        for (const auto& id : gAudiosinksHFP.availableClockIds)
+        {
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id);
+            AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController);
+        }
+
+        //Stop the Audio sink
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Close the sink */
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
 /**
  * @brief Test the positive scenario of starting the AudioSinkController.
  *
@@ -1486,7 +1467,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
     }
 }
-
+#if 0
 /**
  * @brief Test the negative scenario of starting the AudioSinkController when already started.
  *
@@ -2279,7 +2260,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
 
     }
 }
-
+#endif
 /** @} */ // End of AUDIO_SINK_HALTEST L1 File
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK Module

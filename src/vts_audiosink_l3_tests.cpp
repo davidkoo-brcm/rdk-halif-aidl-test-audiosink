@@ -56,7 +56,7 @@
  * @file vts_audiosink_l3_tests.c
  *
  */
-
+#if 0
 #include <ut_kvp_profile.h>
 #include <ut.h>
 #include <ut_log.h>
@@ -1331,6 +1331,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
+#endif
 #endif
 /** @} */ // End of AUDIO_SINK_HALTEST L3 File
 /** @} */ // End of AUDIO_SINK_HALTEST

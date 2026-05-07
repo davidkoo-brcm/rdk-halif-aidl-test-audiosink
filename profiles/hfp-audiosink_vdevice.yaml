@@ -20,23 +20,34 @@
 # *
 #** ******************************************************************************
 
-profile: TV                     # String value TV or STB
-audiosink:                      # Component object begins
-    interfaceVersion: 1           # Integer value
-    platformCapabilities:
-      supportsLowLatency: false
-      systemMixerSampleRateHz: 48000
-      systemMixerPCMFormat: S16LE
-      supportsPlanarFormat: false
-      supportsSoCProprietary: false
-      maxNumChannels: 2
-      supportsDolbyAtmos: false
-    IAudioSink:                   # Resource list
-      - id: 0                     # Resource object begins
-      - id: 1
-      - id: 2
-    availableSinks:
-      - 0
-      - 1
-      - 2
-    supportsSecure: false
+audiosink:
+  interfaceVersion: current
+
+  IAudioSink:
+    - id: 0
+      supportsSecure: true
+      supportedContentTypes:
+        - UNKNOWN
+        - SPEECH
+        - MUSIC
+        - MOVIE
+        - SONIFICATION
+    - id: 1
+      supportsSecure: false
+      supportedContentTypes:
+        - SPEECH
+        - MUSIC
+
+  platformCapabilities:
+    supportsLowLatency: false
+    systemMixerSampleRateHz: 48000
+    systemMixerPCMFormat: S16LE
+    supportsPlanarFormat: false
+    supportsSoCProprietary: false
+    maxNumChannels: 2
+    supportsDolbyAtmos: false
+
+  availableSinks:
+    - 0
+    - 1
+    - 2

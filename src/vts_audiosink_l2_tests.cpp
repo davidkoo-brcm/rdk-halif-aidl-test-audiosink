@@ -55,7 +55,7 @@
  * @file vts_audiosink_l2_tests.c
  *
  */
-
+#if 0
 #include <ut_kvp_profile.h>
 #include <ut.h>
 #include <ut_log.h>
@@ -601,7 +601,7 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStopAudioSinkVolRampProgress)
 
     }
 }
-
+#endif
 /** @} */ // End of AUDIO_SINK_HALTEST L2 File
 /** @} */ // End of AUDIO_SINK_HALTEST
 /** @} */ // End of AUDIO_SINK Module

@@ -157,34 +157,62 @@ bool stringToBool(const std::string& str) {
     }
 }
 
-void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& capabilities)
+void vts_audiosink_helper_validatePlatformCapabilities(const audiosink::PlatformCapabilities& capabilities)
 {
     UT_LOG_INFO("Inside of the validater helper fucntion");
 
-    const auto& _sinkmanager =  gAudiosinks_hfp;
+    const auto& platformCapsHFP =  gAudiosinksHFP.platformCaps;
 
     UT_LOG_INFO("Validing platform capabilites in helper fucntion");
 
     /* checking lowlatency support from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].lowlatency), capabilities.supportsLowLatency);
+    UT_ASSERT_EQUAL(platformCapsHFP.supportsLowLatency, capabilities.supportsLowLatency);
 
     /* checking samplerate support from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(std::stoi(_sinkmanager[0].supportedcaps[0].samplerate), capabilities.systemMixerSampleRateHz);
+    UT_ASSERT_EQUAL(platformCapsHFP.systemMixerSampleRateHz, capabilities.systemMixerSampleRateHz);
 
     /* checking mixer pcmformat from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(vts_audioDecoder_helper_StringToPCMFormat(_sinkmanager[0].supportedcaps[0].mixer_pcmformat), capabilities.systemMixerPCMFormat);
+    UT_ASSERT_EQUAL(platformCapsHFP.systemMixerPCMFormat, capabilities.systemMixerPCMFormat);
 
     /* checking supports PlanarFormat from getPlatformCapabilities() and hfp platformcapabilites */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsPlanarFormat), capabilities.supportsPlanarFormat);
+    UT_ASSERT_EQUAL(platformCapsHFP.supportsPlanarFormat, capabilities.supportsPlanarFormat);
 
     /* supportsSoCProprietary */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsSoCProprietary), capabilities.supportsSoCProprietary);
+    UT_ASSERT_EQUAL(platformCapsHFP.supportsSoCProprietary, capabilities.supportsSoCProprietary);
 
     /* maxNumChannels */
-    UT_ASSERT_EQUAL(std::stoi(_sinkmanager[0].supportedcaps[0].maxNumChannels), capabilities.maxNumChannels);
+    UT_ASSERT_EQUAL(platformCapsHFP.maxNumChannels, capabilities.maxNumChannels);
 
     /* supportsDolbyAtmos */
-    UT_ASSERT_EQUAL(stringToBool(_sinkmanager[0].supportedcaps[0].supportsDolbyAtmos), capabilities.supportsDolbyAtmos);
+    UT_ASSERT_EQUAL(platformCapsHFP.supportsDolbyAtmos, capabilities.supportsDolbyAtmos);
+}
+
+void vts_audiosink_helper_validateSinkCapabilities(int32_t sinkId, const audiosink::Capabilities& capabilities)
+{
+    const auto& sinkCapsHFP = gAudiosinksHFP.sinkCaps;
+
+    auto it = std::find_if(sinkCapsHFP.begin(), sinkCapsHFP.end(),
+                           [sinkId](const sinkCapabilitiesHFP& hfpCaps) {
+                               return hfpCaps.id == sinkId;
+                           });
+
+    UT_ASSERT_NOT_EQUAL(it, sinkCapsHFP.end());
+
+    /* checking supportsSecure support from getSinkCapabilities() and hfp sinkcapabilites */
+    UT_ASSERT_EQUAL(it->supportsSecure, capabilities.supportsSecure);
+
+    /* checking supportedContentTypes from getSinkCapabilities() and hfp sinkcapabilites */
+    std::unordered_set<int32_t> supportedContentTypesSet;
+
+    for (const auto& contentType : capabilities.supportedContentTypes)
+    {
+        supportedContentTypesSet.insert(static_cast<int32_t>(contentType));
+    }
+
+    for (const auto& contentType : it->supportedContentTypes)
+    {
+        UT_ASSERT_NOT_EQUAL(supportedContentTypesSet.find(static_cast<int32_t>(contentType)), supportedContentTypesSet.end());
+    }
 }
 
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& values)
