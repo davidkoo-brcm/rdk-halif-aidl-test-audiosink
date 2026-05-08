@@ -295,3 +295,40 @@ If user chose to run the test in interactive mode, then the test case has to be 
 |08|Verify the volume is equal to target volume|None|`true`|Should be successful|
 |09|Stop audio sink instance using `stop` and check the state of audio sink using `getState` it should be in `READY` state|Audio Sink handle = obtained from `getAudioSink`|`dsERR_NONE`|Should be successful|
 |10|Close audio sink instance using `close` and check the state of audio sink using `getState` it should be in `CLOSED` state|Audio Sink handle = obtained from `getAudioSink`|`dsERR_NONE`|Should be successful|
+
+
+### Test 9
+
+|Title|Details|
+|-----|-------|
+|Function Name|`TestClockAttachDetach`|
+|Description|Loop through supported audio sink IDs, attach and detach clocks in READY and STARTED states, and verify attached clock ID|
+|Test Group|02|
+|Test Case ID|009|
+|Priority|High|
+
+**Pre-Conditions :**
+None
+
+**Dependencies :**
+None
+
+**User Interaction :**
+If user chose to run the test in interactive mode, then the test case has to be selected via console.
+
+#### Test Procedure - Test 9
+
+|Variation / Steps|Description|Test Data|Expected Result|Notes|
+|-----------------|-----------|---------|---------------|-----|
+|01|Get audio sinks IDs using `getAudioSinkIds`|None|`EX_NONE`|Should be successful|
+|02|Loop through audio sinks and get audio sink using `getAudioSink`|None|`EX_NONE`|Should be successful|
+|03|Open Audio Sink using `open` to obtain `audioSinkController` and check state is `READY`|Audio Sink handle = obtained from `getAudioSink`|`EX_NONE`|Should be successful|
+|04|For each available clock ID, attach the clock using `attachClock` in READY state|clockId from configuration|`EX_NONE`|Should be successful|
+|05|Get the attached clock using `getClock` and verify the ID matches|audioSinkController, clockId|Attached clock ID matches|Should Pass|
+|06|Detach the clock using `detachClock`|audioSinkController|`EX_NONE`|Should be successful|
+|07|Start the audio sink using `start` and check state is `STARTED`|audioSinkController|`EX_NONE`|Should be successful|
+|08|For each available clock ID, attach the clock using `attachClock` in STARTED state|clockId from configuration|`EX_NONE`|Should be successful|
+|09|Get the attached clock using `getClock` and verify the ID matches|audioSinkController, clockId|Attached clock ID matches|Should Pass|
+|10|Detach the clock using `detachClock`|audioSinkController|`EX_NONE`|Should be successful|
+|11|Stop the audio sink using `stop` and check state is `READY`|audioSinkController|`EX_NONE`|Should be successful|
+|12|Close the audio sink using `close` and check state is `CLOSED`|audioSinkController|`EX_NONE`|Should be successful|

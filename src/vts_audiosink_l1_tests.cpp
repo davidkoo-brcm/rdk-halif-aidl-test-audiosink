@@ -141,7 +141,8 @@ public:
 /**
  * @brief Test the positive scenario of retrieving audio sink IDs
  *
- * This test verifies that the `getAudioSinkIds` function correctly retrieves a list of audio sink IDs and that the returned list is not empty.
+ * This test verifies that the `getAudioSinkIds` function correctly retrieves a list of
+ * audio sink IDs and that the returned list is not empty.
  * It ensures that the function call is successful and that the IDs match the expected set of IDs.
  *
  * **Test Group ID:** Basic: 01@n
@@ -334,7 +335,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
 
     if(sinkIds.size() > 1)
+    {
         std::sort(sinkIds.begin(), sinkIds.end());
+    }
 
     invalidID = sinkIds.front();
     invalidID.value -= 1;
@@ -753,7 +756,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
  * exceptions as specified in the AIDL interface.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 014@n
+ * **Test Case ID:** 012@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1350,7 +1353,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioDecoder_pos)
  * is in the READY state and that a valid clock instance can be attached without errors.
  * The test checks the return status of the attachClock API call and confirms that the operation is successful.
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 024@n
+ * **Test Case ID:** 022@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1421,7 +1424,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, attachClock_pos)
  * The test covers both READY and STARTED states, using clock IDs outside the valid range (invalidLowId and invalidHighId).
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 024@n
+ * **Test Case ID:** 023@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1564,7 +1567,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, detachClock_pos)
  * is in the READY state and that a valid clock instance can be detached without errors.
  * The test checks the return status of the detachClock API call and confirms that the operation is successful.
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 024@n
+ * **Test Case ID:** 025@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1627,7 +1630,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getClock_pos)
  * This test verifies the successful transition of the audio sink controller from the READY state to the STARTED state by invoking the start API. It ensures that the controller is in the correct initial state and checks the expected state transitions and return values.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 022@n
+ * **Test Case ID:** 026@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1684,7 +1687,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_pos)
  * with an EX_ILLEGAL_STATE exception, indicating that the controller is already in the STARTED state.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 023@n
+ * **Test Case ID:** 027@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1737,10 +1740,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, start_neg)
 /**
  * @brief Test the positive scenario of stopping the AudioSinkController.
  *
- * This test verifies that the AudioSinkController can successfully transition from the STARTED state to the READY state by invoking the stop() API. It ensures that the controller is initially in the STARTED state by calling the start() API and then checks the state transition upon calling stop().
+ * This test verifies that the AudioSinkController can successfully transition from the STARTED
+ * state to the READY state by invoking the stop() API. It ensures that the controller is initially
+ * in the STARTED state by calling the start() API and then checks the state transition upon calling stop().
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 024@n
+ * **Test Case ID:** 028@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1794,7 +1799,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_pos)
  * It ensures that the stop() method returns the correct exception code when called in an invalid state.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 025@n
+ * **Test Case ID:** 029@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1851,10 +1856,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, stop_neg)
 /**
  * @brief Test the negative scenario of queueing an audio frame with an invalid buffer handle.
  *
- * This test verifies the behavior of the AudioSinkController when attempting to queue an audio frame with an invalid buffer handle. It ensures that the system correctly handles invalid input by returning an appropriate error code.
+ * This test verifies the behavior of the AudioSinkController when attempting to queue an
+ * audio frame with an invalid buffer handle. It ensures that the system correctly handles
+ * invalid input by returning an appropriate error code.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 026@n
+ * **Test Case ID:** 030@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -1945,7 +1952,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
  * and before stopping it, confirming the expected behavior of the audio sink controller.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 027@n
+ * **Test Case ID:** 031@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2002,7 +2009,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_pos)
  * the necessary states and checks the expected failure when flush is called in an inappropriate state.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 028@n
+ * **Test Case ID:** 032@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2057,10 +2064,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, flush_neg)
 /**
  * @brief Test the functionality of setting and getting volume in AudioSinkController.
  *
- * This test verifies the ability of the AudioSinkController to correctly set and retrieve the volume settings. It ensures that the volume can be set and retrieved accurately in different states of the audio sink.
+ * This test verifies the ability of the AudioSinkController to correctly set and retrieve
+ * the volume settings. It ensures that the volume can be set and retrieved accurately
+ * in different states of the audio sink.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 029@n
+ * **Test Case ID:** 033@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2135,10 +2144,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, getVolume_pos)
 /**
  * @brief Test the functionality of setting volume in different states of AudioSinkController
  *
- * This test verifies the ability to set the volume to maximum and minimum levels in different states of the AudioSinkController. It ensures that the controller behaves correctly when the volume is set in the READY and STARTED states.
+ * This test verifies the ability to set the volume to maximum and minimum levels in different
+ * states of the AudioSinkController. It ensures that the controller behaves correctly when
+ * the volume is set in the READY and STARTED states.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 030@n
+ * **Test Case ID:** 034@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2211,10 +2222,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
 /**
  * @brief Test the behavior of the AudioSinkController when setting invalid volume levels.
  *
- * This test verifies that the AudioSinkController correctly handles invalid volume levels by returning an error status and ensuring the operation does not succeed. It tests both above maximum and below minimum volume levels.
+ * This test verifies that the AudioSinkController correctly handles invalid volume levels
+ * by returning an error status and ensuring the operation does not succeed.
+ * It tests both above maximum and below minimum volume levels.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 031@n
+ * **Test Case ID:** 035@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2273,10 +2286,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
 /**
  * @brief Test the positive scenario of setting volume ramp in AudioSinkController.
  *
- * This test verifies the functionality of setting a volume ramp in the AudioSinkController. It ensures that the controller can successfully start and set the volume ramp with various parameters without errors.
+ * This test verifies the functionality of setting a volume ramp in the AudioSinkController.
+ * It ensures that the controller can successfully start and set the volume ramp with
+ * various parameters without errors.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 032@n
+ * **Test Case ID:** 036@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n
@@ -2346,10 +2361,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
 /**
  * @brief Test the negative scenarios for setting volume ramp in AudioSinkController.
  *
- * This test evaluates the behavior of the setVolumeRamp function when provided with invalid inputs such as negative target volume, zero duration, and incorrect state. It ensures that the function handles these cases gracefully by returning appropriate error statuses.
+ * This test evaluates the behavior of the setVolumeRamp function when provided with
+ * invalid inputs such as negative target volume, zero duration, and incorrect state.
+ * It ensures that the function handles these cases gracefully by returning appropriate error statuses.
  *
  * **Test Group ID:** Basic: 01@n
- * **Test Case ID:** 033@n
+ * **Test Case ID:** 037@n
  * **Priority:** High@n
  * @n
  * **Pre-Conditions:** None@n

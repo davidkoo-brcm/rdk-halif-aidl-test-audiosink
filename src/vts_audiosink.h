@@ -864,11 +864,14 @@ private:
 class AudioSinkTest
 {
 public:
-    AudioSinkTest(IAudioSink::Id sinkId, sp<IAudioSink> sinkHandle,
-             sp<AudioSinkControllerListener> controlListener,
-             sp<AudioSinkEventListener> eventListener, sp<AudioDecoderControllerListener> decoderControlListener,
-             sp<IAVBuffer> AVBufferManager, IAudioDecoder::Id decoderId,
-             bool secureDecode, bool isTunnel, testConfiguration_t config)
+    AudioSinkTest(IAudioSink::Id sinkId,
+                  sp<IAudioSink> sinkHandle,
+                  sp<AudioSinkControllerListener> controlListener,
+                  sp<AudioSinkEventListener> eventListener,
+                  sp<AudioDecoderControllerListener> decoderControlListener,
+                  sp<IAVBuffer> AVBufferManager,
+                  IAudioDecoder::Id decoderId,
+                  bool secureDecode, bool isTunnel, testConfiguration_t config)
     {
         mSinkId = sinkId;
         mDecoderId = decoderId;
