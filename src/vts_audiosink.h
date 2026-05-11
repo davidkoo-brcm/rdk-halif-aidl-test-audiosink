@@ -74,7 +74,7 @@
 
 #include "vts_audiodecoder.h"
 #include "vts_avbuffer.h"
-//#include "vts_avclock.h"
+#include "vts_avclock.h"
 
 #include "com/rdk/hal/audiosink/IAudioSinkManager.h"
 #include "com/rdk/hal/audiosink/BnAudioSinkControllerListener.h"
@@ -562,15 +562,7 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
     do { \
         ::android::binder::Status status; \
         bool aidl_return; \
-        int32_t _numChannels = ((metadata).metadata.has_value()) ? (metadata).metadata->numChannels : -1; \
-        int32_t _sampleRate  = ((metadata).metadata.has_value()) ? (metadata).metadata->sampleRate : -1; \
-        int32_t _format      = ((metadata).metadata.has_value()) ? static_cast<int32_t>((metadata).metadata->format) : -1; \
-        UT_LOG_DEBUG("[SinkID: %d] Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d])", \
-                    sindkId, nsPresentationTime, bufferHandle, static_cast<int>((metadata).sourceCodec), (metadata).isDolbyAtmos, _numChannels, _sampleRate, _format, static_cast<int>((metadata).source)); \
         status = (audioSinkcontroller)->queueAudioFrame(nsPresentationTime, bufferHandle, metadata, &aidl_return); \
-        UT_LOG_DEBUG("[SinkID: %d] Result queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[sourceCodec:%d, isDolbyAtmos:%d, numChannels:%d, sampleRate:%d, format:%d, source:%d]), status:[isOK:%s, exception:%s]", \
-                    sindkId, nsPresentationTime, bufferHandle, static_cast<int>((metadata).sourceCodec), (metadata).isDolbyAtmos, _numChannels, _sampleRate, _format, static_cast<int>((metadata).source), \
-                    UT_Control_GetMapString(bool_mapTable, status.isOk()), UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(aidl_return); \
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -871,6 +863,7 @@ public:
                   sp<AudioDecoderControllerListener> decoderControlListener,
                   sp<IAVBuffer> AVBufferManager,
                   IAudioDecoder::Id decoderId,
+                  IAVClock::Id clockId,
                   bool secureDecode, bool isTunnel, testConfiguration_t config)
     {
         mSinkId = sinkId;
@@ -883,6 +876,8 @@ public:
         mAVBufferManager = AVBufferManager;
         mdecoderControlListener = decoderControlListener;
         mIsTunnel = isTunnel;
+        mClockId = clockId;
+        mClockCtrlListener = new AVClockControllerListener();
     }
 
     void run();
@@ -890,6 +885,7 @@ public:
 private:
     IAudioSink::Id mSinkId;
     IAudioDecoder::Id mDecoderId;
+    IAVClock::Id mClockId;
     sp<IAudioSink> mSinkHandle;
     sp<AudioSinkControllerListener> mControlListener;
     sp<AudioSinkEventListener> mEventListener;
@@ -898,9 +894,19 @@ private:
     bool mSecureBuffer;
     bool mIsTunnel;
     testConfiguration_t mTestConfiguration;
+    sp<IAudioSinkController> mAudioSinkController;
+    sp<IAVClock> mClock;
+    sp<IAVClockController> mClockController;
+    sp<IAVClockControllerListener> mClockCtrlListener;
 
     void audioSinkNonTunnelTest();
     void audioSinkTunnelTest();
+
+    void setupClock();
+    void tearDownClock();
+    void setupAudioSink();
+    void tearDownAudioSink();
+    void validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume);
 };
 
 #endif //__VTS_AUDIOSINK_H__

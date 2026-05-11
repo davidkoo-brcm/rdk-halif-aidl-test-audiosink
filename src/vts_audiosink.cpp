@@ -97,8 +97,6 @@ using namespace com::rdk::hal::audiosink;
 
 #define MAX_WAIT_TIME 200
 
-/* Controller listener Class Functions */
-
 /**
  * Override Call-back funtion for decoder state changes
  *
@@ -633,6 +631,191 @@ bool AudioSinkEventListener::checkStateTransistion(::com::rdk::hal::State expOld
         }
     }
     return foundClosedToOpening;
+}
+
+void AudioSinkTest::run()
+{
+    if(mIsTunnel)
+    {
+        audioSinkTunnelTest();
+    }
+    else
+    {
+        audioSinkNonTunnelTest();
+    }
+}
+
+void AudioSinkTest::setupClock()
+{
+    // Open the clock
+    AVCLOCK_MANAGER_GETAVCLOCK_SUCCESS(mClockId, mClock);
+
+    // Open the clock controller
+    AVCLOCK_OPEN_SUCCESS(mClock, mClockCtrlListener, mClockController,true);
+
+    // Set the clock mode to Audio Master
+    AVCLOCK_SET_CLOCK_MODE_SUCCESS(mClock, mClockController, ClockMode::AUDIO_MASTER, true);
+
+    // Start the clock
+    AVCLOCK_START_SUCCESS(mClock, mClockController, true);
+}
+
+void AudioSinkTest::tearDownClock()
+{
+    // Stop the clock
+    AVCLOCK_STOP_SUCCESS(mClock, mClockController, true);
+
+    // Close the clock controller
+    AVCLOCK_CLOSE_SUCCESS(mClock, mClockController, true);
+}
+
+void AudioSinkTest::setupAudioSink()
+{
+    /* Open the Decoder */
+    AUDIOSINK_OPEN_SUCCESS(mSinkHandle, ContentType::UNKNOWN, mControlListener, mAudioSinkController, true);
+
+    // Attach the clock
+    AUDIOSINK_ATTACHCLOCK_SUCCESS(mAudioSinkController, mSinkId.value);
+
+    // Set the decoder to the audio sink
+    AUDIOSINK_SETAUDIODECODER_SUCCESS(mAudioSinkController, mDecoderId.value);
+
+    /* Start the decoder */
+    AUDIOSINK_START_SUCCESS(mSinkHandle, mAudioSinkController, true);
+
+    setupClock();
+}
+
+void AudioSinkTest::tearDownAudioSink()
+{
+    // Detach the clock
+    AUDIOSINK_DETACHCLOCK_SUCCESS(mAudioSinkController);
+
+    /* Stop the Audio sink */
+    AUDIOSINK_STOP_SUCCESS(mSinkHandle, mAudioSinkController, true);
+
+    /* Close the Audio sink */
+    AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, mAudioSinkController, true);
+
+    tearDownClock();
+}
+
+void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
+{
+    /* Validate the callback */
+    {
+        /* Control listener */
+        int64_t firstFrameRenderedPTS = -1;
+        UT_ASSERT_TRUE(mControlListener->getNextFirstFrameRenderedPTS(firstFrameRenderedPTS));
+        UT_ASSERT_EQUAL(expectedFirstFramePTS, firstFrameRenderedPTS);
+
+        if (expectUnderflow)
+        {
+            int64_t resumedPTS = -1;
+            UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) > 0);
+            UT_ASSERT_TRUE(mControlListener->getNextAudioResumedPTS(resumedPTS));
+            UT_ASSERT_TRUE(resumedPTS >= 0);
+        }
+
+        /* Event listener */
+        firstFrameRenderedPTS = -1;
+        UT_ASSERT_TRUE(mEventListener->getNextFirstFrameRenderedPTS(firstFrameRenderedPTS));
+        UT_ASSERT_EQUAL(expectedFirstFramePTS, firstFrameRenderedPTS);
+
+        if (expectUnderflow)
+        {
+            int64_t resumedPTS = -1;
+            UT_ASSERT_TRUE(mEventListener->getUnderFlowCount(true) > 0);
+            UT_ASSERT_TRUE(mEventListener->getNextAudioResumedPTS(resumedPTS));
+            UT_ASSERT_TRUE(resumedPTS >= 0);
+        }
+
+        if(mTestConfiguration.sinkEosPts >= 0)
+        {
+            /* Control listener */
+            int64_t endOfStreamPTS = -1;
+            UT_ASSERT_TRUE(mControlListener->getNextEndOfStreamPTS(endOfStreamPTS));
+            UT_ASSERT_TRUE(endOfStreamPTS >= 0);
+
+            /* Event listener */
+            endOfStreamPTS = -1;
+            UT_ASSERT_TRUE(mEventListener->getNextEndOfStreamPTS(endOfStreamPTS));
+            UT_ASSERT_TRUE(endOfStreamPTS >= 0);
+        }
+
+        if(mTestConfiguration.sinkFlushPts >= 0)
+        {
+            UT_ASSERT_GREATER_EQUAL(mControlListener->getFlushCompleteCount(true), 1);
+            UT_ASSERT_GREATER_EQUAL(mEventListener->getFlushCompleteCount(true), 1);
+        }
+        else
+        {
+            UT_ASSERT_LESS(mControlListener->getFlushCompleteCount(true), 1);
+            UT_ASSERT_LESS(mEventListener->getFlushCompleteCount(true), 1);
+        }
+    }
+}
+void AudioSinkTest::audioSinkNonTunnelTest()
+{
+    try
+    {
+        Pool audioPool;
+        PropertyValue avSourcePropertyValue;
+        sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
+        audiodecoder::FrameMetadata metadata;
+        DecodedAudioFrame_t decodedFrame;
+        int32_t frameCount = 0;
+        int64_t firstFramePTS = -1;
+        avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
+
+        UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
+
+        setupAudioSink();
+
+        while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+        {
+            frameCount++;
+
+            if (frameCount == 1)
+            {
+                firstFramePTS = decodedFrame.framePTS;
+                if(!decodedFrame.isMetaAvailable)
+                {
+                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                    UT_ASSERT_TRUE(false);
+                    break;
+                }
+            }
+
+            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, decodedFrame.metadata);
+
+            std::optional<PropertyValue> latencyValue;
+            AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
+
+            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
+        }
+
+        /* Validate the callback */
+        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+
+        /* Stop the Audio sink */
+        tearDownAudioSink();
+    }
+    catch (const std::exception& ex)
+    {
+        UT_LOG_ERROR("[SinkID: %d] Exception in audioSinkNonTunnelTest: %s", mSinkId.value, ex.what());
+        UT_ASSERT_TRUE(false);
+    }
+    catch (...)
+    {
+        UT_LOG_ERROR("[SinkID: %d] Unknown exception in audioSinkNonTunnelTest", mSinkId.value);
+        UT_ASSERT_TRUE(false);
+    }
+}
+
+void AudioSinkTest::audioSinkTunnelTest()
+{
+        //TODO: implement the tunnel test
 }
 
 /** @} */ // End of AUDIO_SINK_HALTEST_CLASS
