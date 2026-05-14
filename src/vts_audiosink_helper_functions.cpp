@@ -204,6 +204,14 @@ void vts_audiosink_helper_validateSinkCapabilities(int32_t sinkId, const audiosi
     /* checking supportedContentTypes from getSinkCapabilities() and hfp sinkcapabilites */
     std::unordered_set<int32_t> supportedContentTypesSet;
 
+    UT_ASSERT_FALSE(capabilities.supportedContentTypes.empty());
+    UT_ASSERT_EQUAL(capabilities.supportedContentTypes.size(), it->supportedContentTypes.size());
+
+    if(capabilities.supportedContentTypes.size() != it->supportedContentTypes.size())
+    {
+        return;
+    }
+
     for (const auto& contentType : capabilities.supportedContentTypes)
     {
         supportedContentTypesSet.insert(static_cast<int32_t>(contentType));

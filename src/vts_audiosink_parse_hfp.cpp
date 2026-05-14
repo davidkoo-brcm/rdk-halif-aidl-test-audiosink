@@ -68,7 +68,7 @@
 using namespace std;
 
 #define AUDIODECODERMGR_AVAILABLEDECODERS "audiodecoder.availableDecoders"
-#define AVCLOCK_AVAILABLECLOCKS "audiodecoder.availableClocks"
+#define AVCLOCK_AVAILABLECLOCKS "avclock.availableClocks"
 
 audioSinkHFP gAudiosinksHFP;
 
@@ -81,7 +81,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
     int32_t number_of_audiosinks, available_sinks_count, available_decoders, available_clocks;
 
-    char mixer_pcmformat_buffer[UT_KVP_MAX_ELEMENT_SIZE];
+    char str_val[UT_KVP_MAX_ELEMENT_SIZE];
 
     number_of_audiosinks = UT_KVP_PROFILE_GET_LIST_COUNT(audiosinkpath.c_str());
     if(number_of_audiosinks <= 0)
@@ -103,7 +103,8 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         for(int32_t j = 0; j < contentTypeCount; ++j)
         {
             string contentTypePath = supportedContentTypesPath + "." + std::to_string(j);
-            int32_t contentTypeValue = UT_KVP_PROFILE_GET_UINT32(contentTypePath.c_str());
+            UT_KVP_PROFILE_GET_STRING(contentTypePath.c_str(), str_val);
+            int32_t contentTypeValue = UT_Control_GetMapValue(contentType_mapTable, str_val, (int32_t) ContentType::UNKNOWN);
             sinkCaps.supportedContentTypes.push_back(static_cast<audiosink::ContentType>(contentTypeValue));
         }
 
@@ -149,9 +150,9 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     gAudiosinksHFP.platformCaps.supportsLowLatency = UT_KVP_PROFILE_GET_BOOL(lowlatency_path.c_str());
     gAudiosinksHFP.platformCaps.systemMixerSampleRateHz = UT_KVP_PROFILE_GET_UINT32(samplerate_path.c_str());
 
-    UT_KVP_PROFILE_GET_STRING(mixer_pcmformat_path.c_str(), mixer_pcmformat_buffer);
+    UT_KVP_PROFILE_GET_STRING(mixer_pcmformat_path.c_str(), str_val);
 
-    gAudiosinksHFP.platformCaps.systemMixerPCMFormat = vts_audioDecoder_helper_StringToPCMFormat(std::string(mixer_pcmformat_buffer));
+    gAudiosinksHFP.platformCaps.systemMixerPCMFormat = vts_audioDecoder_helper_StringToPCMFormat(std::string(str_val));
     gAudiosinksHFP.platformCaps.supportsPlanarFormat = UT_KVP_PROFILE_GET_BOOL(supportsPlanarFormat_path.c_str());
     gAudiosinksHFP.platformCaps.maxNumChannels = UT_KVP_PROFILE_GET_UINT32(maxNumChannels_path.c_str());
     gAudiosinksHFP.platformCaps.supportsDolbyAtmos = UT_KVP_PROFILE_GET_BOOL(supportsDolbyAtmos_path.c_str());

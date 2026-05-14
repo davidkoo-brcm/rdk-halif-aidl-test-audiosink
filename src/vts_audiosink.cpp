@@ -755,6 +755,33 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
         }
     }
 }
+
+void AudioSinkTest::copyMetaData(const audiodecoder::FrameMetadata& source, audiodecoder::FrameMetadata& destination)
+{
+    destination.type = source.type;
+    destination.sourceCodec = source.sourceCodec;
+    destination.isDolbyAtmos = source.isDolbyAtmos;
+    destination.trimStartNs = source.trimStartNs;
+    destination.trimEndNs = source.trimEndNs;
+    destination.lowLatency = source.lowLatency;
+    destination.endOfStream = source.endOfStream;
+    destination.discontinuity = source.discontinuity;
+    destination.source = source.source;
+    // Manually copy optional PCMMetadata
+    if (source.metadata.has_value())
+    {
+        audiodecoder::PCMMetadata pcm;
+        pcm.numChannels = source.metadata->numChannels;
+        pcm.channelTypes = source.metadata->channelTypes;
+        pcm.sampleRate = source.metadata->sampleRate;
+        pcm.format = source.metadata->format;
+        pcm.planarFormat = source.metadata->planarFormat;
+        // do NOT copy pcm.extension
+        destination.metadata.emplace(std::move(pcm));
+    }
+    destination.SoCPrivate = source.SoCPrivate;
+}
+
 void AudioSinkTest::audioSinkNonTunnelTest()
 {
     try
@@ -774,6 +801,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
         while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
         {
+            bool result = false;
             frameCount++;
 
             if (frameCount == 1)
@@ -786,12 +814,19 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                     break;
                 }
             }
+            if(decodedFrame.isMetaAvailable)
+            {
+                copyMetaData(*decodedFrame.frameMetadata, metadata);
+            }
 
-            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, decodedFrame.metadata);
-
+            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata, result);
+            if (!result)
+            {
+                UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);
+                AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);;
+            }
             std::optional<PropertyValue> latencyValue;
             AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
-
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
         }
 

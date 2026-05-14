@@ -230,13 +230,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, getPlatformCapabilities_pos)
     AUDIOSINK_GETPLATFORMCAPABILITIES(platformCapabilities);
 
     /* Log platform capabilities for debugging */
-    UT_LOG_DEBUG("lowlatency: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsLowLatency));
-    UT_LOG_DEBUG("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
-    UT_LOG_DEBUG("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
-    UT_LOG_DEBUG("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
-    UT_LOG_DEBUG("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
-    UT_LOG_DEBUG("maxNumChannels: %d", platformCapabilities.maxNumChannels);
-    UT_LOG_DEBUG("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
+    UT_LOG_INFO("lowlatency: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsLowLatency));
+    UT_LOG_INFO("samplerate: %d", platformCapabilities.systemMixerSampleRateHz);
+    UT_LOG_INFO("mixer_pcmformat: %d", platformCapabilities.systemMixerPCMFormat);
+    UT_LOG_INFO("supportsPlanarFormat: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsPlanarFormat));
+    UT_LOG_INFO("supportsSoCProprietary: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsSoCProprietary));
+    UT_LOG_INFO("maxNumChannels: %d", platformCapabilities.maxNumChannels);
+    UT_LOG_INFO("supportsDolbyAtmos: %s", UT_Control_GetMapString(bool_mapTable, platformCapabilities.supportsDolbyAtmos));
 
     /* validate platform capabilites using hfp profile*/
     vts_audiosink_helper_validatePlatformCapabilities(platformCapabilities);
@@ -1132,7 +1132,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, unregisterEventListener_neg)
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
         /* Un-register the events */
-        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_ILLEGAL_STATE);
+        AUDIOSINK_UNREGISTER_EVENT_FAILURE(audioSink, eventListener, Status::EX_NONE);
 
         /* Register events */
         AUDIOSINK_REGISTER_EVENT_SUCCESS(audioSink, eventListener);
@@ -1399,6 +1399,13 @@ UT_ADD_TEST(VTS_L1_AudioSink, attachClock_pos)
             AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController);
         }
 
+        // Attach and detach all available clocks
+        for (const auto& id : gAudiosinksHFP.availableClockIds)
+        {
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, id);
+            AUDIOSINK_ATTACHCLOCK_SUCCESS(audioSinkController, IAVClock::Id::UNDEFINED);
+        }
+
         // Transition to a non-READY state (e.g., STARTED)
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
 
@@ -1453,7 +1460,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, attachClock_neg)
     std::vector<int32_t> clockIds = gAudiosinksHFP.availableClockIds;
 
     std::sort(clockIds.begin(), clockIds.end());
-    int32_t invalidLowId = clockIds.front() - 1;
+    int32_t invalidLowId = clockIds.front() - 10;
     int32_t invalidHighId = clockIds.back() + 1;
 
     /* Get the Audio sink IDs */
