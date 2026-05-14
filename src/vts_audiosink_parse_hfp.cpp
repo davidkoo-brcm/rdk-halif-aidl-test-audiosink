@@ -90,9 +90,9 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
         return UT_STATUS_FAILURE;
     }
 
-    sinkCapabilitiesHFP sinkCaps;
     for(int32_t i = 0; i < number_of_audiosinks; ++i)
     {
+        sinkCapabilitiesHFP sinkCaps;
         string audiosinkidpath = audiosinkpath + "." + std::to_string(i) + ".id";
         string supportedContentTypesPath = audiosinkpath + "." + std::to_string(i) + ".supportedContentTypes";
         string supportsSecurePath = audiosinkpath + "." + std::to_string(i) + ".supportsSecure";

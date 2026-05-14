@@ -675,7 +675,7 @@ void AudioSinkTest::setupAudioSink()
     AUDIOSINK_OPEN_SUCCESS(mSinkHandle, ContentType::UNKNOWN, mControlListener, mAudioSinkController, true);
 
     // Attach the clock
-    AUDIOSINK_ATTACHCLOCK_SUCCESS(mAudioSinkController, mSinkId.value);
+    AUDIOSINK_ATTACHCLOCK_SUCCESS(mAudioSinkController, mClockId.value);
 
     // Set the decoder to the audio sink
     AUDIOSINK_SETAUDIODECODER_SUCCESS(mAudioSinkController, mDecoderId.value);

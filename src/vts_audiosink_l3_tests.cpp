@@ -216,13 +216,9 @@ public:
 
     bool isSinkUsable(const IAudioSink::Id& sinkId, bool secureDecode)
     {
-        std::unordered_set<int32_t> sinkId_from_profile;
-        for (const auto& obj : gAudiosinksHFP.sinkCaps)
-        {
-            sinkId_from_profile.insert(obj.id);
-        }
-
-        if(sinkId_from_profile.find(sinkId.value) == sinkId_from_profile.end())
+        if (std::find(gAudiosinksHFP.availableIds.begin(),
+                 gAudiosinksHFP.availableIds.end(),
+                 sinkId.value) == gAudiosinksHFP.availableIds.end())
         {
             return false;
         }

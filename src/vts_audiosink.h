@@ -371,7 +371,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
             eventListener.get(), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_FALSE(status.isOk()); \
         if (exception == Status::EX_NONE) {\
             UT_ASSERT_TRUE(status.isOk()); \
             UT_ASSERT_FALSE(_aidl_return); \
@@ -505,7 +504,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         ::android::binder::Status status; \
         IAVClock::Id _clockId; \
         _clockId.value = static_cast<int32_t>(id); \
-        bool aidl_return; \
         UT_LOG_INFO("Calling attachClock(IN:clockId:[%d])", _clockId.value); \
         status = (audioSinkController)->attachClock(_clockId); \
         UT_LOG_INFO("Result attachClock(IN:clockId:[%d]), status:[isOK:%s, exception:%s]", \
@@ -521,7 +519,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         ::android::binder::Status status; \
         IAVClock::Id _clockId; \
         _clockId.value = static_cast<int32_t>(id); \
-        bool aidl_return; \
         UT_LOG_INFO("Calling attachClock(IN:clockId:[%d])", _clockId.value); \
         status = (audioSinkController)->attachClock(_clockId); \
         UT_LOG_INFO("Result attachClock(IN:clockId:[%d]), status:[isOK:%s, exception:%s]", \
@@ -535,7 +532,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
 #define AUDIOSINK_DETACHCLOCK_SUCCESS(audioSinkController) \
     do { \
         ::android::binder::Status status; \
-        bool aidl_return; \
         UT_LOG_INFO("Calling detachClock()"); \
         status = (audioSinkController)->detachClock(); \
         UT_LOG_INFO("Result detachClock(), status:[isOK:%s, exception:%s]", \
@@ -607,7 +603,7 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         } \
     } while (0)
 
-#define AUDIOSINK_FLUSH_FAILURE(audioDecoderController, exception) \
+#define AUDIOSINK_FLUSH_FAILURE(audioSinkController, exception) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling flush"); \
