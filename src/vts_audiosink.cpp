@@ -788,7 +788,6 @@ void AudioSinkTest::audioSinkNonTunnelTest()
     {
         Pool audioPool;
         PropertyValue avSourcePropertyValue;
-        sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
         audiodecoder::FrameMetadata metadata;
         DecodedAudioFrame_t decodedFrame;
         int32_t frameCount = 0;
@@ -855,7 +854,6 @@ void AudioSinkTest::audioSinkTunnelTest()
     {
         Pool audioPool;
         PropertyValue avSourcePropertyValue;
-        sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
         audiodecoder::FrameMetadata metadata;
         DecodedAudioFrame_t decodedFrame;
         int32_t frameCount = 0;
