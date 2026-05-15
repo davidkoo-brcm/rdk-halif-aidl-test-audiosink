@@ -848,9 +848,65 @@ void AudioSinkTest::audioSinkNonTunnelTest()
     }
 }
 
+
 void AudioSinkTest::audioSinkTunnelTest()
 {
-        //TODO: implement the tunnel test
+    try
+    {
+        Pool audioPool;
+        PropertyValue avSourcePropertyValue;
+        sp<IAVBufferSpaceListener> bufferListener = new AVBufferSpaceListener();
+        audiodecoder::FrameMetadata metadata;
+        DecodedAudioFrame_t decodedFrame;
+        int32_t frameCount = 0;
+        int64_t firstFramePTS = -1;
+        avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
+
+        UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
+
+        setupAudioSink();
+
+        while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+        {
+            bool result = false;
+            frameCount++;
+
+            if (frameCount == 1)
+            {
+                firstFramePTS = decodedFrame.framePTS;
+                if(!decodedFrame.isMetaAvailable)
+                {
+                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                    UT_ASSERT_TRUE(false);
+                    break;
+                }
+            }
+            if(decodedFrame.isMetaAvailable)
+            {
+                copyMetaData(*decodedFrame.frameMetadata, metadata);
+            }
+
+            std::optional<PropertyValue> latencyValue;
+            AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
+            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
+        }
+
+        /* Validate the callback */
+        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+
+        /* Stop the Audio sink */
+        tearDownAudioSink();
+    }
+    catch (const std::exception& ex)
+    {
+        UT_LOG_ERROR("[SinkID: %d] Exception in audioSinkTunnelTest: %s", mSinkId.value, ex.what());
+        UT_ASSERT_TRUE(false);
+    }
+    catch (...)
+    {
+        UT_LOG_ERROR("[SinkID: %d] Unknown exception in audioSinkTunnelTest", mSinkId.value);
+        UT_ASSERT_TRUE(false);
+    }
 }
 
 /** @} */ // End of AUDIO_SINK_HALTEST_CLASS

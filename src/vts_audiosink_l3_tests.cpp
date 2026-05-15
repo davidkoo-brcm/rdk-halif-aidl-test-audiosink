@@ -402,21 +402,6 @@ public:
                 return;
             }
 
-            // Launch decoder threads
-            for (int i = 0; i < numInstances; ++i)
-            {
-                const auto& [_decoderId, decoderHandle, controlListener, eventListener, capabilities] = usableDecoders[i];
-                auto decoderTest = std::make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
-                                                                     controlListener, eventListener,
-                                                                     mAVBufferManager, mAVbufferHelper,
-                                                                     secureDecode, testConfig, isSinkAttached);
-                decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
-                decoderTests.push_back(std::move(decoderTest));
-            }
-
-            // sleep to allow decoders to start
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
             // Launch sink threads, pairing with decoder control listeners
             for (int i = 0; i < numInstances; ++i)
             {
@@ -434,6 +419,18 @@ public:
                                                                 testConfig);
                 sinkThreads.emplace_back(&AudioSinkTest::run, sinkTest.get());
                 sinkTests.push_back(std::move(sinkTest));
+            }
+
+            // Launch decoder threads
+            for (int i = 0; i < numInstances; ++i)
+            {
+                const auto& [_decoderId, decoderHandle, controlListener, eventListener, capabilities] = usableDecoders[i];
+                auto decoderTest = std::make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
+                                                                     controlListener, eventListener,
+                                                                     mAVBufferManager, mAVbufferHelper,
+                                                                     secureDecode, testConfig, isSinkAttached);
+                decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
+                decoderTests.push_back(std::move(decoderTest));
             }
 
             // Join all threads
