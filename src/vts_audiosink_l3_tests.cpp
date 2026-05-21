@@ -325,9 +325,9 @@ public:
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
                 // Check if the decoder and sink freed all the buffer pools
-                UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
-                UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
-                UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
+                UT_ASSERT_EQUAL(beforeHeapMetrics.secure, afterHeapMetrics.secure);
+                UT_ASSERT_EQUAL(beforeHeapMetrics.bytesUsed, afterHeapMetrics.bytesUsed);
+                UT_ASSERT_EQUAL(beforeHeapMetrics.bytesTotal, afterHeapMetrics.bytesTotal);
             }
             UT_ASSERT_TRUE(isSinkAvailable) << "No usable sink found for the given test configuration.";
         }
@@ -443,9 +443,9 @@ public:
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
             // Check if the decoder freed all the buffer pools
-            UT_ASSERT_TRUE(beforeHeapMetrics.secure == afterHeapMetrics.secure);
-            UT_ASSERT_TRUE(beforeHeapMetrics.bytesUsed == afterHeapMetrics.bytesUsed);
-            UT_ASSERT_TRUE(beforeHeapMetrics.bytesTotal == afterHeapMetrics.bytesTotal);
+            UT_ASSERT_EQUAL(beforeHeapMetrics.secure, afterHeapMetrics.secure);
+            UT_ASSERT_EQUAL(beforeHeapMetrics.bytesUsed, afterHeapMetrics.bytesUsed);
+            UT_ASSERT_EQUAL(beforeHeapMetrics.bytesTotal, afterHeapMetrics.bytesTotal);
         }
         catch (const std::exception& ex)
         {

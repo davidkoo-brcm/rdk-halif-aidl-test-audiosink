@@ -134,18 +134,6 @@ Status AudioSinkControllerListener::onFirstFrameRendered(int64_t nsPresentationT
 }
 
 /**
- * Override Call-back function for frame buffer available event
- *
- * @param None
- * @return Status
- */
-Status AudioSinkControllerListener::onFrameBufferAvailable()
-{
-    // Minimal stub implementation
-    return Status::ok();
-}
-
-/**
  * Get the next first frame rendered PTS from the queue
  *
  * @param firstFramePTS Reference to store the first frame PTS
@@ -175,6 +163,32 @@ bool AudioSinkControllerListener::getNextFirstFrameRenderedPTS(int64_t &firstFra
     return true;
 }
 
+/**
+ * Override Call-back function for frame buffer available event
+ *
+ * @param None
+ * @return Status
+ */
+Status AudioSinkControllerListener::onFrameBufferAvailable()
+{
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Frame Buffer Available received\n", mSinkID);
+    {
+        std::lock_guard<std::mutex> lock(mFrameBufferAvailableMutex);
+        mFrameBufferAvailableCount++;
+    }
+    return Status::ok();
+}
+
+int32_t AudioSinkControllerListener::getFrameBufferAvailableCount(bool reset)
+{
+    std::lock_guard<std::mutex> lock(mFrameBufferAvailableMutex);
+    int32_t count = mFrameBufferAvailableCount;
+    if (reset)
+    {
+        mFrameBufferAvailableCount = 0; // Reset the count if requested
+    }
+    return count;
+}
 
 /**
  * Override Call-back function for end of stream event
@@ -226,7 +240,7 @@ bool AudioSinkControllerListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
  */
 Status AudioSinkControllerListener::onAudioUnderflow()
 {
-    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Underflow Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Underflow Event received\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mUnderFlowMutex);
         mUnderFlowCount++;
@@ -300,7 +314,7 @@ bool AudioSinkControllerListener::getNextAudioResumedPTS(int64_t &audioResumedPT
  */
 Status AudioSinkControllerListener::onFlushComplete()
 {
-    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Flush Complete Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] ControllerListener Flush Complete Event received\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mFlushMutex);
         mFlushCompleteCount++;
@@ -489,7 +503,7 @@ bool AudioSinkEventListener::getNextEndOfStreamPTS(int64_t &endOfStreamPTS)
  */
 Status AudioSinkEventListener::onAudioUnderflow()
 {
-    UT_LOG_INFO("[Audio SinkID: %d] EventListener Underflow Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener Underflow Event received\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mUnderFlowMutex);
         mUnderFlowCount++;
@@ -563,7 +577,7 @@ bool AudioSinkEventListener::getNextAudioResumedPTS(int64_t &audioResumedPTS)
  */
 Status AudioSinkEventListener::onFlushComplete()
 {
-    UT_LOG_INFO("[Audio SinkID: %d] EventListener Flush Complete Event received: %lld\n", mSinkID);
+    UT_LOG_INFO("[Audio SinkID: %d] EventListener Flush Complete Event received\n", mSinkID);
     {
         std::lock_guard<std::mutex> lock(mFlushMutex);
         mFlushCompleteCount++;
@@ -745,15 +759,21 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
 
         if(mTestConfiguration.sinkFlushPts >= 0)
         {
-            UT_ASSERT_GREATER_EQUAL(mControlListener->getFlushCompleteCount(true), 1);
-            UT_ASSERT_GREATER_EQUAL(mEventListener->getFlushCompleteCount(true), 1);
+            UT_ASSERT_EQUAL(mControlListener->getFlushCompleteCount(true), 1);
+            UT_ASSERT_EQUAL(mEventListener->getFlushCompleteCount(true), 1);
         }
         else
         {
-            UT_ASSERT_LESS(mControlListener->getFlushCompleteCount(true), 1);
-            UT_ASSERT_LESS(mEventListener->getFlushCompleteCount(true), 1);
+            UT_ASSERT_EQUAL(mControlListener->getFlushCompleteCount(true), 0);
+            UT_ASSERT_EQUAL(mEventListener->getFlushCompleteCount(true), 0);
         }
     }
+}
+
+void AudioSinkTest::validateMetric()
+{
+    //TODO: Currently no metrics are defined in the interface. Once metrics are added,
+    // implement the validation here based on the test configuration.
 }
 
 void AudioSinkTest::copyMetaData(const audiodecoder::FrameMetadata& source, audiodecoder::FrameMetadata& destination)
@@ -765,6 +785,7 @@ void AudioSinkTest::copyMetaData(const audiodecoder::FrameMetadata& source, audi
     destination.trimEndNs = source.trimEndNs;
     destination.lowLatency = source.lowLatency;
     destination.endOfStream = source.endOfStream;
+
     destination.discontinuity = source.discontinuity;
     destination.source = source.source;
     // Manually copy optional PCMMetadata
@@ -792,6 +813,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
         DecodedAudioFrame_t decodedFrame;
         int32_t frameCount = 0;
         int64_t firstFramePTS = -1;
+        bool flushDone = false;
         avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
@@ -813,6 +835,13 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                     break;
                 }
             }
+
+            if(mTestConfiguration.sinkFlushPts > 0 && decodedFrame.framePTS >= mTestConfiguration.sinkFlushPts && !flushDone)
+            {
+                AUDIOSINK_FLUSH_SUCCESS(mSinkHandle, mAudioSinkController, true);
+                flushDone = true;
+            }
+
             if(decodedFrame.isMetaAvailable)
             {
                 copyMetaData(*decodedFrame.frameMetadata, metadata);
@@ -824,6 +853,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                 UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);
                 AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);;
             }
+
             std::optional<PropertyValue> latencyValue;
             AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
@@ -831,6 +861,9 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
         /* Validate the callback */
         validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+
+        /* Validate the metrics */
+        validateMetric();
 
         /* Stop the Audio sink */
         tearDownAudioSink();
@@ -846,7 +879,6 @@ void AudioSinkTest::audioSinkNonTunnelTest()
         UT_ASSERT_TRUE(false);
     }
 }
-
 
 void AudioSinkTest::audioSinkTunnelTest()
 {
@@ -891,6 +923,9 @@ void AudioSinkTest::audioSinkTunnelTest()
 
         /* Validate the callback */
         validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+
+        /* Validate the metrics */
+        validateMetric();
 
         /* Stop the Audio sink */
         tearDownAudioSink();

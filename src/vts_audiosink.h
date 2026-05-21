@@ -755,6 +755,7 @@ public:
        : BnAudioSinkControllerListener(),
          mUnderFlowCount(0),
          mFlushCompleteCount(0),
+         mFrameBufferAvailableCount(0),
          mSinkID(sinkID)
     {
     }
@@ -776,6 +777,7 @@ public:
     bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
     int32_t getUnderFlowCount(bool reset);
     int32_t getFlushCompleteCount(bool reset);
+    int32_t getFrameBufferAvailableCount(bool reset);
 private:
     mutable mutex mStateMutex;
     mutable mutex mFFMutex;
@@ -783,22 +785,20 @@ private:
     mutable mutex mUnderFlowMutex;
     mutable mutex mResumeMutex;
     mutable mutex mFlushMutex;
+    mutable mutex mFrameBufferAvailableMutex;
     condition_variable mCV;
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
-    condition_variable mUnderFlowAvailable;
     condition_variable mResumeAvailable;
-    condition_variable mFlushCompleteAvailable;
-
     ::com::rdk::hal::State mCurrentState;
     vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
     queue<int64_t> mEndofstream;
     queue<int64_t> mAudioresumed;
-
     int32_t mUnderFlowCount;
     int32_t mFlushCompleteCount;
     int32_t mSinkID;
+    int32_t mFrameBufferAvailableCount;
 };
 
 class AudioSinkEventListener: public BnAudioSinkEventListener
@@ -819,7 +819,6 @@ public:
     Status onAudioUnderflow() override;
     Status onAudioResumed(int64_t nsPresentationTime) override;
     Status onFlushComplete() override;
-
     bool waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();
     bool checkStateTransistion(::com::rdk::hal::State expOldState, ::com::rdk::hal::State expNewState);
@@ -838,10 +837,7 @@ private:
     condition_variable mCV;
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
-    condition_variable mUnderFlowAvailable;
     condition_variable mResumeAvailable;
-    condition_variable mFlushCompleteAvailable;
-
     ::com::rdk::hal::State mCurrentState;
     vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
@@ -907,6 +903,7 @@ private:
     void tearDownAudioSink();
     void validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume);
     void copyMetaData(const audiodecoder::FrameMetadata& source, audiodecoder::FrameMetadata& destination);
+    void validateMetric();
 };
 
 #endif //__VTS_AUDIOSINK_H__
