@@ -297,30 +297,33 @@ public:
             {
                 const auto& sinkTuple = mAudioSinkList[i];
                 const IAudioSink::Id& _sinkId = std::get<0>(sinkTuple);
+                HeapMetrics beforeHeapMetrics, afterHeapMetrics;
+                bool isSinkAttached = true;
+
                 if (!isSinkUsable(_sinkId, secureDecode))
                 {
                     UT_LOG_INFO("[SinkID: %d] is not usable for this test configuration, skipping.", _sinkId.value);
                     continue;
                 }
-                isSinkAvailable = true;
-                bool isSinkAttached = true;
-                HeapMetrics beforeHeapMetrics, afterHeapMetrics;
 
+                isSinkAvailable = true;
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
-                AudioDecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
-                                            decoderEventListener, mAVBufferManager, mAVbufferHelper,
-                                            secureDecode, testConfig, isSinkAttached);
+                {
+                    AudioDecoderTest decodeTest(decoderId, decoderHandle, decoderControlListener,
+                                                decoderEventListener, mAVBufferManager, mAVbufferHelper,
+                                                secureDecode, testConfig, isSinkAttached);
 
-                std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
+                    std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
 
-                AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
-                                            decoderControlListener, mAVBufferManager, decoderId, clockId,
-                                            secureDecode, isTunnel, testConfig);
-                audiosinkTest.run();
+                    AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
+                                                decoderControlListener, mAVBufferManager, decoderId, clockId,
+                                                secureDecode, isTunnel, testConfig);
+                    audiosinkTest.run();
 
-                if (decodeThread.joinable())
-                    decodeThread.join();
+                    if (decodeThread.joinable())
+                        decodeThread.join();
+                }
 
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
