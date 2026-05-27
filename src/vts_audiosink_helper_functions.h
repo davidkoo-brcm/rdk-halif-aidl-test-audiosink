@@ -103,7 +103,8 @@ extern const ut_control_keyStringMapping_t volumeRamp_mapTable[];
 
 bool vts_audiosink_helper_validatePropertyValue(int , const std::optional<PropertyValue>& , const audiosink::Property );
 bool vts_audiosink_helper_areElementsUnique(const std::vector<int>& );
-void vts_audiosink_helper_validateCapabilities(const PlatformCapabilities& );
+void vts_audiosink_helper_validatePlatformCapabilities(const audiosink::PlatformCapabilities& );
+void vts_audiosink_helper_validateSinkCapabilities(int32_t sinkId, const audiosink::Capabilities& capabilities);
 
 audiodecoder::ChannelType vts_audiosink_helper_StringToChannelType(const std::string& channelType);
 size_t vts_bytesPerSample(audiodecoder::PCMFormat format);

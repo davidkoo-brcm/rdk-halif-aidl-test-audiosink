@@ -77,28 +77,34 @@
 using namespace std;
 using namespace com::rdk::hal;
 
-struct platformcap
+struct platformCapabilitiesHFP
 {
-    std::string lowlatency;
-    std::string samplerate;
-    std::string mixer_pcmformat;
-    std::string supportsPlanarFormat;
-    std::string supportsSoCProprietary;
-    std::string maxNumChannels;
-    std::string supportsDolbyAtmos;
+    bool supportsLowLatency;
+    int32_t systemMixerSampleRateHz;
+    audiodecoder::PCMFormat systemMixerPCMFormat;
+    bool supportsPlanarFormat;
+    bool supportsSoCProprietary;
+    int32_t maxNumChannels;
+    bool supportsDolbyAtmos;
 };
 
-struct sinkmanager
+struct sinkCapabilitiesHFP
 {
-    std::vector<int32_t> ids;
-    std::vector<int32_t> availableIds;
-    std::vector<platformcap> supportedcaps;
+    int32_t id;
     bool supportsSecure;
-    vector<int32_t> availableDecoderIds;
-    vector<audiodecoder::IAudioDecoder::Id> audioDecoderIds;
+    vector<audiosink::ContentType> supportedContentTypes;
 };
 
-extern std::vector<sinkmanager> gAudiosinks_hfp;
+struct audioSinkHFP
+{
+    std::vector<sinkCapabilitiesHFP> sinkCaps;
+    std::vector<int32_t> availableIds;
+    platformCapabilitiesHFP platformCaps;
+    vector<int32_t> availableDecoderIds;
+    vector<int32_t> availableClockIds;
+};
+
+extern audioSinkHFP gAudiosinksHFP;
 
 #define AUDIOSINKMGR "audiosink"
 #define AUDIOSINKMGR_IAUDIOSINK      "audiosink.IAudioSink"
