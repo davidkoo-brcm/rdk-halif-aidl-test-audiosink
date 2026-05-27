@@ -847,7 +847,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                 copyMetaData(*decodedFrame.frameMetadata, metadata);
             }
 
-            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mSinkId.value, mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata, result);
+            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata, result);
             if (!result)
             {
                 UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);

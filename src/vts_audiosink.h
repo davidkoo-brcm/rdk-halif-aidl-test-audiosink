@@ -330,7 +330,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         } \
         else {\
             UT_ASSERT_FALSE(status.isOk()); \
-            UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
         }\
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
     } while (0)
@@ -543,7 +542,7 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
     } while (0)
 
-#define AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(sindkId, audioSinkcontroller, nsPresentationTime, bufferHandle, metadata, result) \
+#define AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(audioSinkcontroller, nsPresentationTime, bufferHandle, metadata, result) \
     do { \
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling queueAudioFrame(IN:nsPresentationTime:[%lld], IN:bufferHandle:[0x%016" PRIx64 "], IN:metadata:[])", \
