@@ -107,17 +107,6 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
 
 #define MAX_FINAL_STATE_WAIT_MS  500
 
-/*#ifndef ENABLE_UT_INFO_LOGGING
-#ifdef UT_LOG_DEBUG
-#undef UT_LOG_DEBUG
-#define UT_LOG_DEBUG(...)
-#endif
-#ifdef UT_LOG_INFO
-#undef UT_LOG_INFO
-#define UT_LOG_INFO(...)
-#endif
-#endif*/
-
 #define AUDIOSINK_MANAGER_GETAUDIOSINKIDS(audioSinkIds) \
     do { \
         ::android::binder::Status status; \
