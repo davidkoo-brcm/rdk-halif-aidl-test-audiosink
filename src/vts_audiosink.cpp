@@ -697,7 +697,10 @@ void AudioSinkTest::setupAudioSink()
     /* Start the decoder */
     AUDIOSINK_START_SUCCESS(mSinkHandle, mAudioSinkController, true);
 
-    setupClock();
+    if(!mClockInUse)
+    {
+        setupClock();
+    }
 }
 
 void AudioSinkTest::tearDownAudioSink()
@@ -711,7 +714,10 @@ void AudioSinkTest::tearDownAudioSink()
     /* Close the Audio sink */
     AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, mAudioSinkController, true);
 
-    tearDownClock();
+    if(!mClockInUse)
+    {
+        tearDownClock();
+    }
 }
 
 void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
