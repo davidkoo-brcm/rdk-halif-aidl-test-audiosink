@@ -442,6 +442,9 @@ public:
             for (auto& t : sinkThreads)
                 if (t.joinable()) t.join();
 
+            // Destroy decoder tests now so their pool destructors fire before the metrics check
+            decoderTests.clear();
+
             // Get heap metrics
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
 
