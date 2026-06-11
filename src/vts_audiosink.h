@@ -778,7 +778,7 @@ private:
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
     condition_variable mResumeAvailable;
-    ::com::rdk::hal::State mCurrentState;
+    ::com::rdk::hal::State mCurrentState = ::com::rdk::hal::State::CLOSED;
     vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
     queue<int64_t> mEndofstream;
@@ -826,7 +826,7 @@ private:
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
     condition_variable mResumeAvailable;
-    ::com::rdk::hal::State mCurrentState;
+    ::com::rdk::hal::State mCurrentState = ::com::rdk::hal::State::CLOSED;
     vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
     queue<int64_t> mEndofstream;
@@ -847,7 +847,7 @@ public:
                   sp<IAVBuffer> AVBufferManager,
                   IAudioDecoder::Id decoderId,
                   IAVClock::Id clockId,
-                  bool secureDecode, bool isTunnel, testConfiguration_t config)
+                  bool secureDecode, bool isTunnel, const testConfiguration_t& config)
     {
         mSinkId = sinkId;
         mDecoderId = decoderId;

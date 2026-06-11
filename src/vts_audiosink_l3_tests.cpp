@@ -106,7 +106,7 @@ UT_ADD_TEST_TO_GROUP(VTS_L3_AudioSink, UT_TESTS_L3);
 class VTS_L3_AudioSink : public UTCore
 {
 public:
-    VTS_L3_AudioSink() : UTCore() {}
+    VTS_L3_AudioSink() : UTCore(), mAVbufferHelper(nullptr) {}
 
     ~VTS_L3_AudioSink() override = default;
 
@@ -169,7 +169,8 @@ public:
         {
             sp<IAudioDecoder> audioDecoder;
 
-            audiodecoder::Capabilities *capabilities = new audiodecoder::Capabilities();
+            std::unique_ptr<audiodecoder::Capabilities> capabilitiesOwner(new audiodecoder::Capabilities());
+            audiodecoder::Capabilities *capabilities = capabilitiesOwner.get();
 
             sp<AudioDecoderEventListener> eventListener = new AudioDecoderEventListener();
 
@@ -187,7 +188,7 @@ public:
             /* Get Capabilities of Audio Decoder */
             AUDIODECODER_GETCAPABILITIES(audioDecoder, capabilities);
 
-            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, capabilities});
+            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, capabilitiesOwner.release()});
         }
     }
 
