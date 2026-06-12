@@ -170,7 +170,7 @@ public:
         {
             sp<IAudioDecoder> audioDecoder;
 
-            std::unique_ptr<audiodecoder::Capabilities> capabilitiesOwner(new audiodecoder::Capabilities());
+            std::unique_ptr<audiodecoder::Capabilities> capabilitiesOwner = std::make_unique<audiodecoder::Capabilities>();
             audiodecoder::Capabilities *capabilities = capabilitiesOwner.get();
 
             sp<AudioDecoderEventListener> eventListener = new AudioDecoderEventListener();
@@ -491,10 +491,9 @@ public:
 
     void TearDown() override
     {
-        for (const auto& [_decoderId, decoder, controlListener, eventListener, capabilities] : mAudioDecoderList)
+        for (const auto& entry : mAudioDecoderList)
         {
-            (void)capabilities;
-            AUDIODECODER_UNREGISTER_EVENT_SUCCESS(decoder, eventListener);
+            AUDIODECODER_UNREGISTER_EVENT_SUCCESS(std::get<1>(entry), std::get<3>(entry));
         }
         mAudioDecoderList.clear();
 
