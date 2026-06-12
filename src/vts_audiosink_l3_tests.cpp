@@ -74,6 +74,7 @@
 #include <condition_variable>
 #include <algorithm>
 #include <unordered_set>
+#include <memory>
 #include <tuple>
 #include <map>
 
@@ -112,7 +113,7 @@ public:
 
 public:
     std::vector<std::tuple<IAudioSink::Id, sp<IAudioSink>, sp<AudioSinkControllerListener>, sp<AudioSinkEventListener>>> mAudioSinkList;
-    std::vector<std::tuple<IAudioDecoder::Id, sp<IAudioDecoder>, sp<AudioDecoderControllerListener>, sp<AudioDecoderEventListener>, audiodecoder::Capabilities *>> mAudioDecoderList;
+    std::vector<std::tuple<IAudioDecoder::Id, sp<IAudioDecoder>, sp<AudioDecoderControllerListener>, sp<AudioDecoderEventListener>, std::unique_ptr<audiodecoder::Capabilities>>> mAudioDecoderList;
     sp<IAVBuffer> mAVBufferManager;
     IAVBufferHelper* mAVbufferHelper;
 
@@ -188,7 +189,7 @@ public:
             /* Get Capabilities of Audio Decoder */
             AUDIODECODER_GETCAPABILITIES(audioDecoder, capabilities);
 
-            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, capabilitiesOwner.release()});
+            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, std::move(capabilitiesOwner)});
         }
     }
 
@@ -369,9 +370,9 @@ public:
             // Collect usable decoders
             for (const auto& entry : mAudioDecoderList)
             {
-                const auto& [_decoderId, _, __, ___, ____] = entry;
+                const auto& [_decoderId, _dh, _cl, _el, _caps] = entry;
                 if (isDecoderUsable(_decoderId))
-                    usableDecoders.push_back(entry);
+                    usableDecoders.push_back({_decoderId, _dh, _cl, _el, _caps.get()});
             }
 
             // Collect usable sinks
@@ -490,6 +491,13 @@ public:
 
     void TearDown() override
     {
+        for (const auto& [_decoderId, decoder, controlListener, eventListener, capabilities] : mAudioDecoderList)
+        {
+            (void)capabilities;
+            AUDIODECODER_UNREGISTER_EVENT_SUCCESS(decoder, eventListener);
+        }
+        mAudioDecoderList.clear();
+
         for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
         {
             /* Un-register the events */
