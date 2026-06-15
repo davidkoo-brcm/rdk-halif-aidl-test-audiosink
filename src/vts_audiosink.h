@@ -847,7 +847,7 @@ public:
                   sp<IAVBuffer> AVBufferManager,
                   IAudioDecoder::Id decoderId,
                   IAVClock::Id clockId,
-                  bool secureDecode, bool isTunnel, testConfiguration_t config)
+                  bool secureDecode, bool isTunnel, testConfiguration_t config, bool isClockInUse)
     {
         mSinkId = sinkId;
         mDecoderId = decoderId;
@@ -860,6 +860,7 @@ public:
         mdecoderControlListener = decoderControlListener;
         mIsTunnel = isTunnel;
         mClockId = clockId;
+        mClockInUse = isClockInUse;
         mClockCtrlListener = new AVClockControllerListener();
     }
 
@@ -876,6 +877,7 @@ private:
     sp<AudioDecoderControllerListener> mdecoderControlListener;
     bool mSecureBuffer;
     bool mIsTunnel;
+    bool mClockInUse;
     testConfiguration_t mTestConfiguration;
     sp<IAudioSinkController> mAudioSinkController;
     sp<IAVClock> mClock;
