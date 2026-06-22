@@ -882,7 +882,7 @@ private:
     sp<IAudioSinkController> mAudioSinkController;
     sp<IAVClock> mClock;
     sp<IAVClockController> mClockController;
-    sp<IAVClockControllerListener> mClockCtrlListener;
+    sp<AVClockControllerListener> mClockCtrlListener;
 
     void audioSinkNonTunnelTest();
     void audioSinkTunnelTest();
