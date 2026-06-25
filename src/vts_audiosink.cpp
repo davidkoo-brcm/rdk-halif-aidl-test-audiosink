@@ -920,7 +920,6 @@ void AudioSinkTest::audioSinkTunnelTest()
 
         while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
         {
-            bool result = false;
             frameCount++;
 
             if (frameCount == 1)
