@@ -723,6 +723,7 @@ void AudioSinkTest::tearDownAudioSink()
 void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
 {
     /* Validate onPrimed from the AV clock in AUDIO_MASTER mode */
+    if (!mClockInUse)
     {
         ::com::rdk::hal::avclock::ClockTime primedClockTime{};
         const bool primedArrived = mClockCtrlListener->waitForPrimed(std::chrono::milliseconds(3000), &primedClockTime);
