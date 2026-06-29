@@ -110,7 +110,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
         sinkCaps.supportsSecure = UT_KVP_PROFILE_GET_BOOL(supportsSecurePath.c_str());
 
-        gAudiosinksHFP.sinkCaps.push_back(sinkCaps);
+        gAudiosinksHFP.sinkCaps.push_back(std::move(sinkCaps));
     }
 
     available_decoders = UT_KVP_PROFILE_GET_LIST_COUNT(availableDecodersPath.c_str());
