@@ -836,6 +836,67 @@ private:
     int32_t mSinkID;
 };
 
+class AudioSinkAVClockControllerListener : public BnAVClockControllerListener
+{
+public:
+    AudioSinkAVClockControllerListener() = default;
+    virtual ~AudioSinkAVClockControllerListener() = default;
+
+    ::android::binder::Status onStateChanged(::com::rdk::hal::State oldState,
+                                             ::com::rdk::hal::State newState) override
+    {
+        UT_LOG_DEBUG("AVClock state changed from %s to %s",
+                     ::com::rdk::hal::toString(oldState).c_str(),
+                     ::com::rdk::hal::toString(newState).c_str());
+        return ::android::binder::Status::ok();
+    }
+
+    ::android::binder::Status onPrimed(const ::com::rdk::hal::avclock::ClockTime& currentClockTime) override
+    {
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            if (!mPrimed)
+            {
+                mFirstPrimedClockTime = currentClockTime;
+                mPrimed = true;
+            }
+        }
+        mPrimedCondition.notify_all();
+        UT_LOG_DEBUG("AVClock primed: clockTimeNs=%lld sampleTimestampNs=%lld",
+                     static_cast<long long>(currentClockTime.clockTimeNs),
+                     static_cast<long long>(currentClockTime.sampleTimestampNs));
+        return ::android::binder::Status::ok();
+    }
+
+    bool waitForPrimed(std::chrono::milliseconds timeout,
+                       ::com::rdk::hal::avclock::ClockTime* outClockTime = nullptr)
+    {
+        std::unique_lock<std::mutex> lock(mMutex);
+        if (!mPrimedCondition.wait_for(lock, timeout, [this]() { return mPrimed; }))
+        {
+            return false;
+        }
+        if (outClockTime != nullptr)
+        {
+            *outClockTime = mFirstPrimedClockTime;
+        }
+        return true;
+    }
+
+    void resetPrimed()
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mPrimed = false;
+        mFirstPrimedClockTime = {};
+    }
+
+private:
+    std::mutex mMutex;
+    std::condition_variable mPrimedCondition;
+    bool mPrimed = false;
+    ::com::rdk::hal::avclock::ClockTime mFirstPrimedClockTime{};
+};
+
 class AudioSinkTest
 {
 public:
@@ -847,7 +908,7 @@ public:
                   sp<IAVBuffer> AVBufferManager,
                   IAudioDecoder::Id decoderId,
                   IAVClock::Id clockId,
-                  bool secureDecode, bool isTunnel, const testConfiguration_t& config)
+                  bool secureDecode, bool isTunnel, testConfiguration_t config, bool isClockInUse)
     {
         mSinkId = sinkId;
         mDecoderId = decoderId;
@@ -860,7 +921,8 @@ public:
         mdecoderControlListener = decoderControlListener;
         mIsTunnel = isTunnel;
         mClockId = clockId;
-        mClockCtrlListener = new AVClockControllerListener();
+        mClockInUse = isClockInUse;
+        mClockCtrlListener = new AudioSinkAVClockControllerListener();
     }
 
     void run();
@@ -876,11 +938,12 @@ private:
     sp<AudioDecoderControllerListener> mdecoderControlListener;
     bool mSecureBuffer;
     bool mIsTunnel;
+    bool mClockInUse;
     testConfiguration_t mTestConfiguration;
     sp<IAudioSinkController> mAudioSinkController;
     sp<IAVClock> mClock;
     sp<IAVClockController> mClockController;
-    sp<IAVClockControllerListener> mClockCtrlListener;
+    sp<AudioSinkAVClockControllerListener> mClockCtrlListener;
 
     void audioSinkNonTunnelTest();
     void audioSinkTunnelTest();

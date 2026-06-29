@@ -263,6 +263,7 @@ public:
             sp<AudioDecoderEventListener> decoderEventListener;
             bool foundDecoder = false;
             IAVClock::Id clockId;
+            bool isClockInUse = false;
 
             for (size_t i = 0; i < mAudioDecoderList.size(); ++i)
             {
@@ -320,7 +321,7 @@ public:
 
                     AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
                                                 decoderControlListener, mAVBufferManager, decoderId, clockId,
-                                                secureDecode, isTunnel, testConfig);
+                                                secureDecode, isTunnel, testConfig, isClockInUse);
                     audiosinkTest.run();
 
                     if (decodeThread.joinable())
@@ -411,6 +412,8 @@ public:
             for (int i = 0; i < numInstances; ++i)
             {
                 IAVClock::Id clockId;
+                bool isClockInUse = false;
+
                 const auto& [sinkId, sinkHandle, controlListener, eventListener] = usableSinks[i];
                 const auto& [_decoderId, _, decoderControlListener, __, ___] = usableDecoders[i];
 
@@ -421,7 +424,7 @@ public:
                                                                 decoderControlListener,
                                                                 mAVBufferManager, _decoderId, clockId,
                                                                 secureDecode, isTunnel,
-                                                                testConfig);
+                                                                testConfig, isClockInUse);
                 sinkThreads.emplace_back(&AudioSinkTest::run, sinkTest.get());
                 sinkTests.push_back(std::move(sinkTest));
             }
