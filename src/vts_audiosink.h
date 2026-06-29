@@ -908,7 +908,7 @@ public:
                   sp<IAVBuffer> AVBufferManager,
                   IAudioDecoder::Id decoderId,
                   IAVClock::Id clockId,
-                  bool secureDecode, bool isTunnel, testConfiguration_t config, bool isClockInUse)
+                  bool secureDecode, bool isTunnel, const testConfiguration_t& config, bool isClockInUse)
     {
         mSinkId = sinkId;
         mDecoderId = decoderId;
