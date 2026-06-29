@@ -722,6 +722,23 @@ void AudioSinkTest::tearDownAudioSink()
 
 void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
 {
+    /* Validate onPrimed from the AV clock in AUDIO_MASTER mode */
+    if (!mClockInUse)
+    {
+        ::com::rdk::hal::avclock::ClockTime primedClockTime{};
+        const bool primedArrived = mClockCtrlListener->waitForPrimed(std::chrono::milliseconds(3000), &primedClockTime);
+        UT_LOG_INFO("[SinkID: %d] onPrimed %s: clockTimeNs=%" PRId64 " sampleTimestampNs=%" PRId64
+                    " (expected first audio PTS=%" PRId64 ")",
+                    mSinkId.value, primedArrived ? "received" : "TIMED OUT",
+                    primedClockTime.clockTimeNs, primedClockTime.sampleTimestampNs,
+                    expectedFirstFramePTS);
+        UT_ASSERT_TRUE(primedArrived);
+        if (primedArrived)
+        {
+            UT_ASSERT_EQUAL(primedClockTime.clockTimeNs, expectedFirstFramePTS);
+        }
+    }
+
     /* Validate the callback */
     {
         /* Control listener */
@@ -904,7 +921,6 @@ void AudioSinkTest::audioSinkTunnelTest()
 
         while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
         {
-            bool result = false;
             frameCount++;
 
             if (frameCount == 1)
