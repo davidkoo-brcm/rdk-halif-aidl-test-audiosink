@@ -82,15 +82,15 @@ const ut_control_keyStringMapping_t contentType_mapTable[] =
 /* State mapping table for UT_Control_GetMapString */
 const ut_control_keyStringMapping_t state_mapTable[] =
 {
-    {"UNKNOWN",   (int32_t) ::com::rdk::hal::State::UNKNOWN},
-    {"CLOSED",    (int32_t) ::com::rdk::hal::State::CLOSED},
-    {"OPENING",   (int32_t) ::com::rdk::hal::State::OPENING},
-    {"READY",     (int32_t) ::com::rdk::hal::State::READY},
-    {"STARTING",  (int32_t) ::com::rdk::hal::State::STARTING},
-    {"STARTED",   (int32_t) ::com::rdk::hal::State::STARTED},
-    {"FLUSHING",  (int32_t) ::com::rdk::hal::State::FLUSHING},
-    {"STOPPING",  (int32_t) ::com::rdk::hal::State::STOPPING},
-    {"CLOSING",   (int32_t) ::com::rdk::hal::State::CLOSING},
+    {"UNKNOWN",   (int32_t) ::com::rdk::hal::audiosink::State::UNKNOWN},
+    {"CLOSED",    (int32_t) ::com::rdk::hal::audiosink::State::CLOSED},
+    {"OPENING",   (int32_t) ::com::rdk::hal::audiosink::State::OPENING},
+    {"READY",     (int32_t) ::com::rdk::hal::audiosink::State::READY},
+    {"STARTING",  (int32_t) ::com::rdk::hal::audiosink::State::STARTING},
+    {"STARTED",   (int32_t) ::com::rdk::hal::audiosink::State::STARTED},
+    {"FLUSHING",  (int32_t) ::com::rdk::hal::audiosink::State::FLUSHING},
+    {"STOPPING",  (int32_t) ::com::rdk::hal::audiosink::State::STOPPING},
+    {"CLOSING",   (int32_t) ::com::rdk::hal::audiosink::State::CLOSING},
     {NULL, -1}
 };
 

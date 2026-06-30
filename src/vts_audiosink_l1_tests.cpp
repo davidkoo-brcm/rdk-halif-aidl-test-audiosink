@@ -662,7 +662,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-    ::com::rdk::hal::State state = ::com::rdk::hal::State::UNKNOWN;
+    ::com::rdk::hal::audiosink::State state = ::com::rdk::hal::audiosink::State::UNKNOWN;
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -675,7 +675,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
         /* get the state of an audio sink */
         AUDIOSINK_GET_STATE(audioSink, state);
 
-        UT_ASSERT_EQUAL(state, com::rdk::hal::State::CLOSED);
+        UT_ASSERT_EQUAL(state, com::rdk::hal::audiosink::State::CLOSED);
     }
 }
 
@@ -1914,7 +1914,6 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
         metadata.trimStartNs = 0;
         metadata.trimEndNs = 0;
         metadata.lowLatency = false;
-        metadata.endOfStream = false;
         metadata.discontinuity = false;
         metadata.source = AVSource::SYSTEM;
 

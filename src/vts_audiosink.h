@@ -212,7 +212,7 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling getState(OUT:state[]"); \
         status = (audioSink)->getState(&state); \
-        UT_LOG_INFO("Result getState(OUT:state[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::toString(state).c_str(), \
+    UT_LOG_INFO("Result getState(OUT:state[%s]), status:[isOK:%s, exception:%s]", com::rdk::hal::audiosink::toString(state).c_str(), \
                 UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
         UT_ASSERT_TRUE(status.isOk()); \
@@ -246,9 +246,9 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         \
         if (stateCheck) \
         { \
-            ::com::rdk::hal::State lastState; \
-            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::State::READY, lastState); \
-            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::State::READY); \
+            ::com::rdk::hal::audiosink::State lastState; \
+            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::audiosink::State::READY, lastState); \
+            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::audiosink::State::READY); \
         } \
     } while (0)
 
@@ -280,9 +280,9 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_EQUAL_FATAL(status.exceptionCode(), Status::EX_NONE); \
         if (stateCheck) \
         { \
-            ::com::rdk::hal::State lastState; \
-            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::State::CLOSED, lastState); \
-            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::State::CLOSED); \
+            ::com::rdk::hal::audiosink::State lastState; \
+            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::audiosink::State::CLOSED, lastState); \
+            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::audiosink::State::CLOSED); \
         } \
     } while (0)
 
@@ -381,9 +381,9 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
         if (stateCheck) \
         { \
-            ::com::rdk::hal::State lastState; \
-            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::State::STARTED, lastState); \
-            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::State::STARTED); \
+            ::com::rdk::hal::audiosink::State lastState; \
+            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::audiosink::State::STARTED, lastState); \
+            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::audiosink::State::STARTED); \
         } \
     } while (0)
 
@@ -411,9 +411,9 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
         if (stateCheck) \
         { \
-            ::com::rdk::hal::State lastState; \
-            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::State::READY, lastState); \
-            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::State::READY); \
+            ::com::rdk::hal::audiosink::State lastState; \
+            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::audiosink::State::READY, lastState); \
+            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::audiosink::State::READY); \
         } \
     } while (0)
 
@@ -585,9 +585,9 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         if (stateCheck) \
         { \
             std::this_thread::sleep_for(std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS)); \
-            ::com::rdk::hal::State lastState; \
-            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::State::STARTED, lastState); \
-            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::State::STARTED); \
+            ::com::rdk::hal::audiosink::State lastState; \
+            AUDIOSINK_WAIT_FOR_STATE(audioSink, ::com::rdk::hal::audiosink::State::STARTED, lastState); \
+            UT_ASSERT_EQUAL(lastState, ::com::rdk::hal::audiosink::State::STARTED); \
         } \
     } while (0)
 
@@ -749,7 +749,7 @@ public:
     }
     virtual ~AudioSinkControllerListener() = default;
 
-    Status onStateChanged(::com::rdk::hal::State oldState, ::com::rdk::hal::State newState) override;
+    Status onStateChanged(::com::rdk::hal::audiosink::State oldState, ::com::rdk::hal::audiosink::State newState) override;
     Status onFirstFrameRendered(int64_t nsPresentationTime) override;
     Status onEndOfStream(int64_t nsPresentationTime) override;
     Status onAudioUnderflow() override;
@@ -757,9 +757,9 @@ public:
     Status onFlushComplete() override;
     Status onFrameBufferAvailable() override;
 
-    bool waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout);
+    bool waitForState(::com::rdk::hal::audiosink::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();
-    bool checkStateTransistion(::com::rdk::hal::State expOldState, ::com::rdk::hal::State expNewState);
+    bool checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
     bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
     bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
     bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
@@ -778,8 +778,8 @@ private:
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
     condition_variable mResumeAvailable;
-    ::com::rdk::hal::State mCurrentState = ::com::rdk::hal::State::CLOSED;
-    vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
+    ::com::rdk::hal::audiosink::State mCurrentState = ::com::rdk::hal::audiosink::State::CLOSED;
+    vector<std::pair<::com::rdk::hal::audiosink::State, ::com::rdk::hal::audiosink::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
     queue<int64_t> mEndofstream;
     queue<int64_t> mAudioresumed;
@@ -801,15 +801,15 @@ public:
     }
     virtual ~AudioSinkEventListener() = default;
 
-    Status onStateChanged(::com::rdk::hal::State oldState, ::com::rdk::hal::State newState) override;
+    Status onStateChanged(::com::rdk::hal::audiosink::State oldState, ::com::rdk::hal::audiosink::State newState) override;
     Status onFirstFrameRendered(int64_t nsPresentationTime) override;
     Status onEndOfStream(int64_t nsPresentationTime) override;
     Status onAudioUnderflow() override;
     Status onAudioResumed(int64_t nsPresentationTime) override;
     Status onFlushComplete() override;
-    bool waitForState(::com::rdk::hal::State desiredState, std::chrono::milliseconds timeout);
+    bool waitForState(::com::rdk::hal::audiosink::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();
-    bool checkStateTransistion(::com::rdk::hal::State expOldState, ::com::rdk::hal::State expNewState);
+    bool checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
     bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
     bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
     bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
@@ -826,8 +826,8 @@ private:
     condition_variable mFFRenderAvailable;
     condition_variable mEOSAvailable;
     condition_variable mResumeAvailable;
-    ::com::rdk::hal::State mCurrentState = ::com::rdk::hal::State::CLOSED;
-    vector<std::pair<::com::rdk::hal::State, ::com::rdk::hal::State>> mStateChanges;
+    ::com::rdk::hal::audiosink::State mCurrentState = ::com::rdk::hal::audiosink::State::CLOSED;
+    vector<std::pair<::com::rdk::hal::audiosink::State, ::com::rdk::hal::audiosink::State>> mStateChanges;
     queue<int64_t> mFirstframerendered;
     queue<int64_t> mEndofstream;
     queue<int64_t> mAudioresumed;
@@ -842,12 +842,12 @@ public:
     AudioSinkAVClockControllerListener() = default;
     virtual ~AudioSinkAVClockControllerListener() = default;
 
-    ::android::binder::Status onStateChanged(::com::rdk::hal::State oldState,
-                                             ::com::rdk::hal::State newState) override
+    ::android::binder::Status onStateChanged(::com::rdk::hal::avclock::State oldState,
+                                             ::com::rdk::hal::avclock::State newState) override
     {
         UT_LOG_DEBUG("AVClock state changed from %s to %s",
-                     ::com::rdk::hal::toString(oldState).c_str(),
-                     ::com::rdk::hal::toString(newState).c_str());
+                     ::com::rdk::hal::avclock::toString(oldState).c_str(),
+                     ::com::rdk::hal::avclock::toString(newState).c_str());
         return ::android::binder::Status::ok();
     }
 
