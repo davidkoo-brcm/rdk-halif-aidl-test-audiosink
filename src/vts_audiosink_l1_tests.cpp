@@ -1957,6 +1957,110 @@ UT_ADD_TEST(VTS_L1_AudioSink, queueAudioFrame_neg)
 }
 
 /**
+ * @brief Test the positive scenario of signalEndOfStream in AudioSinkController.
+ *
+ * This test verifies that signalEndOfStream() succeeds when called in the
+ * STARTED state after opening and starting the audio sink.
+ *
+ * **Test Group ID:** Basic: 01@n
+ * **Test Case ID:** 031@n
+ * **Priority:** High@n
+ *
+ * **Test Procedure:**@n
+ * | Variation / Step | Description | Test Data | Expected Result | Notes |
+ * | :----: | --------- | ---------- |-------------- | ----- |
+ * | 01 | Get Audio Sink IDs | None | Non-empty list | Should Pass |
+ * | 02 | Open and start the audio sink | ContentType::UNKNOWN | Status OK, STARTED state | Should Pass |
+ * | 03 | Call signalEndOfStream() in STARTED state | None | Status OK, EX_NONE | Should Pass |
+ * | 04 | Stop and close the sink | None | Status OK | Should Pass |
+ */
+UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_pos)
+{
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
+
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+    for (const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+        /* Open the sink */
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        /* Start the sink */
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Signal EOS — must succeed in STARTED state */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);
+
+        /* Stop and close */
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
+
+/**
+ * @brief Test the negative scenario of signalEndOfStream in AudioSinkController.
+ *
+ * This test verifies state-dependent behavior of signalEndOfStream():
+ * it fails with EX_ILLEGAL_STATE in READY state, succeeds once in STARTED,
+ * and then fails again with EX_ILLEGAL_STATE on a repeated call.
+ *
+ * **Test Group ID:** Basic: 01@n
+ * **Test Case ID:** 032@n
+ * **Priority:** High@n
+ *
+ * **Test Procedure:**@n
+ * | Variation / Step | Description | Test Data | Expected Result | Notes |
+ * | :----: | --------- | ---------- |-------------- | ----- |
+ * | 01 | Get Audio Sink IDs | None | Non-empty list | Should Pass |
+ * | 02 | Open the audio sink (READY state) | ContentType::UNKNOWN | Status OK | Should Pass |
+ * | 03 | Call signalEndOfStream() in READY state | None | EX_ILLEGAL_STATE | Should Fail |
+ * | 04 | Start the audio sink (STARTED state) | None | Status OK | Should Pass |
+ * | 05 | Call signalEndOfStream() in STARTED state | None | Status OK, EX_NONE | Should Pass |
+ * | 06 | Call signalEndOfStream() again in STARTED flow | None | EX_ILLEGAL_STATE | Should Fail |
+ * | 07 | Stop and close the sink | None | Status OK | Should Pass |
+ */
+UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_neg)
+{
+    std::vector<IAudioSink::Id> sinkIds;
+    sp<IAudioSink> audioSink;
+
+    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
+
+    for (const auto& _sinkId : sinkIds)
+    {
+        sp<IAudioSinkController> audioSinkController;
+        sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+
+        AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
+
+        /* Open the sink — now in READY state */
+        AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
+
+        /* signalEndOfStream() must fail when not in STARTED state */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
+
+        /* Start the sink */
+        AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
+
+        /* Signal EOS — must succeed in STARTED state */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);
+
+        /* Second call must fail with illegal state in current flow */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
+
+        /* Close the sink */
+        AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
+        AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, true);
+    }
+}
+
+/**
  * @brief Test the positive scenario of flushing the audio sink controller.
  *
  * This test verifies the functionality of the flush operation in the audio sink controller.

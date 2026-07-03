@@ -214,11 +214,13 @@ void vts_audiosink_helper_validateSinkCapabilities(int32_t sinkId, const audiosi
 
     for (const auto& contentType : capabilities.supportedContentTypes)
     {
+        UT_LOG_INFO("contentType = %d", static_cast<int32_t>(contentType));
         supportedContentTypesSet.insert(static_cast<int32_t>(contentType));
     }
 
     for (const auto& contentType : it->supportedContentTypes)
     {
+        UT_LOG_INFO("supported type = %d", static_cast<int32_t>(contentType));
         UT_ASSERT_NOT_EQUAL(supportedContentTypesSet.find(static_cast<int32_t>(contentType)), supportedContentTypesSet.end());
     }
 }

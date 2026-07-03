@@ -603,6 +603,30 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
+#define AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController) \
+    do { \
+        ::android::binder::Status status; \
+        UT_LOG_INFO("Calling signalEndOfStream()"); \
+        status = (audioSinkController)->signalEndOfStream(); \
+        UT_LOG_INFO("Result signalEndOfStream(), status:[isOK:%s, exception:%s]", \
+            UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+            UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_TRUE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), Status::EX_NONE); \
+    } while (0)
+
+#define AUDIOSINK_SIGNAL_ENDOFSTREAM_FAILURE(audioSinkController, exception) \
+    do { \
+        ::android::binder::Status status; \
+        UT_LOG_INFO("Calling signalEndOfStream()"); \
+        status = (audioSinkController)->signalEndOfStream(); \
+        UT_LOG_INFO("Result signalEndOfStream(), status:[isOK:%s, exception:%s]", \
+            UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+            UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        UT_ASSERT_FALSE(status.isOk()); \
+        UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
+    } while (0)
+
 #define AUDIOSINK_SETPROPERTY_SUCCESS(audioSink, property, propertyValue) \
     do { \
         ::android::binder::Status status; \

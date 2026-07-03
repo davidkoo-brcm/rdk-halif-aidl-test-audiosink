@@ -769,7 +769,9 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
 
         if(mTestConfiguration.sinkEosPts >= 0)
         {
-            /* Control listener */
+            /* Control listener — signalEndOfStream() fires onEndOfStream() with the final
+             * frame's PTS. If no frames were queued IAVClock::UNDEFINED_TIME is used (negative);
+             * for EOS test scenarios frames are always queued first so PTS must be >= 0. */
             int64_t endOfStreamPTS = -1;
             UT_ASSERT_TRUE(mControlListener->getNextEndOfStreamPTS(endOfStreamPTS));
             UT_ASSERT_TRUE(endOfStreamPTS >= 0);
@@ -807,7 +809,7 @@ void AudioSinkTest::copyMetaData(const audiodecoder::FrameMetadata& source, audi
     destination.trimStartNs = source.trimStartNs;
     destination.trimEndNs = source.trimEndNs;
     destination.lowLatency = source.lowLatency;
-    destination.endOfStream = source.endOfStream;
+    destination.bitstreamEOS = source.bitstreamEOS;
 
     destination.discontinuity = source.discontinuity;
     destination.source = source.source;
@@ -882,6 +884,9 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
         }
 
+        /* Signal EOS to the sink after all frames have been queued (0.21.0 requirement) */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(mAudioSinkController);
+
         /* Validate the callback */
         validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
 
@@ -942,6 +947,9 @@ void AudioSinkTest::audioSinkTunnelTest()
             AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
         }
+
+        /* Signal EOS to the sink (0.21.0 requirement — identical behaviour in tunnel and non-tunnel modes) */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(mAudioSinkController);
 
         /* Validate the callback */
         validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
