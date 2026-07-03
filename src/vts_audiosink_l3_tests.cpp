@@ -74,6 +74,7 @@
 #include <condition_variable>
 #include <algorithm>
 #include <unordered_set>
+#include <memory>
 #include <tuple>
 #include <map>
 
@@ -106,13 +107,13 @@ UT_ADD_TEST_TO_GROUP(VTS_L3_AudioSink, UT_TESTS_L3);
 class VTS_L3_AudioSink : public UTCore
 {
 public:
-    VTS_L3_AudioSink() : UTCore() {}
+    VTS_L3_AudioSink() : UTCore(), mAVbufferHelper(nullptr) {}
 
     ~VTS_L3_AudioSink() override = default;
 
 public:
     std::vector<std::tuple<IAudioSink::Id, sp<IAudioSink>, sp<AudioSinkControllerListener>, sp<AudioSinkEventListener>>> mAudioSinkList;
-    std::vector<std::tuple<IAudioDecoder::Id, sp<IAudioDecoder>, sp<AudioDecoderControllerListener>, sp<AudioDecoderEventListener>, audiodecoder::Capabilities *>> mAudioDecoderList;
+    std::vector<std::tuple<IAudioDecoder::Id, sp<IAudioDecoder>, sp<AudioDecoderControllerListener>, sp<AudioDecoderEventListener>, std::unique_ptr<audiodecoder::Capabilities>>> mAudioDecoderList;
     sp<IAVBuffer> mAVBufferManager;
     IAVBufferHelper* mAVbufferHelper;
 
@@ -169,7 +170,8 @@ public:
         {
             sp<IAudioDecoder> audioDecoder;
 
-            audiodecoder::Capabilities *capabilities = new audiodecoder::Capabilities();
+            std::unique_ptr<audiodecoder::Capabilities> capabilitiesOwner = std::make_unique<audiodecoder::Capabilities>();
+            audiodecoder::Capabilities *capabilities = capabilitiesOwner.get();
 
             sp<AudioDecoderEventListener> eventListener = new AudioDecoderEventListener();
 
@@ -187,7 +189,7 @@ public:
             /* Get Capabilities of Audio Decoder */
             AUDIODECODER_GETCAPABILITIES(audioDecoder, capabilities);
 
-            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, capabilities});
+            mAudioDecoderList.push_back({_decoderId, audioDecoder, controlListener, eventListener, std::move(capabilitiesOwner)});
         }
     }
 
@@ -261,6 +263,7 @@ public:
             sp<AudioDecoderEventListener> decoderEventListener;
             bool foundDecoder = false;
             IAVClock::Id clockId;
+            bool isClockInUse = false;
 
             for (size_t i = 0; i < mAudioDecoderList.size(); ++i)
             {
@@ -318,7 +321,7 @@ public:
 
                     AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
                                                 decoderControlListener, mAVBufferManager, decoderId, clockId,
-                                                secureDecode, isTunnel, testConfig);
+                                                secureDecode, isTunnel, testConfig, isClockInUse);
                     audiosinkTest.run();
 
                     if (decodeThread.joinable())
@@ -368,9 +371,9 @@ public:
             // Collect usable decoders
             for (const auto& entry : mAudioDecoderList)
             {
-                const auto& [_decoderId, _, __, ___, ____] = entry;
+                const auto& [_decoderId, _dh, _cl, _el, _caps] = entry;
                 if (isDecoderUsable(_decoderId))
-                    usableDecoders.push_back(entry);
+                    usableDecoders.push_back({_decoderId, _dh, _cl, _el, _caps.get()});
             }
 
             // Collect usable sinks
@@ -409,6 +412,8 @@ public:
             for (int i = 0; i < numInstances; ++i)
             {
                 IAVClock::Id clockId;
+                bool isClockInUse = false;
+
                 const auto& [sinkId, sinkHandle, controlListener, eventListener] = usableSinks[i];
                 const auto& [_decoderId, _, decoderControlListener, __, ___] = usableDecoders[i];
 
@@ -419,7 +424,7 @@ public:
                                                                 decoderControlListener,
                                                                 mAVBufferManager, _decoderId, clockId,
                                                                 secureDecode, isTunnel,
-                                                                testConfig);
+                                                                testConfig, isClockInUse);
                 sinkThreads.emplace_back(&AudioSinkTest::run, sinkTest.get());
                 sinkTests.push_back(std::move(sinkTest));
             }
@@ -441,6 +446,9 @@ public:
                 if (t.joinable()) t.join();
             for (auto& t : sinkThreads)
                 if (t.joinable()) t.join();
+
+            // Destroy decoder tests now so their pool destructors fire before the metrics check
+            decoderTests.clear();
 
             // Get heap metrics
             AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
@@ -486,6 +494,12 @@ public:
 
     void TearDown() override
     {
+        for (const auto& entry : mAudioDecoderList)
+        {
+            AUDIODECODER_UNREGISTER_EVENT_SUCCESS(std::get<1>(entry), std::get<3>(entry));
+        }
+        mAudioDecoderList.clear();
+
         for (const auto& [_sinkId, sinkHandle, controlListener, eventListener] : mAudioSinkList)
         {
             /* Un-register the events */

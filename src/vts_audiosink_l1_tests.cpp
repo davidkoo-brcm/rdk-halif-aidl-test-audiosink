@@ -1458,6 +1458,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, attachClock_neg)
     sp<IAudioSink> audioSink;
 
     std::vector<int32_t> clockIds = gAudiosinksHFP.availableClockIds;
+    UT_ASSERT_FALSE(clockIds.empty());
+    if (clockIds.empty())
+    {
+        UT_LOG_ERROR("No available clock IDs in HFP - cannot run attachClock_neg test");
+        return;
+    }
 
     std::sort(clockIds.begin(), clockIds.end());
     int32_t invalidLowId = clockIds.front() - 10;
