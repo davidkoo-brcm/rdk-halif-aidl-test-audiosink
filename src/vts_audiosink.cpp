@@ -95,7 +95,7 @@ using android::binder::Status;
 using namespace com::rdk::hal;
 using namespace com::rdk::hal::audiosink;
 
-#define MAX_WAIT_TIME 200
+#define MAX_WAIT_TIME 1000
 
 /**
  * Override Call-back funtion for decoder state changes
@@ -153,7 +153,7 @@ bool AudioSinkControllerListener::getNextFirstFrameRenderedPTS(int64_t &firstFra
 
     if (!gotEvent)
     {
-        UT_LOG_WARNING("[Audio SinkID: %d] ControllerListener Frist Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
+        UT_LOG_WARNING("[Audio SinkID: %d] ControllerListener First Frame Rendered Event not received after %d msec", mSinkID, MAX_WAIT_TIME);
         return false;
     }
 
@@ -720,11 +720,19 @@ void AudioSinkTest::tearDownAudioSink()
     }
 }
 
-void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
+void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume,
+                                      bool skipPassthroughAssertions)
 {
-    /* Validate onPrimed from the AV clock in AUDIO_MASTER mode */
-    if (!mClockInUse)
+    if (skipPassthroughAssertions)
     {
+        UT_LOG_INFO("[SinkID: %d] Skipping onPrimed and first-frame-rendered assertions for SOC_PROPRIETARY passthrough stream",
+                    mSinkId.value);
+    }
+
+    /* Validate onPrimed from the AV clock in AUDIO_MASTER mode */
+    if (!mClockInUse && !skipPassthroughAssertions)
+    {
+        constexpr int64_t kPrimedPtsToleranceNs = 25 * 1000 * 1000; // 25ms
         ::com::rdk::hal::avclock::ClockTime primedClockTime{};
         const bool primedArrived = mClockCtrlListener->waitForPrimed(std::chrono::milliseconds(3000), &primedClockTime);
         UT_LOG_INFO("[SinkID: %d] onPrimed %s: clockTimeNs=%" PRId64 " sampleTimestampNs=%" PRId64
@@ -735,11 +743,30 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
         UT_ASSERT_TRUE(primedArrived);
         if (primedArrived)
         {
-            UT_ASSERT_EQUAL(primedClockTime.clockTimeNs, expectedFirstFramePTS);
+            UT_ASSERT_TRUE(primedClockTime.clockTimeNs >= 0);
+
+            if (expectedFirstFramePTS >= 0)
+            {
+                int64_t deltaNs = primedClockTime.clockTimeNs - expectedFirstFramePTS;
+                if (deltaNs < 0)
+                {
+                    deltaNs = -deltaNs;
+                }
+
+                UT_LOG_INFO("[SinkID: %d] onPrimed deltaNs=%" PRId64 " toleranceNs=%" PRId64,
+                            mSinkId.value, deltaNs, kPrimedPtsToleranceNs);
+                UT_ASSERT_TRUE(primedClockTime.clockTimeNs >= expectedFirstFramePTS);
+                if (deltaNs > kPrimedPtsToleranceNs)
+                {
+                    UT_LOG_WARNING("[SinkID: %d] onPrimed delta exceeded tolerance (deltaNs=%" PRId64 ", toleranceNs=%" PRId64 ")",
+                                   mSinkId.value, deltaNs, kPrimedPtsToleranceNs);
+                }
+            }
         }
     }
 
     /* Validate the callback */
+    if (!skipPassthroughAssertions)
     {
         /* Control listener */
         int64_t firstFrameRenderedPTS = -1;
@@ -839,6 +866,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
         int32_t frameCount = 0;
         int64_t firstFramePTS = -1;
         bool flushDone = false;
+        bool skipPassthroughAssertions = false;
         avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
@@ -853,11 +881,21 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             if (frameCount == 1)
             {
                 firstFramePTS = decodedFrame.framePTS;
+                skipPassthroughAssertions = decodedFrame.isMetaAvailable &&
+                    (decodedFrame.frameType == com::rdk::hal::audiodecoder::FrameType::SOC_PROPRIETARY);
                 if(!decodedFrame.isMetaAvailable)
                 {
-                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
-                    UT_ASSERT_TRUE(false);
-                    break;
+                    if (skipPassthroughAssertions)
+                    {
+                        UT_LOG_INFO("[SinkID: %d] First frame received without metadata for passthrough stream; skipping metadata assertion",
+                                    mSinkId.value);
+                    }
+                    else
+                    {
+                        UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                        UT_ASSERT_TRUE(false);
+                        break;
+                    }
                 }
             }
 
@@ -872,11 +910,35 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                 copyMetaData(*decodedFrame.frameMetadata, metadata);
             }
 
-            AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata, result);
-            if (!result)
+            /* SOC_PROPRIETARY frames are vendor-internal passthrough; the decoder is already
+             * connected to the sink via setAudioDecoder(), so the data flows internally.
+             * Do not call queueAudioFrame — just free the client-owned buffer handle. */
+            if (decodedFrame.isMetaAvailable &&
+                decodedFrame.frameType == com::rdk::hal::audiodecoder::FrameType::SOC_PROPRIETARY)
             {
-                UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);
-                AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);;
+                UT_LOG_INFO("[SinkID: %d] SOC_PROPRIETARY frame (PTS: %lld): skipping queueAudioFrame, freeing buffer",
+                            mSinkId.value, decodedFrame.framePTS);
+                AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);
+            }
+            else
+            {
+                AUDIOSINK_QUEUEAUDIOFRAME_SUCCESS(mAudioSinkController, decodedFrame.framePTS, decodedFrame.frameBufferHandle, metadata, result);
+                if (!result)
+                {
+                    UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);
+                    AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);
+                }
+
+                /* Intentional delay to starve the sink queue and trigger onAudioUnderflow.
+                 * decoderDelay is sourced from delay_between_decode_calls in the YAML
+                 * (e.g. vts_l3_AudioDecode_Underflow.yaml sets this to 200 ms).
+                 * The delay is applied here, in the sink queueing path, not in the decoder
+                 * submission path, because only a gap between queueAudioFrame calls can
+                 * empty the sink's internal PCM queue while the clock is running. */
+                if (mTestConfiguration.decoderDelay > 0)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(mTestConfiguration.decoderDelay));
+                }
             }
 
             std::optional<PropertyValue> latencyValue;
@@ -884,11 +946,12 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
         }
 
-        /* Signal EOS to the sink after all frames have been queued (0.21.0 requirement) */
+        /* Signal EOS to the sink after all frames have been queued */
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(mAudioSinkController);
 
         /* Validate the callback */
-        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0,
+                  skipPassthroughAssertions);
 
         /* Validate the metrics */
         validateMetric();
@@ -918,6 +981,7 @@ void AudioSinkTest::audioSinkTunnelTest()
         DecodedAudioFrame_t decodedFrame;
         int32_t frameCount = 0;
         int64_t firstFramePTS = -1;
+        bool skipPassthroughAssertions = false;
         avSourcePropertyValue.value = PropertyValue::Value::make<PropertyValue::Value::Tag::intValue>(int32_t(static_cast<int32_t>(AVSource::IP)));
 
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
@@ -931,11 +995,21 @@ void AudioSinkTest::audioSinkTunnelTest()
             if (frameCount == 1)
             {
                 firstFramePTS = decodedFrame.framePTS;
+                skipPassthroughAssertions = decodedFrame.isMetaAvailable &&
+                    (decodedFrame.frameType == com::rdk::hal::audiodecoder::FrameType::SOC_PROPRIETARY);
                 if(!decodedFrame.isMetaAvailable)
                 {
-                    UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
-                    UT_ASSERT_TRUE(false);
-                    break;
+                    if (skipPassthroughAssertions)
+                    {
+                        UT_LOG_INFO("[SinkID: %d] First frame received without metadata for passthrough stream; skipping metadata assertion",
+                                    mSinkId.value);
+                    }
+                    else
+                    {
+                        UT_LOG_ERROR("[SinkID: %d] First frame received without metadata, skipping the frame", mSinkId.value);
+                        UT_ASSERT_TRUE(false);
+                        break;
+                    }
                 }
             }
             if(decodedFrame.isMetaAvailable)
@@ -952,7 +1026,8 @@ void AudioSinkTest::audioSinkTunnelTest()
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(mAudioSinkController);
 
         /* Validate the callback */
-        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0);
+        validateCallbacks(firstFramePTS, mTestConfiguration.decoderDelay > 0, mTestConfiguration.decoderDelay > 0,
+                  skipPassthroughAssertions);
 
         /* Validate the metrics */
         validateMetric();

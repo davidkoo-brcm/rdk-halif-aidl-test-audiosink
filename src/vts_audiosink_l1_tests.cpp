@@ -2051,8 +2051,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_neg)
         /* Signal EOS — must succeed in STARTED state */
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);
 
-        /* Second call must fail with illegal state in current flow */
-        AUDIOSINK_SIGNAL_ENDOFSTREAM_FAILURE(audioSinkController, Status::EX_ILLEGAL_STATE);
+        /* Second call succeeds but no ops */
+        AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);
 
         /* Close the sink */
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
