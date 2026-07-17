@@ -976,8 +976,7 @@ private:
     void tearDownClock();
     void setupAudioSink();
     void tearDownAudioSink();
-    void validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume,
-                           bool skipPassthroughAssertions);
+    void validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume);
     void copyMetaData(const audiodecoder::FrameMetadata& source, audiodecoder::FrameMetadata& destination);
     void validateMetric();
 };
