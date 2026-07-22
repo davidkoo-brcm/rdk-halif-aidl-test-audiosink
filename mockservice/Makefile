@@ -20,45 +20,77 @@
 # *
 #** ******************************************************************************
 
-.PHONY: all
+.PHONY: all clean check-libs
 
 MOCK_SERVICE_BIN := MockAudioSinkService
-AUDIOSINK_AIDL_LIB_NAME := audiosinkaidl
-AUDIODECODER_AIDL_LIB_NAME := audiodecoderaidl
-AUDIO_SINK_AIDL_GEN_DIR ?= $(BUILD_DIR)/audiosink_gen/current
-VIDEO_DECODER_AIDL_GEN_DIR ?= $(BUILD_DIR)/videodecoder_gen/current
-AUDIO_DECODER_AIDL_GEN_DIR ?= $(BUILD_DIR)/audiodecoder_gen/current
+
+BUILD_DIR ?= $(CURDIR)/../../../build
+RDK_HAL_DIR ?= $(BUILD_DIR)/../rdk-halif-aidl
 
 MOCK_SERVICE_DIR ?= $(CURDIR)/src
+MOCK_SERVICE_OBJ_DIR := $(CURDIR)/.obj
 
-BUILD_DIR ?= $(CURDIR)/../build
+# Build HALIF sources locally for host architecture so we do not link ARM-only
+# libs from out/target or build/usr/lib.
+AUDIO_SINK_CPP_SRC_DIR := $(RDK_HAL_DIR)/audiosink/0.2.0.0/src/com/rdk/hal/audiosink
+AUDIO_DECODER_CPP_SRC_DIR := $(RDK_HAL_DIR)/audiodecoder/0.2.0.0/src/com/rdk/hal/audiodecoder
+AVCLOCK_CPP_SRC_DIR := $(RDK_HAL_DIR)/avclock/0.2.0.0/src/com/rdk/hal/avclock
+COMMON_CPP_SRC_DIR := $(RDK_HAL_DIR)/common/0.2.0.0/src/com/rdk/hal
 
-MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSink.cpp
-MOCK_SERVICE_BIN_SRC += $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
+MOCK_SERVICE_BIN_SRC := $(MOCK_SERVICE_DIR)/AudioSinkService.cpp
+MOCK_SERVICE_BIN_SRC += $(MOCK_SERVICE_DIR)/AudioSink.cpp
+MOCK_SERVICE_BIN_SRC += $(wildcard $(AUDIO_SINK_CPP_SRC_DIR)/*.cpp)
+MOCK_SERVICE_BIN_SRC += $(wildcard $(AUDIO_DECODER_CPP_SRC_DIR)/*.cpp)
+MOCK_SERVICE_BIN_SRC += $(wildcard $(AVCLOCK_CPP_SRC_DIR)/*.cpp)
+MOCK_SERVICE_BIN_SRC += $(wildcard $(COMMON_CPP_SRC_DIR)/*.cpp)
 
-MOCK_SERVICE_INC_FLAGS := -I$(AUDIO_DECODER_AIDL_GEN_DIR)/h
-MOCK_SERVICE_INC_FLAGS += -I$(AUDIO_SINK_AIDL_GEN_DIR)/h
-MOCK_SERVICE_INC_FLAGS += -I$(VIDEO_DECODER_AIDL_GEN_DIR)/h
+MOCK_SERVICE_INC_FLAGS := -I$(BUILD_DIR)/audiodecoder_gen/current/h
+MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/audiosink_gen/current/h
+MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/videodecoder_gen/current/h
+MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/avclock_gen/current/h
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/audiodecoder/0.2.0.0/include
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/audiosink/0.2.0.0/include
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/avclock/0.2.0.0/include
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/common/0.2.0.0/include
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/out/target/include
+MOCK_SERVICE_INC_FLAGS += -I$(RDK_HAL_DIR)/out/build/include/binder_sdk
 MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/usr/include
 MOCK_SERVICE_INC_FLAGS += -I$(MOCK_SERVICE_DIR)
 
-MOCK_SERVICE_LD_LIBS := -lbinder -lutils
+MOCK_SERVICE_LDFLAGS := -L$(RDK_HAL_DIR)/build/binder
+MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(RDK_HAL_DIR)/build/binder
 
-MOCK_SERVICE_LDFLAGS := -L$(BUILD_DIR)/usr/lib
-MOCK_SERVICE_LDFLAGS += -Wl,-rpath-link=$(BUILD_DIR)/usr/lib
+MOCK_SERVICE_LD_LIBS := -lbinder -lutils -lbase -lcutils -llog -lpthread
 
 MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
 
+MOCK_SERVICE_OBJ := $(patsubst $(CURDIR)/%, $(MOCK_SERVICE_OBJ_DIR)/%, $(MOCK_SERVICE_BIN_SRC:.cpp=.o))
 MOCK_SERVICE_BIN := $(BUILD_DIR)/bin/$(MOCK_SERVICE_BIN)
 
 all: $(MOCK_SERVICE_BIN)
 
-$(MOCK_SERVICE_BIN): $(MOCK_SERVICE_BIN_SRC:%.cpp=%.o)
-	g++ $(MOCK_SERVICE_LDFLAGS) \
-		$(MOCK_SERVICE_BIN_SRC:%.cpp=%.o) -o $@ \
-		$(MOCK_SERVICE_LD_LIBS) -l$(AUDIODECODER_AIDL_LIB_NAME) -l$(AUDIOSINK_AIDL_LIB_NAME)
+check-libs:
+	@echo "Checking required libraries..."
+	@test -d "$(RDK_HAL_DIR)" || { echo "ERROR: missing $(RDK_HAL_DIR)"; exit 1; }
+	@test -d "$(AUDIO_SINK_CPP_SRC_DIR)" || { echo "ERROR: missing $(AUDIO_SINK_CPP_SRC_DIR)"; exit 1; }
+	@test -d "$(AUDIO_DECODER_CPP_SRC_DIR)" || { echo "ERROR: missing $(AUDIO_DECODER_CPP_SRC_DIR)"; exit 1; }
+	@test -d "$(AVCLOCK_CPP_SRC_DIR)" || { echo "ERROR: missing $(AVCLOCK_CPP_SRC_DIR)"; exit 1; }
+	@test -d "$(COMMON_CPP_SRC_DIR)" || { echo "ERROR: missing $(COMMON_CPP_SRC_DIR)"; exit 1; }
+	@test -e "$(RDK_HAL_DIR)/build/binder/libbinder.so" || { echo "ERROR: missing host binder lib $(RDK_HAL_DIR)/build/binder/libbinder.so - run rdk-halif-aidl/build_binder.sh"; exit 1; }
+	@test -e "$(RDK_HAL_DIR)/build/binder/libutils.so" || { echo "ERROR: missing host binder lib $(RDK_HAL_DIR)/build/binder/libutils.so - run rdk-halif-aidl/build_binder.sh"; exit 1; }
+	@echo "Library check passed"
 
-# do not clash with `ut-core` by chaning the object file name to .o.1
-%.o: %.cpp
+$(MOCK_SERVICE_BIN): check-libs $(MOCK_SERVICE_OBJ)
+	@mkdir -p $(dir $@)
+	g++ $(MOCK_SERVICE_LDFLAGS) \
+		$(MOCK_SERVICE_OBJ) -o $@ \
+		$(MOCK_SERVICE_LD_LIBS)
+
+$(MOCK_SERVICE_OBJ_DIR)/%.o: $(CURDIR)/%.cpp
+	@mkdir -p $(dir $@)
 	g++ $(MOCK_SERVICE_CFLAGS) $(MOCK_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
+
+clean:
+	rm -rf $(MOCK_SERVICE_OBJ_DIR)
+	rm -f $(MOCK_SERVICE_BIN)
 
