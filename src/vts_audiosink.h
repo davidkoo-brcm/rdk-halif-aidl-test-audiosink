@@ -783,7 +783,7 @@ public:
 
     bool waitForState(::com::rdk::hal::audiosink::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();
-    bool checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
+    bool checkStateTransition(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
     bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
     bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
     bool getNextAudioResumedPTS(int64_t &audioResumedPTS);
@@ -833,7 +833,7 @@ public:
     Status onFlushComplete() override;
     bool waitForState(::com::rdk::hal::audiosink::State desiredState, std::chrono::milliseconds timeout);
     void resetStateChanges();
-    bool checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
+    bool checkStateTransition(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState);
     bool getNextFirstFrameRenderedPTS(int64_t &firstFramePTS);
     bool getNextEndOfStreamPTS(int64_t &endOfStreamPTS);
     bool getNextAudioResumedPTS(int64_t &audioResumedPTS);

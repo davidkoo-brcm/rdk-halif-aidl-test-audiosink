@@ -2007,8 +2007,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_pos)
  * @brief Test the negative scenario of signalEndOfStream in AudioSinkController.
  *
  * This test verifies state-dependent behavior of signalEndOfStream():
- * it fails with EX_ILLEGAL_STATE in READY state, succeeds once in STARTED,
- * and then fails again with EX_ILLEGAL_STATE on a repeated call.
+ * it fails with EX_ILLEGAL_STATE in READY state and succeeds when called
+ * repeatedly while the sink remains in STARTED state.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 032@n
@@ -2022,8 +2022,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_pos)
  * | 03 | Call signalEndOfStream() in READY state | None | EX_ILLEGAL_STATE | Should Fail |
  * | 04 | Start the audio sink (STARTED state) | None | Status OK | Should Pass |
  * | 05 | Call signalEndOfStream() in STARTED state | None | Status OK, EX_NONE | Should Pass |
- * | 06 | Call signalEndOfStream() again in STARTED flow | None | EX_ILLEGAL_STATE | Should Fail |
- * | 07 | Stop and close the sink | None | Status OK | Should Pass |
+ * | 06 | Call queueAudioFrame() after signalEndOfStream() | Valid frame metadata | EX_ILLEGAL_STATE | Should Fail |
+ * | 07 | Call signalEndOfStream() again in STARTED flow | None | Status OK, EX_NONE | Should Pass |
+ * | 08 | Stop and close the sink | None | Status OK | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_neg)
 {
@@ -2036,6 +2037,27 @@ UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_neg)
     {
         sp<IAudioSinkController> audioSinkController;
         sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
+        int64_t nsPresentationTime = 1000000;
+        int64_t bufferHandle = 1;
+        com::rdk::hal::audiodecoder::FrameMetadata metadata;
+
+        metadata.sourceCodec = com::rdk::hal::audiodecoder::Codec::PCM;
+        metadata.isDolbyAtmos = false;
+        metadata.trimStartNs = 0;
+        metadata.trimEndNs = 0;
+        metadata.lowLatency = false;
+        metadata.discontinuity = false;
+        metadata.source = AVSource::SYSTEM;
+        metadata.metadata.emplace();
+        auto& pcmRef = *metadata.metadata;
+        pcmRef.numChannels = 2;
+        pcmRef.channelTypes = {
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_LEFT,
+            com::rdk::hal::audiodecoder::ChannelType::FRONT_RIGHT
+        };
+        pcmRef.sampleRate = 44100;
+        pcmRef.format = com::rdk::hal::audiodecoder::PCMFormat::S16LE;
+        pcmRef.planarFormat = false;
 
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
@@ -2050,6 +2072,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, signalEndOfStream_neg)
 
         /* Signal EOS — must succeed in STARTED state */
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);
+
+        /* queueAudioFrame() must fail once EOS has been signaled */
+        AUDIOSINK_QUEUEAUDIOFRAME_FAILURE(audioSinkController, nsPresentationTime, bufferHandle, metadata, Status::EX_ILLEGAL_STATE);
 
         /* Second call succeeds but no ops */
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(audioSinkController);

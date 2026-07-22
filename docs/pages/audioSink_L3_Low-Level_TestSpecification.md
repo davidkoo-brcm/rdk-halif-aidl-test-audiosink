@@ -243,7 +243,7 @@ classDiagram
         onFlushComplete()
         waitForState()
         resetStateChanges()
-        checkStateTransistion()
+        checkStateTransition()
         getNextFirstFrameRenderedPTS()
         getNextEndOfStreamPTS()
         getNextAudioResumedPTS()
@@ -269,7 +269,7 @@ classDiagram
 |11|getFlushCompleteCount|bool reset|Returns the current flush complete count; resets it if requested.|
 |12|waitForState|State desiredState<br>chrono::milliseconds timeout|Waits for the state to change to the desired state or until timeout.|
 |13|resetStateChanges|None|Clears the recorded state transitions.|
-|14|checkStateTransistion|State expOldState<br>State expNewState|Checks if the expected state transition has occurred.|
+|14|checkStateTransition|State expOldState<br>State expNewState|Checks if the expected state transition has occurred.|
 
 ### AudioSinkEventListener Class
 
@@ -290,7 +290,7 @@ classDiagram
         onFlushComplete()
         waitForState()
         resetStateChanges()
-        checkStateTransistion()
+        checkStateTransition()
         getNextFirstFrameRenderedPTS()
         getNextEndOfStreamPTS()
         getNextAudioResumedPTS()
@@ -316,7 +316,7 @@ classDiagram
 |11|getFlushCompleteCount|bool reset|Returns the current flush complete count; resets it if requested.|
 |12|waitForState|State desiredState<br>chrono::milliseconds timeout|Waits for the state to change to the desired state or until timeout.|
 |13|resetStateChanges|None|Clears the recorded state transitions.|
-|14|checkStateTransistion|State expOldState<br>State expNewState|Checks if the expected state transition has occurred.|
+|14|checkStateTransition|State expOldState<br>State expNewState|Checks if the expected state transition has occurred.|
 
 ## Common Validation Functions
 

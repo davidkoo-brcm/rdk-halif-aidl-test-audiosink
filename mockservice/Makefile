@@ -44,6 +44,9 @@ MOCK_SERVICE_BIN_SRC += $(wildcard $(AUDIO_DECODER_CPP_SRC_DIR)/*.cpp)
 MOCK_SERVICE_BIN_SRC += $(wildcard $(AVCLOCK_CPP_SRC_DIR)/*.cpp)
 MOCK_SERVICE_BIN_SRC += $(wildcard $(COMMON_CPP_SRC_DIR)/*.cpp)
 
+MOCK_SERVICE_LOCAL_SRC := $(filter $(MOCK_SERVICE_DIR)/%.cpp,$(MOCK_SERVICE_BIN_SRC))
+MOCK_SERVICE_RDK_HAL_SRC := $(filter $(RDK_HAL_DIR)/%.cpp,$(MOCK_SERVICE_BIN_SRC))
+
 MOCK_SERVICE_INC_FLAGS := -I$(BUILD_DIR)/audiodecoder_gen/current/h
 MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/audiosink_gen/current/h
 MOCK_SERVICE_INC_FLAGS += -I$(BUILD_DIR)/videodecoder_gen/current/h
@@ -64,7 +67,8 @@ MOCK_SERVICE_LD_LIBS := -lbinder -lutils -lbase -lcutils -llog -lpthread
 
 MOCK_SERVICE_CFLAGS := -Wall -Wextra -std=c++17 -ggdb
 
-MOCK_SERVICE_OBJ := $(patsubst $(CURDIR)/%, $(MOCK_SERVICE_OBJ_DIR)/%, $(MOCK_SERVICE_BIN_SRC:.cpp=.o))
+MOCK_SERVICE_OBJ := $(patsubst $(MOCK_SERVICE_DIR)/%.cpp,$(MOCK_SERVICE_OBJ_DIR)/src/%.o,$(MOCK_SERVICE_LOCAL_SRC))
+MOCK_SERVICE_OBJ += $(patsubst $(RDK_HAL_DIR)/%.cpp,$(MOCK_SERVICE_OBJ_DIR)/rdk-halif-aidl/%.o,$(MOCK_SERVICE_RDK_HAL_SRC))
 MOCK_SERVICE_BIN := $(BUILD_DIR)/bin/$(MOCK_SERVICE_BIN)
 
 all: $(MOCK_SERVICE_BIN)
@@ -86,7 +90,11 @@ $(MOCK_SERVICE_BIN): check-libs $(MOCK_SERVICE_OBJ)
 		$(MOCK_SERVICE_OBJ) -o $@ \
 		$(MOCK_SERVICE_LD_LIBS)
 
-$(MOCK_SERVICE_OBJ_DIR)/%.o: $(CURDIR)/%.cpp
+$(MOCK_SERVICE_OBJ_DIR)/src/%.o: $(MOCK_SERVICE_DIR)/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(MOCK_SERVICE_CFLAGS) $(MOCK_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
+
+$(MOCK_SERVICE_OBJ_DIR)/rdk-halif-aidl/%.o: $(RDK_HAL_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(MOCK_SERVICE_CFLAGS) $(MOCK_SERVICE_INC_FLAGS) -fPIC -c $< -o $@
 

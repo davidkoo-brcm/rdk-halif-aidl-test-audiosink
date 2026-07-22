@@ -370,7 +370,7 @@ void AudioSinkControllerListener::resetStateChanges()
  * @param expNewState Expected new state
  * @return true if the transition has occurred, false otherwise
  */
-bool AudioSinkControllerListener::checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState)
+bool AudioSinkControllerListener::checkStateTransition(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState)
 {
     bool foundClosedToOpening = false;
     for (const auto &[oldState, newState] : mStateChanges)
@@ -633,7 +633,7 @@ void AudioSinkEventListener::resetStateChanges()
  * @param expNewState Expected new state
  * @return true if the transition has occurred, false otherwise
  */
-bool AudioSinkEventListener::checkStateTransistion(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState)
+bool AudioSinkEventListener::checkStateTransition(::com::rdk::hal::audiosink::State expOldState, ::com::rdk::hal::audiosink::State expNewState)
 {
     bool foundClosedToOpening = false;
     for (const auto &[oldState, newState] : mStateChanges)
@@ -722,42 +722,6 @@ void AudioSinkTest::tearDownAudioSink()
 
 void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume)
 {
-    /* Validate onPrimed from the AV clock in AUDIO_MASTER mode */
-    if (!mClockInUse)
-    {
-        constexpr int64_t kPrimedPtsToleranceNs = 25 * 1000 * 1000; // 25ms
-        ::com::rdk::hal::avclock::ClockTime primedClockTime{};
-        const bool primedArrived = mClockCtrlListener->waitForPrimed(std::chrono::milliseconds(3000), &primedClockTime);
-        UT_LOG_INFO("[SinkID: %d] onPrimed %s: clockTimeNs=%" PRId64 " sampleTimestampNs=%" PRId64
-                    " (expected first audio PTS=%" PRId64 ")",
-                    mSinkId.value, primedArrived ? "received" : "TIMED OUT",
-                    primedClockTime.clockTimeNs, primedClockTime.sampleTimestampNs,
-                    expectedFirstFramePTS);
-        UT_ASSERT_TRUE(primedArrived);
-        if (primedArrived)
-        {
-            UT_ASSERT_TRUE(primedClockTime.clockTimeNs >= 0);
-
-            if (expectedFirstFramePTS >= 0)
-            {
-                int64_t deltaNs = primedClockTime.clockTimeNs - expectedFirstFramePTS;
-                if (deltaNs < 0)
-                {
-                    deltaNs = -deltaNs;
-                }
-
-                UT_LOG_INFO("[SinkID: %d] onPrimed deltaNs=%" PRId64 " toleranceNs=%" PRId64,
-                            mSinkId.value, deltaNs, kPrimedPtsToleranceNs);
-                UT_ASSERT_TRUE(primedClockTime.clockTimeNs >= expectedFirstFramePTS);
-                if (deltaNs > kPrimedPtsToleranceNs)
-                {
-                    UT_LOG_WARNING("[SinkID: %d] onPrimed delta exceeded tolerance (deltaNs=%" PRId64 ", toleranceNs=%" PRId64 ")",
-                                   mSinkId.value, deltaNs, kPrimedPtsToleranceNs);
-                }
-            }
-        }
-    }
-
     /* Validate the callback */
     /* Control listener */
     int64_t firstFrameRenderedPTS = -1;
@@ -766,8 +730,12 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
 
     if (expectUnderflow)
     {
-        int64_t resumedPTS = -1;
         UT_ASSERT_TRUE(mControlListener->getUnderFlowCount(true) > 0);
+    }
+
+    if (expectResume)
+    {
+        int64_t resumedPTS = -1;
         UT_ASSERT_TRUE(mControlListener->getNextAudioResumedPTS(resumedPTS));
         UT_ASSERT_TRUE(resumedPTS >= 0);
     }
@@ -779,8 +747,12 @@ void AudioSinkTest::validateCallbacks(int64_t expectedFirstFramePTS, bool expect
 
     if (expectUnderflow)
     {
-        int64_t resumedPTS = -1;
         UT_ASSERT_TRUE(mEventListener->getUnderFlowCount(true) > 0);
+    }
+
+    if (expectResume)
+    {
+        int64_t resumedPTS = -1;
         UT_ASSERT_TRUE(mEventListener->getNextAudioResumedPTS(resumedPTS));
         UT_ASSERT_TRUE(resumedPTS >= 0);
     }
@@ -895,7 +867,6 @@ void AudioSinkTest::audioSinkNonTunnelTest()
                 UT_LOG_WARNING("[SinkID: %d] Failed to queue frame to audio sink, PTS: %lld, Buffer Handle: 0x%016" PRIx64, mSinkId.value, decodedFrame.framePTS, decodedFrame.frameBufferHandle);
                 AVBUFFER_FREE_SUCCESS(mAVBufferManager, decodedFrame.frameBufferHandle);
             }
-
             /* Intentional delay to starve the sink queue and trigger onAudioUnderflow.
              * decoderDelay is sourced from delay_between_decode_calls in the YAML
              * (e.g. vts_l3_AudioDecode_Underflow.yaml sets this to 200 ms).

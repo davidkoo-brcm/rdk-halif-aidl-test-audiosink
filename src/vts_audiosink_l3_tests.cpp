@@ -199,8 +199,8 @@ public:
     {
         ::com::rdk::hal::audiosink::State currentState;
 
-        UT_ASSERT_TRUE(eventListener->checkStateTransistion(oldState, intermediateState));
-        UT_ASSERT_TRUE(controlListener->checkStateTransistion(oldState, intermediateState));
+        UT_ASSERT_TRUE(eventListener->checkStateTransition(oldState, intermediateState));
+        UT_ASSERT_TRUE(controlListener->checkStateTransition(oldState, intermediateState));
 
         eventListener->waitForState(newState, std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
         controlListener->waitForState(newState, std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
@@ -209,8 +209,8 @@ public:
 
         UT_ASSERT_EQUAL(currentState, newState);
 
-        UT_ASSERT_TRUE(eventListener->checkStateTransistion(intermediateState, newState));
-        UT_ASSERT_TRUE(controlListener->checkStateTransistion(intermediateState, newState));
+        UT_ASSERT_TRUE(eventListener->checkStateTransition(intermediateState, newState));
+        UT_ASSERT_TRUE(controlListener->checkStateTransition(intermediateState, newState));
 
         eventListener->resetStateChanges();
         controlListener->resetStateChanges();

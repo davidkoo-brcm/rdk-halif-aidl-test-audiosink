@@ -152,8 +152,8 @@ VTS_L2_AudioSink() : UTCore() {}
         // Sleep for a short duration to allow state changes to be captured by listeners
         std::this_thread::sleep_for(std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
 
-        UT_ASSERT_TRUE(eventListener->checkStateTransistion(oldState, intermediateState));
-        UT_ASSERT_TRUE(controlListener->checkStateTransistion(oldState, intermediateState));
+        UT_ASSERT_TRUE(eventListener->checkStateTransition(oldState, intermediateState));
+        UT_ASSERT_TRUE(controlListener->checkStateTransition(oldState, intermediateState));
 
         eventListener->waitForState(newState, std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
         controlListener->waitForState(newState, std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
@@ -161,8 +161,8 @@ VTS_L2_AudioSink() : UTCore() {}
         AUDIOSINK_GET_STATE(sink, currentState);
         UT_ASSERT_EQUAL(currentState, newState);
 
-        UT_ASSERT_TRUE(eventListener->checkStateTransistion(intermediateState, newState));
-        UT_ASSERT_TRUE(controlListener->checkStateTransistion(intermediateState, newState));
+        UT_ASSERT_TRUE(eventListener->checkStateTransition(intermediateState, newState));
+        UT_ASSERT_TRUE(controlListener->checkStateTransition(intermediateState, newState));
 
         eventListener->resetStateChanges();
         controlListener->resetStateChanges();

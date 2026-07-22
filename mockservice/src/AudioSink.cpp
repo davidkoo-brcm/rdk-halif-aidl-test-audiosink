@@ -34,9 +34,11 @@ namespace com {
 
                 State g_audiosink_state[NUM_AUDIO_SINK] = {State::UNKNOWN, State::UNKNOWN};
                 audiodecoder::IAudioDecoder::Id g_audiodecoder_id[NUM_AUDIO_SINK];
+                bool g_audiodecoder_selected[NUM_AUDIO_SINK];
                 int32_t g_resource_id[NUM_AUDIO_SINK];
                 int32_t g_queue_depth_ns[NUM_AUDIO_SINK];
                 int32_t g_render_latency_ns[NUM_AUDIO_SINK];
+                avclock::IAVClock::Id g_avclock_id[NUM_AUDIO_SINK];
 
                 /* Read Write Properties */
                 AVSource g_av_source[NUM_AUDIO_SINK];
@@ -44,9 +46,13 @@ namespace com {
                 int32_t g_mixer_id[NUM_AUDIO_SINK];
                 int32_t g_reference_level[NUM_AUDIO_SINK];
                 Volume g_volume[NUM_AUDIO_SINK];
+                bool g_eos_signaled[NUM_AUDIO_SINK];
+                android::sp<audiosink::IAudioSinkEventListener> g_audioSinkEventListeners[NUM_AUDIO_SINK];
+                android::sp<audiosink::IAudioSinkControllerListener> g_audioSinkControllerListeners[NUM_AUDIO_SINK];
 
                 std::mutex state_mutex;
                 std::mutex ramp_mutex;
+                std::mutex event_listener_mutex;
                 std::condition_variable state_cv;
                 std::condition_variable conditionVar;
 
@@ -60,7 +66,12 @@ namespace com {
                         g_volume[i].volume = 1.0;
                         g_volume[i].muted = false;
                         g_audiodecoder_id[i].value = audiodecoder::IAudioDecoder::Id::UNDEFINED;
+                        g_audiodecoder_selected[i] = false;
+                        g_avclock_id[i].value = avclock::IAVClock::Id::UNDEFINED;
                         g_resource_id[i] = i;
+                        g_eos_signaled[i] = false;
+                        g_audioSinkEventListeners[i] = nullptr;
+                        g_audioSinkControllerListeners[i] = nullptr;
                     }
                     printf("AudioSinkManager service initialized\n");
                 }
@@ -69,10 +80,51 @@ namespace com {
                     printf("AudioSinkManager service destroyed\n");
                 }
 
-                android::sp<audiosink::IAudioSinkEventListener> _audioSinkEventListener;
+                static inline int32_t canonicalSinkIndex(int64_t rawSinkId)
+                {
+                    if (rawSinkId == g_resource_id[0]) {
+                        return 0;
+                    }
+                    if (rawSinkId == g_resource_id[1]) {
+                        return 1;
+                    }
+                    if (rawSinkId < 0) {
+                        return -1;
+                    }
+                    return static_cast<int32_t>(rawSinkId & 0x1);
+                }
+
+                static inline void notifyStateChanged(int32_t sinkId, State oldState, State newState)
+                {
+                    const int32_t sinkIndex = canonicalSinkIndex(sinkId);
+                    if (sinkIndex < 0 || sinkIndex >= NUM_AUDIO_SINK) {
+                        return;
+                    }
+
+                    android::sp<audiosink::IAudioSinkEventListener> eventListener;
+                    android::sp<audiosink::IAudioSinkControllerListener> controllerListener;
+                    {
+                        std::lock_guard<std::mutex> lock(event_listener_mutex);
+                        eventListener = g_audioSinkEventListeners[sinkIndex];
+                        controllerListener = g_audioSinkControllerListeners[sinkIndex];
+                    }
+
+                    if (eventListener != nullptr) {
+                        eventListener->onStateChanged(oldState, newState);
+                    }
+
+                    if (controllerListener != nullptr) {
+                        controllerListener->onStateChanged(oldState, newState);
+                    }
+                }
 
                 android::binder::Status AudioSinkManager::getAudioSinkIds(  std::vector<IAudioSink::Id>* _aidl_return  )
                 {
+                    if (_aidl_return == nullptr) {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
+                    }
+
+                    _aidl_return->clear();
                     for (int32_t i = 0;i<NUM_AUDIO_SINK;i++)
                     {
                         audiosink::IAudioSink::Id sinkId;
@@ -92,6 +144,9 @@ namespace com {
                     _aidl_return->systemMixerSampleRateHz = 48000;
                     _aidl_return->systemMixerPCMFormat = com::rdk::hal::audiodecoder::PCMFormat::S32BE;
                     _aidl_return->supportsPlanarFormat = false;
+                    _aidl_return->supportsSoCProprietary = false;
+                    _aidl_return->maxNumChannels = 2;
+                    _aidl_return->supportsDolbyAtmos = false;
 
                     return android::binder::Status::ok();
                 }
@@ -121,6 +176,7 @@ namespace com {
                 AudioSink::AudioSink(IAudioSink::Id id)
                 {
                     this->id = id;
+                    this->id.value = canonicalSinkIndex(id.value);
                     this->event_listener = false;
                     printf("AudioSink service initialized\n");
                 }
@@ -130,8 +186,31 @@ namespace com {
                 }
 
                 android::binder::Status AudioSink::getCapabilities(  audiosink::Capabilities* _aidl_return  ) {
-                    //TBD
                     audiosink::Capabilities capabilities;
+
+                    // Normalize any non-canonical sink id encoding to one of the
+                    // two supported mock sinks so capability payload is never empty.
+                    const int64_t sinkKey =
+                        (this->id.value == g_resource_id[0] || this->id.value == g_resource_id[1])
+                            ? this->id.value
+                            : (this->id.value & 0x1);
+
+                    if (sinkKey == g_resource_id[0]) {
+                        capabilities.supportsSecure = true;
+                        capabilities.supportedContentTypes = {
+                            audiosink::ContentType::UNKNOWN,
+                            audiosink::ContentType::SPEECH,
+                            audiosink::ContentType::MUSIC,
+                            audiosink::ContentType::MOVIE,
+                            audiosink::ContentType::SONIFICATION,
+                        };
+                    } else {
+                        capabilities.supportsSecure = false;
+                        capabilities.supportedContentTypes = {
+                            audiosink::ContentType::SPEECH,
+                            audiosink::ContentType::MUSIC,
+                        };
+                    }
                     *_aidl_return = capabilities;
                     return android::binder::Status::ok();
                 }
@@ -185,6 +264,11 @@ namespace com {
                     *_aidl_return = true;
                     switch (property)
                     {
+                        case audiosink::Property::RESOURCE_ID:
+                        case audiosink::Property::RENDER_LATENCY_NS:
+                        case audiosink::Property::QUEUE_DEPTH_NS:
+                            *_aidl_return = false;
+                            return android::binder::Status::fromExceptionCode(android::binder::Status::EX_UNSUPPORTED_OPERATION);
                         case audiosink::Property::REFERENCE_LEVEL:
                             if(g_audiosink_state[this->id.value] != State::READY)
                             {
@@ -254,23 +338,50 @@ namespace com {
 
                 android::binder::Status AudioSink::getState(  State* _aidl_return  )
                 {
+                    if (this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK) {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
                     *_aidl_return = g_audiosink_state[this->id.value];
                     return android::binder::Status::ok();
                 }
 
 
-                android::binder::Status AudioSink::open(const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return  )
+                android::binder::Status AudioSink::open(ContentType contentType, const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return  )
                 {
-                    if(audioSinkControllerListener == nullptr)
+                    if (this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
                     {
                         *_aidl_return = nullptr;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
                     }
+
+                    if(audioSinkControllerListener == nullptr)
+                    {
+                        *_aidl_return = nullptr;
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
+                    }
+
                     if(g_audiosink_state[this->id.value] != State::CLOSED)
                     {
                         *_aidl_return = nullptr;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
+
+                    const int32_t contentTypeValue = static_cast<int32_t>(contentType);
+                    if (contentTypeValue < static_cast<int32_t>(ContentType::UNKNOWN) ||
+                        contentTypeValue > static_cast<int32_t>(ContentType::SONIFICATION))
+                    {
+                        *_aidl_return = nullptr;
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
+                    {
+                        std::lock_guard<std::mutex> lock(event_listener_mutex);
+                        g_audioSinkControllerListeners[this->id.value] = audioSinkControllerListener;
+                    }
+
+                    g_audiodecoder_id[this->id.value].value = audiodecoder::IAudioDecoder::Id::UNDEFINED;
+                    g_audiodecoder_selected[this->id.value] = false;
+                    g_eos_signaled[this->id.value] = false;
                     {
                         {
                             std::lock_guard <std::mutex> lock(state_mutex);
@@ -281,11 +392,8 @@ namespace com {
                         //average wait time to simulate transitory state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         std::cout << "[SERVICE]::Calling onStateChanged for OPENING...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::CLOSED, State::OPENING);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::CLOSED, State::OPENING);
+                        state_cv.notify_all();
                     }
                     {
                         {
@@ -297,11 +405,8 @@ namespace com {
                         //average wait time to simulate target state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(250));
                         std::cout << "[SERVICE]::Calling onStateChanged for READY...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::OPENING, State::READY);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::OPENING, State::READY);
+                        state_cv.notify_all();
                     }
                     *_aidl_return = new AudioSinkController(this->id);
                     return android::binder::Status::ok();
@@ -309,6 +414,12 @@ namespace com {
 
                 android::binder::Status AudioSink::close(  const android::sp<audiosink::IAudioSinkController>& audioSinkController, bool* _aidl_return  )
                 {
+                    if (this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
+                    {
+                        *_aidl_return = false;
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
                     if(g_audiosink_state[this->id.value] != State::READY)
                     {
                         *_aidl_return = false;
@@ -323,25 +434,25 @@ namespace com {
                         //average wait time to simulate transitory state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         std::cout << "[SERVICE]::Calling onStateChanged for CLOSING...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::READY, State::CLOSING);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::READY, State::CLOSING);
+                        state_cv.notify_all();
                     }
                     {
                         {
                             std::lock_guard <std::mutex> lock(state_mutex);
                             std::cout << "[SERVICE]::Changing state from CLOSING to CLOSED...\n";
                             g_audiosink_state[this->id.value] = State::CLOSED;
+                            g_audiodecoder_id[this->id.value].value = audiodecoder::IAudioDecoder::Id::UNDEFINED;
+                            g_audiodecoder_selected[this->id.value] = false;
                         }
                         //average wait time to simulate target state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(250));
                         std::cout << "[SERVICE]::Calling onStateChanged for CLOSED...\n";
-                        if(this->event_listener)
+                        notifyStateChanged(this->id.value, State::CLOSING, State::CLOSED);
+                        state_cv.notify_all();
                         {
-                            _audioSinkEventListener->onStateChanged(State::CLOSING, State::CLOSED);
-                            state_cv.notify_all();
+                            std::lock_guard<std::mutex> lock(event_listener_mutex);
+                            g_audioSinkControllerListeners[this->id.value] = nullptr;
                         }
                     }
                     * _aidl_return = true;
@@ -350,13 +461,28 @@ namespace com {
 
                 android::binder::Status AudioSink::registerEventListener(  const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return  )
                 {
-                    if(this->event_listener == true)
+                    if (this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
                     {
-                        std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is already registered ...exiting...\n";//added
                         *_aidl_return = false;
-                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
                     }
-                    _audioSinkEventListener = audioSinkEventListener;
+
+                    if(audioSinkEventListener == nullptr)
+                    {
+                        *_aidl_return = false;
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
+                    }
+                    {
+                        std::lock_guard<std::mutex> lock(event_listener_mutex);
+                        if(g_audioSinkEventListeners[this->id.value] != nullptr)
+                        {
+                            std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is already registered ...exiting...\n";//added
+                            *_aidl_return = false;
+                            this->event_listener = true;
+                            return android::binder::Status::ok();
+                        }
+                        g_audioSinkEventListeners[this->id.value] = audioSinkEventListener;
+                    }
                     *_aidl_return = true;
                     this->event_listener = true;
                     std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is registered successfully :: eventListener value : " << this->event_listener<<"\n";//added
@@ -365,11 +491,10 @@ namespace com {
 
                 android::binder::Status AudioSink::unregisterEventListener(  const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return  )
                 {
-                    if(this->event_listener ==false)
+                    if (this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
                     {
-                        std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is already unregistered ...exiting...\n";//added
                         *_aidl_return = false;
-                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
                     }
 
                     if(audioSinkEventListener == nullptr)
@@ -377,6 +502,18 @@ namespace com {
                         std::cout << "[SERVICE]::audioSinkEventListener for ID : " <<this->id.value<<" is NULL ...exiting...\n";//added
                         *_aidl_return = false;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
+                    }
+                    {
+                        std::lock_guard<std::mutex> lock(event_listener_mutex);
+                        if(g_audioSinkEventListeners[this->id.value] == nullptr ||
+                           IInterface::asBinder(g_audioSinkEventListeners[this->id.value]) != IInterface::asBinder(audioSinkEventListener))
+                        {
+                            std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is already unregistered ...exiting...\n";//added
+                            *_aidl_return = false;
+                            this->event_listener = false;
+                            return android::binder::Status::ok();
+                        }
+                        g_audioSinkEventListeners[this->id.value] = nullptr;
                     }
                     *_aidl_return = true;
                     std::cout << "[SERVICE]::eventListener for ID : " <<this->id.value<<" is unregistered successfully:: eventListener value : " << this->event_listener << "\n";//added
@@ -387,6 +524,12 @@ namespace com {
                 AudioSinkController::AudioSinkController(IAudioSink::Id id)
                 {
                     this->id = id;
+                    this->id.value = canonicalSinkIndex(id.value);
+                    if (this->id.value >= 0 && this->id.value < NUM_AUDIO_SINK)
+                    {
+                        g_audiodecoder_id[this->id.value].value = audiodecoder::IAudioDecoder::Id::UNDEFINED;
+                        g_audiodecoder_selected[this->id.value] = false;
+                    }
                     printf("AudioSinkController service initialized\n");
                 }
 
@@ -397,29 +540,93 @@ namespace com {
 
                 android::binder::Status AudioSinkController::setAudioDecoder(  const ::com::rdk::hal::audiodecoder::IAudioDecoder::Id& audioDecoderId, bool* _aidl_return  )
                 {
+                    if(this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
+                    {
+                        *_aidl_return = false;
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
                     if(g_audiosink_state[this->id.value] != State::READY)
                     {
                         *_aidl_return = false;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
 
-                    if(audioDecoderId.value < 0 || audioDecoderId.value > 1)
+                    if(audioDecoderId.value < 0 || audioDecoderId.value > 2)
                     {
                         *_aidl_return = false;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
                     }
                     g_audiodecoder_id[this->id.value] = audioDecoderId;
+                    g_audiodecoder_selected[this->id.value] = true;
                     *_aidl_return = true;
                     return android::binder::Status::ok();
                 }
 
                 android::binder::Status AudioSinkController::getAudioDecoder(  ::com::rdk::hal::audiodecoder::IAudioDecoder::Id* _aidl_return  )
                 {
+                    if(this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
                     if(g_audiosink_state[this->id.value] != State::READY && g_audiosink_state[this->id.value] != State::STARTED)
                     {
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
+                    if(!g_audiodecoder_selected[this->id.value])
+                    {
+                        _aidl_return->value = audiodecoder::IAudioDecoder::Id::UNDEFINED;
+                        return android::binder::Status::ok();
+                    }
                     *_aidl_return = g_audiodecoder_id[this->id.value];
+                    return android::binder::Status::ok();
+                }
+
+                android::binder::Status AudioSinkController::attachClock(const ::com::rdk::hal::avclock::IAVClock::Id& clockId)
+                {
+                    if(this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
+                    if(g_audiosink_state[this->id.value] != State::READY && g_audiosink_state[this->id.value] != State::STARTED)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                    }
+
+                    if (clockId.value == avclock::IAVClock::Id::UNDEFINED)
+                    {
+                        g_avclock_id[this->id.value].value = avclock::IAVClock::Id::UNDEFINED;
+                        return android::binder::Status::ok();
+                    }
+
+                    if (clockId.value < 0 || clockId.value > 2)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
+                    g_avclock_id[this->id.value] = clockId;
+                    return android::binder::Status::ok();
+                }
+
+                android::binder::Status AudioSinkController::detachClock()
+                {
+                    if(g_audiosink_state[this->id.value] != State::READY && g_audiosink_state[this->id.value] != State::STARTED)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                    }
+                    g_avclock_id[this->id.value].value = avclock::IAVClock::Id::UNDEFINED;
+                    return android::binder::Status::ok();
+                }
+
+                android::binder::Status AudioSinkController::getClock(::com::rdk::hal::avclock::IAVClock::Id* _aidl_return)
+                {
+                    if(g_audiosink_state[this->id.value] != State::READY && g_audiosink_state[this->id.value] != State::STARTED)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                    }
+                    *_aidl_return = g_avclock_id[this->id.value];
                     return android::binder::Status::ok();
                 }
 
@@ -433,16 +640,14 @@ namespace com {
                         {
                             std::lock_guard <std::mutex> lock(state_mutex);
                             std::cout << "[SERVICE]::Changing state from READY to STARTING...\n";
-                            g_audiosink_state[this->id.value] = State::STARTED;
+                            g_audiosink_state[this->id.value] = State::STARTING;
+                            g_eos_signaled[this->id.value] = false;
                         }
                         //average wait time to simulate transitory state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         std::cout << "[SERVICE]::Calling onStateChanged for STARTING...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::READY, State::STARTING);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::READY, State::STARTING);
+                        state_cv.notify_all();
                     }
                     {
                         {
@@ -453,11 +658,8 @@ namespace com {
                         //average wait time to simulate target state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(250));
                         std::cout << "[SERVICE]::Calling onStateChanged for STARTED...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::STARTING, State::STARTED);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::STARTING, State::STARTED);
+                        state_cv.notify_all();
                     }
                     return android::binder::Status::ok();
                 }
@@ -484,11 +686,8 @@ namespace com {
                         //average wait time to simulate transitory state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         std::cout << "[SERVICE]::Calling onStateChanged for STOPPING...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::STARTED, State::STOPPING);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::STARTED, State::STOPPING);
+                        state_cv.notify_all();
                     }
                     {
                         {
@@ -499,23 +698,64 @@ namespace com {
                         //average wait time to simulate target state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(250));
                         std::cout << "[SERVICE]::Calling onStateChanged for READY...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::STOPPING, State::READY);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::STOPPING, State::READY);
+                        state_cv.notify_all();
                     }
                     return android::binder::Status::ok();
                 }
 
                 android::binder::Status AudioSinkController::queueAudioFrame(  int64_t nsPresentationTime, int64_t bufferHandle, const ::com::rdk::hal::audiodecoder::FrameMetadata& metadata, bool* _aidl_return  )
                 {
+                    if(_aidl_return == nullptr)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_NULL_POINTER);
+                    }
+
+                    *_aidl_return = false;
+
+                    if(this->id.value < 0 || this->id.value >= NUM_AUDIO_SINK)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
                     if(g_audiosink_state[this->id.value] != State::STARTED)
                     {
-                        *_aidl_return = false;
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
+
+                    if(g_eos_signaled[this->id.value])
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                    }
+
+                    if (nsPresentationTime < 0 || bufferHandle < 0)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
+                    if (!metadata.metadata.has_value() || metadata.metadata->numChannels <= 0 ||
+                        metadata.metadata->sampleRate <= 0)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
+                    const auto expectedChannels = static_cast<size_t>(metadata.metadata->numChannels);
+                    if (!metadata.metadata->channelTypes.empty() && metadata.metadata->channelTypes.size() != expectedChannels)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_ARGUMENT);
+                    }
+
                     *_aidl_return = true;
+                    return android::binder::Status::ok();
+                }
+
+                android::binder::Status AudioSinkController::signalEndOfStream()
+                {
+                    if(g_audiosink_state[this->id.value] != State::STARTED)
+                    {
+                        return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
+                    }
+                    g_eos_signaled[this->id.value] = true;
                     return android::binder::Status::ok();
                 }
 
@@ -534,11 +774,8 @@ namespace com {
                         //average wait time to simulate transitory state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         std::cout << "[SERVICE]::Calling onStateChanged for FLUSHING...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::STARTED, State::FLUSHING);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::STARTED, State::FLUSHING);
+                        state_cv.notify_all();
                     }
                     {
                         {
@@ -549,11 +786,8 @@ namespace com {
                         //average wait time to simulate target state change
                         std::this_thread::sleep_for(std::chrono::milliseconds(250));
                         std::cout << "[SERVICE]::Calling onStateChanged for STARTED...\n";
-                        if(this->event_listener)
-                        {
-                            _audioSinkEventListener->onStateChanged(State::FLUSHING, State::STARTED);
-                            state_cv.notify_all();
-                        }
+                        notifyStateChanged(this->id.value, State::FLUSHING, State::STARTED);
+                        state_cv.notify_all();
                     }
                     return android::binder::Status::ok();
                 }
@@ -564,6 +798,13 @@ namespace com {
                     {
                         return android::binder::Status::fromExceptionCode(android::binder::Status::EX_ILLEGAL_STATE);
                     }
+
+                    // Ensure reads observe the finalized target value when a ramp is
+                    // still winding down near the test's sampling boundary.
+                    if (rampThread.joinable()) {
+                        rampThread.join();
+                    }
+
                     *_aidl_return = g_volume[this->id.value];
                     return android::binder::Status::ok();
                 }
@@ -640,7 +881,11 @@ namespace com {
                                     break;
                             }
 
-                            conditionVar.wait_for(rampLock, std::chrono::milliseconds(stepIntervalMs));
+                            // Do not wait after the final step so target volume is settled
+                            // strictly within the requested ramp duration.
+                            if (i + 1 < steps) {
+                                conditionVar.wait_for(rampLock, std::chrono::milliseconds(stepIntervalMs));
+                            }
                         }
 
                         // Ensure final volume is set
