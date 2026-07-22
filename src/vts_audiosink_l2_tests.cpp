@@ -143,11 +143,11 @@ VTS_L2_AudioSink() : UTCore() {}
 
     void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener,
                                       sp<AudioSinkControllerListener> controlListener,
-                                      com::rdk::hal::State oldState,
-                                      com::rdk::hal::State intermediateState,
-                                      com::rdk::hal::State newState)
+                                      com::rdk::hal::audiosink::State oldState,
+                                      com::rdk::hal::audiosink::State intermediateState,
+                                      com::rdk::hal::audiosink::State newState)
     {
-        com::rdk::hal::State currentState;
+        com::rdk::hal::audiosink::State currentState;
 
         // Sleep for a short duration to allow state changes to be captured by listeners
         std::this_thread::sleep_for(std::chrono::milliseconds(MAX_FINAL_STATE_WAIT_MS));
@@ -248,37 +248,37 @@ UT_ADD_TEST(VTS_L2_AudioSink, TestStateTransition)
         //set state to READY by invoking `open` (set-up)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controlListener, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener,
-                                     com::rdk::hal::State::CLOSED,
-                                     com::rdk::hal::State::OPENING,
-                                     com::rdk::hal::State::READY);
+                                     com::rdk::hal::audiosink::State::CLOSED,
+                                     com::rdk::hal::audiosink::State::OPENING,
+                                     com::rdk::hal::audiosink::State::READY);
 
         // Start the audio sink
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener,
-                                     com::rdk::hal::State::READY,
-                                     com::rdk::hal::State::STARTING,
-                                     com::rdk::hal::State::STARTED);
+                                     com::rdk::hal::audiosink::State::READY,
+                                     com::rdk::hal::audiosink::State::STARTING,
+                                     com::rdk::hal::audiosink::State::STARTED);
 
         // Flush the audio sink
         AUDIOSINK_FLUSH_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener,
-                                     com::rdk::hal::State::STARTED,
-                                     com::rdk::hal::State::FLUSHING,
-                                     com::rdk::hal::State::STARTED);
+                                     com::rdk::hal::audiosink::State::STARTED,
+                                     com::rdk::hal::audiosink::State::FLUSHING,
+                                     com::rdk::hal::audiosink::State::STARTED);
 
         // Stop the audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener,
-                                     com::rdk::hal::State::STARTED,
-                                     com::rdk::hal::State::STOPPING,
-                                     com::rdk::hal::State::READY);
+                                     com::rdk::hal::audiosink::State::STARTED,
+                                     com::rdk::hal::audiosink::State::STOPPING,
+                                     com::rdk::hal::audiosink::State::READY);
 
         // Close the audio sink
         AUDIOSINK_CLOSE_SUCCESS(audioSink, audioSinkController, false);
         checkCompleteStateTransition(audioSink, eventListener, controlListener,
-                                     com::rdk::hal::State::READY,
-                                     com::rdk::hal::State::CLOSING,
-                                     com::rdk::hal::State::CLOSED);
+                                     com::rdk::hal::audiosink::State::READY,
+                                     com::rdk::hal::audiosink::State::CLOSING,
+                                     com::rdk::hal::audiosink::State::CLOSED);
     }
 }
 

@@ -194,10 +194,10 @@ public:
     }
 
     void checkCompleteStateTransition(sp<IAudioSink> sink, sp<AudioSinkEventListener> eventListener,
-                                      sp<AudioSinkControllerListener> controlListener, ::com::rdk::hal::State oldState,
-                                      ::com::rdk::hal::State intermediateState, ::com::rdk::hal::State newState)
+                                      sp<AudioSinkControllerListener> controlListener, ::com::rdk::hal::audiosink::State oldState,
+                                      ::com::rdk::hal::audiosink::State intermediateState, ::com::rdk::hal::audiosink::State newState)
     {
-        ::com::rdk::hal::State currentState;
+        ::com::rdk::hal::audiosink::State currentState;
 
         UT_ASSERT_TRUE(eventListener->checkStateTransistion(oldState, intermediateState));
         UT_ASSERT_TRUE(controlListener->checkStateTransistion(oldState, intermediateState));

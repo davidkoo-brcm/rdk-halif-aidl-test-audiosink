@@ -61,40 +61,25 @@ else
     sleep 2
 fi
 
-# Check if either  MockAudioSinkService or AudioSinkService is running
-if check_process " MockAudioSinkService" || check_process "AudioSinkService"; then
-    echo "Audio Sink service is already running"
-    if check_process " MockAudioSinkService"; then
-        AudioSinkService_pid=$(pgrep -f "MockAudioSinkService")
-    else
-        AudioSinkService_pid=$(pgrep -f "AudioSinkService")
-    fi
-else
-    # Prompt user to start MockAudioSinkService
-    if prompt_yes_no "Do you want to start  MockAudioSinkService?"; then
-        echo "Execute [MockAudioSinkService]"
-        ${RUN_DIR}/MockAudioSinkService &
-        AudioSinkService_pid=$!
-        # Wait for service to be ready
-        sleep 2
-    else
-        # Prompt user to start AudioSinkService
-        if prompt_yes_no "Do you want to start AudioSinkService instead?"; then
-            echo "Execute [AudioSinkService]"
-            AudioSinkService &
-            AudioSinkService_pid=$!
-            # Wait for service to be ready
-            sleep 2
-        else
-            echo "Cannot proceed without a Audio Sink service"
-            # Clean up servicemanager
-            if [ ! -z "$servicemanager_pid" ]; then
-                kill -9 $servicemanager_pid
-            fi
-            exit 1
-        fi
-    fi
+# Always restart mockservice to avoid stale process state/binary reuse.
+if check_process "MockAudioSinkService"; then
+    echo "Restarting existing MockAudioSinkService"
+    pkill -f "MockAudioSinkService"
+    sleep 1
 fi
+
+# A running platform AudioSinkService can mask the mock vdevice behavior.
+if check_process "AudioSinkService"; then
+    echo "Stopping existing AudioSinkService so VTS uses MockAudioSinkService"
+    pkill -f "AudioSinkService"
+    sleep 1
+fi
+
+echo "Execute [MockAudioSinkService]"
+${RUN_DIR}/MockAudioSinkService &
+AudioSinkService_pid=$!
+# Wait for service to be ready
+sleep 2
 
 echo "Eexecute [vts_audiosink_hal_test]"
 ${RUN_DIR}/vts_audiosink_hal_test $@
