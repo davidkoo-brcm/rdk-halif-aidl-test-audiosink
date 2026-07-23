@@ -31,6 +31,7 @@
 #include <com/rdk/hal/audiosink/BnAudioSink.h>
 #include <com/rdk/hal/audiosink/BnAudioSinkController.h>
 #include <com/rdk/hal/audiosink/BnAudioSinkEventListener.h>
+#include <com/rdk/hal/avclock/IAVClock.h>
 #include <binder/BinderService.h>
 #include <optional>
 #include <string>
@@ -80,7 +81,7 @@ namespace com {
                  android::binder::Status getProperty( audiosink::Property property, std::optional<PropertyValue>* _aidl_return ) override;
                  android::binder::Status setProperty( audiosink::Property property, const PropertyValue& propertyValue, bool* _aidl_return ) override;
                  android::binder::Status getState( State* _aidl_return ) override;
-                 android::binder::Status open(const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return ) override;
+                 android::binder::Status open(ContentType contentType, const android::sp<audiosink::IAudioSinkControllerListener>& audioSinkControllerListener, android::sp<audiosink::IAudioSinkController>* _aidl_return ) override;
                  android::binder::Status close( const android::sp<audiosink::IAudioSinkController>& audioSinkController, bool* _aidl_return ) override;
                  android::binder::Status registerEventListener( const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return ) override;
                  android::binder::Status unregisterEventListener( const android::sp<audiosink::IAudioSinkEventListener>& audioSinkEventListener, bool* _aidl_return ) override;
@@ -103,9 +104,13 @@ namespace com {
 
                  android::binder::Status setAudioDecoder( const ::com::rdk::hal::audiodecoder::IAudioDecoder::Id& audioDecoderId, bool* _aidl_return ) override;
                  android::binder::Status getAudioDecoder( ::com::rdk::hal::audiodecoder::IAudioDecoder::Id* _aidl_return ) override;
+                 android::binder::Status attachClock(const ::com::rdk::hal::avclock::IAVClock::Id& clockId) override;
+                 android::binder::Status detachClock() override;
+                 android::binder::Status getClock(::com::rdk::hal::avclock::IAVClock::Id* _aidl_return) override;
                  android::binder::Status start() override;
                  android::binder::Status stop() override;
                  android::binder::Status queueAudioFrame( int64_t nsPresentationTime, int64_t bufferHandle, const ::com::rdk::hal::audiodecoder::FrameMetadata& metadata, bool* _aidl_return ) override;
+                 android::binder::Status signalEndOfStream() override;
                  android::binder::Status flush() override;
                  android::binder::Status getVolume( com::rdk::hal::audiosink::Volume* _aidl_return ) override;
                  android::binder::Status setVolume( const com::rdk::hal::audiosink::Volume& volume, bool* _aidl_return ) override;
