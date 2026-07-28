@@ -727,9 +727,18 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        // Test opening with each ContentType
+        /* Get this sink's actually supported content types from getCapabilities() */
+        audiosink::Capabilities capabilities;
+        AUDIODSINK_GETCAPABILITIES(audioSink, capabilities);
+
+        // Test opening with each ContentType supported by this sink per getCapabilities()
         for (const auto& contentType : contentTypes)
         {
+            if (std::find(capabilities.supportedContentTypes.begin(), capabilities.supportedContentTypes.end(), contentType) == capabilities.supportedContentTypes.end())
+            {
+                continue;
+            }
+
             sp<IAudioSinkController> audioSinkController;
             sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
 
