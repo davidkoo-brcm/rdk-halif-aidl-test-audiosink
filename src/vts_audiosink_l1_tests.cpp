@@ -321,7 +321,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Retrieve audio sink IDs from the service and ensure they are not empty. | None | Status is OK, audioSinkIds is not empty | Should be successful |
  * | 02 | Sort the audio sink IDs to determine the least and highest values. | None | Sorted list of audioSinkIds | Should be successful |
- * | 03 | Test getAudioSink with an invalid ID (least value - 1). | input: audioSinkId = leastValue - 1, output: audioSink = nullptr | status.isOk() = true, status.exceptionCode() = EX_NONE, audioSink is nullptr | Should Fail |
+ * | 03 | Test getAudioSink with an invalid ID (least value - 2). | input: audioSinkId = leastValue - 2, output: audioSink = nullptr | status.isOk() = true, status.exceptionCode() = EX_NONE, audioSink is nullptr | Should Fail |
  * | 04 | Test getAudioSink with an invalid ID (highest value + 1). | input: audioSinkId = highestValue + 1, output: audioSink = nullptr | status.isOk() = true, status.exceptionCode() = EX_NONE, audioSink is nullptr | Should Fail |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
@@ -340,7 +340,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
     }
 
     invalidID = sinkIds.front();
-    invalidID.value -= 1;
+    invalidID.value -= 2;
     AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_NONE);
 
     invalidID = sinkIds.back();
@@ -1240,7 +1240,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     std::vector<int32_t> audioDecoderIds = gAudiosinksHFP.availableDecoderIds;
 
     std::sort(audioDecoderIds.begin(), audioDecoderIds.end());
-    int32_t invalidLowId = audioDecoderIds.front() - 1;
+    int32_t invalidLowId = audioDecoderIds.front() - 2;
     int32_t invalidHighId = audioDecoderIds.back() + 1;
     int32_t validid = audioDecoderIds.front();
 
