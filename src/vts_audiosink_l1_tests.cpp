@@ -1237,11 +1237,16 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
 
     std::vector<int32_t> audioDecoderIds = gAudiosinksHFP.availableDecoderIds;
-
     std::sort(audioDecoderIds.begin(), audioDecoderIds.end());
-    int32_t invalidLowId = audioDecoderIds.front() - 1;
     int32_t invalidHighId = audioDecoderIds.back() + 1;
     int32_t validid = audioDecoderIds.front();
+
+    // Sort the IDs (including UNDEFINED) to find the least value. Using
+    // audioDecoderIds.front() (not the raw HFP list) keeps invalidLowId from
+    // ever colliding with UNDEFINED, regardless of its numeric value.
+    audioDecoderIds.push_back(IAudioDecoder::Id::UNDEFINED);
+    std::sort(audioDecoderIds.begin(), audioDecoderIds.end());
+    int32_t invalidLowId = audioDecoderIds.front() - 1;
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
