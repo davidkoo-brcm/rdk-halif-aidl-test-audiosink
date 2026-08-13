@@ -683,8 +683,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
  * @brief Test the positive scenario of opening an audio sink with all ContentType values.
  *
  * This test verifies the successful opening of an audio sink using a controller listener
- * with all possible ContentType values. It checks if the audio sink controller is correctly
- * initialized for each content type and the status returned is OK.
+ * with every ContentType reported as supported by that sink's getCapabilities(). It checks
+ * if the audio sink controller is correctly initialized for each supported content type and
+ * the status returned is OK.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 011@n
@@ -697,27 +698,15 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
  * **Test Procedure:**@n
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
- * | 01 | Initialize the controller listener object | controllerListener = new AudioSinkControllerListenerImpl | Object should be created successfully | Should be successful |
- * | 02 | Test opening with ContentType::UNKNOWN | contentType = UNKNOWN, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 03 | Test opening with ContentType::SPEECH | contentType = SPEECH, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 04 | Test opening with ContentType::MUSIC | contentType = MUSIC, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 05 | Test opening with ContentType::MOVIE | contentType = MOVIE, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 06 | Test opening with ContentType::SONIFICATION | contentType = SONIFICATION, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 01 | Call getCapabilities on the audio sink | sink, capabilities | status.isOk() = true, capabilities.supportedContentTypes should not be empty | Should Pass |
+ * | 02 | Initialize the controller listener object | controllerListener = new AudioSinkControllerListenerImpl | Object should be created successfully | Should be successful |
+ * | 03 | Test opening with each ContentType in capabilities.supportedContentTypes | contentType = supported value, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-
-    // Define all possible ContentType values to test
-    std::vector<ContentType> contentTypes = {
-        ContentType::UNKNOWN,
-        ContentType::SPEECH,
-        ContentType::MUSIC,
-        ContentType::MOVIE,
-        ContentType::SONIFICATION
-    };
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -727,8 +716,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        // Test opening with each ContentType
-        for (const auto& contentType : contentTypes)
+        /* Get Capabilities of Audio sink to determine which ContentTypes are supported */
+        audiosink::Capabilities capabilities;
+        AUDIODSINK_GETCAPABILITIES(audioSink, capabilities);
+
+        // Test opening with each ContentType supported by this sink's capabilities
+        for (const auto& contentType : capabilities.supportedContentTypes)
         {
             sp<IAudioSinkController> audioSinkController;
             sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
