@@ -149,10 +149,16 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         ::android::binder::Status status; \
         UT_LOG_INFO("Calling getAudioSink(IN:_sinkId:[%d], OUT:audioSink[])", _sinkId.value); \
         status = (gAudioSinkManager)->getAudioSink(_sinkId, &audioSink); \
-        UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d]), status:[isOK:%s, exception:%s]", \
-                                _sinkId.value, UT_Control_GetMapString(bool_mapTable, status.isOk()), \
+        UT_LOG_INFO("Result getAudioSink(IN:_sinkId:[%d], OUT:audioSink[0x%X]), status:[isOK:%s, exception:%s]", \
+                                _sinkId.value, audioSink.get(), UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                                 UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
-        UT_ASSERT_FALSE(status.isOk()); \
+        if ((exception) == Status::EX_NONE) { \
+            /* Invalid ID is reported via a null return, not a binder exception. */ \
+            UT_ASSERT_TRUE(status.isOk()); \
+            UT_ASSERT_TRUE(audioSink.get() == nullptr); \
+        } else { \
+            UT_ASSERT_FALSE(status.isOk()); \
+        } \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
     } while (0)
 
@@ -454,12 +460,18 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
         bool aidl_return = false; \
         UT_LOG_INFO("Calling setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return[])", audioDecoderId.value); \
         status = (audioSinkController)->setAudioDecoder(audioDecoderId, &aidl_return); \
-        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d]), status:[isOK:%s, exception:%s]", \
-                    audioDecoderId.value, \
+        UT_LOG_INFO("Result setAudioDecoder(IN:audioDecoderId:[%d], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", \
+                    audioDecoderId.value, aidl_return ? "true" : "false", \
                     UT_Control_GetMapString(bool_mapTable, status.isOk()), \
                     UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        if ((exception) == Status::EX_NONE) { \
+            /* Invalid ID is reported via a false return, not a binder exception. */ \
+            UT_ASSERT_TRUE(status.isOk()); \
+            UT_ASSERT_FALSE(aidl_return); \
+        } else { \
+            UT_ASSERT_FALSE(status.isOk()); \
+        } \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
 #define AUDIOSINK_GETAUDIODECODER_SUCCESS(audioSinkController, audioDecoderId) \
@@ -674,15 +686,22 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
 #define AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
+        bool _aidl_return = true; \
         UT_LOG_INFO("Calling setVolume(IN:volume:[%f], IN:muted:[%s])", volumeSet.volume, UT_Control_GetMapString(bool_mapTable, volumeSet.muted)); \
         status = (audioSinkController)->setVolume(volumeSet, &(_aidl_return)); \
-        UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
+        UT_LOG_INFO("Result setVolume(IN:volume:[%f], IN:muted:[%s], OUT:_aidl_return:[%s]), status:[isOK:%s, exception:%s]", volumeSet.volume, \
             UT_Control_GetMapString(bool_mapTable, volumeSet.muted), \
+            UT_Control_GetMapString(bool_mapTable, _aidl_return), \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        if ((exception) == Status::EX_NONE) { \
+            /* Invalid volume is reported via a false return, not a binder exception. */ \
+            UT_ASSERT_TRUE(status.isOk()); \
+            UT_ASSERT_FALSE(_aidl_return); \
+        } else { \
+            UT_ASSERT_FALSE(status.isOk()); \
+        } \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_FALSE(status.isOk()); \
     } while (0)
 
 #define AUDIOSINK_GETVOLUME_SUCCESS(audioSinkController, volumeGet) \
@@ -728,16 +747,22 @@ extern sp<IAudioSinkManager> gAudioSinkManager;
 #define AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRamp, exception) \
     do { \
         ::android::binder::Status status; \
-        bool _aidl_return; \
+        bool _aidl_return = true; \
         UT_LOG_INFO("Calling setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn)", targetVolume, \
             overMs, static_cast<int32_t>(volumeRamp)); \
         status = (audioSinkController)->setVolumeRamp(targetVolume, overMs, volumeRamp, &_aidl_return); \
-        UT_LOG_INFO("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d]), status:[isOK:%s, exception:%s]", targetVolume, \
-            overMs, static_cast<int32_t>(volumeRamp), \
+        UT_LOG_INFO("Result setVolumeRamp(IN:targetVolume:[%f], IN:overMs:[%d], IN:volumeRamp:[%d], OUT:aidlReturn:[%s]), status:[isOK:%s, exception:%s]", targetVolume, \
+            overMs, static_cast<int32_t>(volumeRamp), _aidl_return ? "true" : "false", \
             UT_Control_GetMapString(bool_mapTable, status.isOk()), \
             UT_Control_GetMapString(statusException_mapTable, status.exceptionCode())); \
+        if ((exception) == Status::EX_NONE) { \
+            /* Invalid args are reported via a false return, not a binder exception. */ \
+            UT_ASSERT_TRUE(status.isOk()); \
+            UT_ASSERT_FALSE(_aidl_return); \
+        } else { \
+            UT_ASSERT_FALSE(status.isOk()); \
+        } \
         UT_ASSERT_EQUAL(status.exceptionCode(), exception); \
-        UT_ASSERT_FALSE(status.isOk()); \
     }while (0)
 
 #define AUDIOSINK_SETPROPERTY_LIST_SUCCESS(audioSink, properyList, type) \
