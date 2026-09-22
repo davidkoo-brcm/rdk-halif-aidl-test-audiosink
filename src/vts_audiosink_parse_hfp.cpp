@@ -64,6 +64,8 @@
 
 #include "vts_audiosink_helper_functions.h"
 #include "vts_audiosink_parse_hfp.h"
+#include "vts_audiodecoder_parse_hfp.h"
+#include "vts_avclock_parse_hfp.h"
 
 using namespace std;
 
@@ -72,6 +74,19 @@ using namespace std;
 
 audioSinkHFP gAudiosinksHFP;
 
+void vts_audiosink_get_available_id(std::vector<int32_t> &availableIds)
+{
+    string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
+    int32_t number_of_audiosinks = UT_KVP_PROFILE_GET_LIST_COUNT(audiosinkpath.c_str());
+    availableIds.clear();
+    for (int32_t i = 0; i < number_of_audiosinks; ++i)
+    {
+        string audiosinkidpath = audiosinkpath + "." + std::to_string(i) + ".id";
+        int32_t audiosink_id = UT_KVP_PROFILE_GET_UINT32(audiosinkidpath.c_str());
+        availableIds.push_back(audiosink_id);
+    }
+}
+
 UT_status_t vts_audiosink_parseAudioSinkHFP()
 {
     string audiosinkpath = AUDIOSINKMGR_IAUDIOSINK;
@@ -79,7 +94,7 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
     std::string availableDecodersPath = AUDIODECODERMGR_AVAILABLEDECODERS;
     std::string availableClocksPath = AVCLOCK_AVAILABLECLOCKS;
 
-    int32_t number_of_audiosinks, available_sinks_count, available_decoders, available_clocks;
+    int32_t number_of_audiosinks;
 
     char str_val[UT_KVP_MAX_ELEMENT_SIZE];
 
@@ -110,33 +125,15 @@ UT_status_t vts_audiosink_parseAudioSinkHFP()
 
         sinkCaps.supportsSecure = UT_KVP_PROFILE_GET_BOOL(supportsSecurePath.c_str());
 
+        gAudiosinksHFP.availableIds.push_back(sinkCaps.id);
+
         gAudiosinksHFP.sinkCaps.push_back(std::move(sinkCaps));
+
     }
 
-    available_decoders = UT_KVP_PROFILE_GET_LIST_COUNT(availableDecodersPath.c_str());
-    for(int32_t i = 0; i < available_decoders; i++)
-    {
-        std::string decoderIdPath = availableDecodersPath + "." + std::to_string(i);
-        int32_t id = UT_KVP_PROFILE_GET_UINT32(decoderIdPath.c_str());
-        gAudiosinksHFP.availableDecoderIds.push_back(id);
-    }
+    vts_audiodecoder_get_available_id(gAudiosinksHFP.availableDecoderIds);
 
-    available_clocks = UT_KVP_PROFILE_GET_LIST_COUNT(availableClocksPath.c_str());
-    for(int32_t i = 0; i < available_clocks; i++)
-    {
-        std::string clockIdPath = availableClocksPath + "." + std::to_string(i);
-        int32_t id = UT_KVP_PROFILE_GET_UINT32(clockIdPath.c_str());
-        gAudiosinksHFP.availableClockIds.push_back(id);
-    }
-
-    string availableIDPath = string(AUDIOSINKMGR) + ".availableSinks";
-    available_sinks_count = UT_KVP_PROFILE_GET_LIST_COUNT(availableIDPath.c_str());
-    for(int32_t i = 0; i < available_sinks_count; ++i)
-    {
-        string availableIDPathId = availableIDPath + "." + to_string(i);
-        int32_t sink_id = UT_KVP_PROFILE_GET_UINT32(availableIDPathId.c_str());
-        gAudiosinksHFP.availableIds.push_back(sink_id);
-    }
+    vts_avclock_get_available_id(gAudiosinksHFP.availableClockIds);
 
     // Read platform capabilities attributes (existing)
     string lowlatency_path            = platformCapabilitesPath + ".supportsLowLatency";

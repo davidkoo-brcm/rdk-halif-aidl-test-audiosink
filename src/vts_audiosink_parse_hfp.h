@@ -111,6 +111,7 @@ extern audioSinkHFP gAudiosinksHFP;
 #define AUDIOSINKMGR_PLATFORMCAPS    "audiosink.platformCapabilities"
 
 UT_status_t vts_audiosink_parseAudioSinkHFP();
+void vts_audiosink_get_available_id(std::vector<int32_t> &availableIds);
 
 #endif //__VTS_AUDIOSINK_PARSE_HFP_H__
 

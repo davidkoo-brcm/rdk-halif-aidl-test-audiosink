@@ -218,13 +218,6 @@ public:
 
     bool isSinkUsable(const IAudioSink::Id& sinkId, bool secureDecode)
     {
-        if (std::find(gAudiosinksHFP.availableIds.begin(),
-                 gAudiosinksHFP.availableIds.end(),
-                 sinkId.value) == gAudiosinksHFP.availableIds.end())
-        {
-            return false;
-        }
-
         for (const auto& item : gAudiosinksHFP.sinkCaps)
         {
             if (item.id == sinkId.value)
