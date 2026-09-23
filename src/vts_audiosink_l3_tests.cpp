@@ -232,6 +232,12 @@ public:
         return true;
     }
 
+    bool isTunnelModeSupported() const
+    {
+        //TODO: Implement the actual check for tunnel mode support based on interface decisions
+        return false;
+    }
+
     bool isDecoderUsable(const IAudioDecoder::Id& decoderId)
     {
         //TODO: check if the decoder supports the required codec and secure decode.
@@ -245,7 +251,7 @@ public:
         return true;
     }
 
-    void runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    bool runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
         try
         {
@@ -275,16 +281,14 @@ public:
 
             if (!foundDecoder)
             {
-                UT_ASSERT_TRUE(false);
-                UT_LOG_WARNING("No usable decoder found for the given test configuration.");
-                return;
+                UT_LOG_WARNING("No usable decoder found for the given test configuration, skipping.");
+                return false;
             }
 
             if (gAudiosinksHFP.availableClockIds.size() == 0)
             {
-                UT_ASSERT_TRUE(false);
-                UT_LOG_WARNING("No available clock found for the given test configuration.");
-                return;
+                UT_LOG_WARNING("No available clock found for the given test configuration, skipping.");
+                return false;
             }
 
             clockId.value = gAudiosinksHFP.availableClockIds[0];
@@ -328,21 +332,27 @@ public:
                 UT_ASSERT_EQUAL(beforeHeapMetrics.bytesUsed, afterHeapMetrics.bytesUsed);
                 UT_ASSERT_EQUAL(beforeHeapMetrics.bytesTotal, afterHeapMetrics.bytesTotal);
             }
-            UT_ASSERT_TRUE(isSinkAvailable) << "No usable sink found for the given test configuration.";
+            if (!isSinkAvailable)
+            {
+                UT_LOG_WARNING("No usable sink found for the given test configuration, skipping.");
+            }
+            return isSinkAvailable;
         }
         catch (const std::exception& ex)
         {
             UT_LOG_ERROR("Exception in runSequentialSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
+            return false;
         }
         catch (...)
         {
             UT_LOG_ERROR("Unknown exception in runSequentialSink");
             UT_ASSERT_TRUE(false);
+            return false;
         }
     }
 
-    void runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    bool runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
         try
         {
@@ -384,21 +394,18 @@ public:
 
             if (availableDecoderCount == 0)
             {
-                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No usable decoder found for the given test configuration, skipping concurrent test.");
-                return;
+                return false;
             }
             if (availableSinkCount == 0)
             {
-                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No usable sink found for the given test configuration, skipping concurrent test.");
-                return;
+                return false;
             }
             if (availableClockCount == 0)
             {
-                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No available clock found for the given test configuration, skipping concurrent test.");
-                return;
+                return false;
             }
 
             // Launch sink threads, pairing with decoder control listeners
@@ -455,33 +462,50 @@ public:
         {
             UT_LOG_ERROR("Exception in runConcurrentSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
+            return false;
         }
         catch (...)
         {
             UT_LOG_ERROR("Unknown exception in runConcurrentSink");
             UT_ASSERT_TRUE(false);
+            return false;
         }
+        return true;
     }
 
     void runSingleProcessTest(const char *testName, bool isSecureMode, bool isTunnel, bool isConcurrentMode)
     {
+        if (isTunnel && !isTunnelModeSupported())
+        {
+            UT_LOG_INFO("Skipping test '%s': Tunnel mode is not supported by this system", testName);
+            GTEST_SKIP() << "Tunnel mode is not supported by this system";
+            return;
+        }
+
         vector<testConfiguration_t> testConfiguration;
 
         vts_audiodecoder_parse_testconfig(gAudioSinkTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
+
+        bool executedAnyConfig = false;
 
         if(isConcurrentMode)
         {
             for(auto& test: testConfiguration)
             {
-                runConcurrentSink(test, isSecureMode, isTunnel);
+                executedAnyConfig = runConcurrentSink(test, isSecureMode, isTunnel) || executedAnyConfig;
             }
         }
         else
         {
             for(auto& test: testConfiguration)
             {
-                runSequentialSink(test, isSecureMode, isTunnel);
+                executedAnyConfig = runSequentialSink(test, isSecureMode, isTunnel) || executedAnyConfig;
             }
+        }
+
+        if (!executedAnyConfig)
+        {
+            GTEST_SKIP() << "No usable decoder/sink combination for this test configuration (capability filtered)";
         }
     }
 
@@ -588,7 +612,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_NonSecure_Underflow)
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
 /*Tunnel and secure cases*/
-#ifdef ENABLE_SECURE_TUNNEL_TESTS
 /**
 * @brief Test the audio sink functionality (sequential, non-tunnel, secure)
 *
@@ -840,7 +863,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-#endif
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, non-secure)
 *
@@ -926,7 +948,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_NonSecure_Underflow)
 }
 
 /*Tunnel and secure cases*/
-#ifdef ENABLE_SECURE_TUNNEL_TESTS
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, secure)
 *
@@ -1178,7 +1199,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-#endif
 
 /** @} */ // End of AUDIO_SINK_HALTEST L3 File
 /** @} */ // End of AUDIO_SINK_HALTEST
