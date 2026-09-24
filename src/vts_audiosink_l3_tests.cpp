@@ -232,12 +232,6 @@ public:
         return true;
     }
 
-    bool isTunnelModeSupported() const
-    {
-        //TODO: Implement the actual check for tunnel mode support based on interface decisions
-        return false;
-    }
-
     bool isDecoderUsable(const IAudioDecoder::Id& decoderId)
     {
         //TODO: check if the decoder supports the required codec and secure decode.
@@ -251,7 +245,7 @@ public:
         return true;
     }
 
-    bool runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    void runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
         try
         {
@@ -281,14 +275,16 @@ public:
 
             if (!foundDecoder)
             {
-                UT_LOG_WARNING("No usable decoder found for the given test configuration, skipping.");
-                return false;
+                UT_ASSERT_TRUE(false);
+                UT_LOG_WARNING("No usable decoder found for the given test configuration.");
+                return;
             }
 
             if (gAudiosinksHFP.availableClockIds.size() == 0)
             {
-                UT_LOG_WARNING("No available clock found for the given test configuration, skipping.");
-                return false;
+                UT_ASSERT_TRUE(false);
+                UT_LOG_WARNING("No available clock found for the given test configuration.");
+                return;
             }
 
             clockId.value = gAudiosinksHFP.availableClockIds[0];
@@ -332,27 +328,21 @@ public:
                 UT_ASSERT_EQUAL(beforeHeapMetrics.bytesUsed, afterHeapMetrics.bytesUsed);
                 UT_ASSERT_EQUAL(beforeHeapMetrics.bytesTotal, afterHeapMetrics.bytesTotal);
             }
-            if (!isSinkAvailable)
-            {
-                UT_LOG_WARNING("No usable sink found for the given test configuration, skipping.");
-            }
-            return isSinkAvailable;
+            UT_ASSERT_TRUE(isSinkAvailable) << "No usable sink found for the given test configuration.";
         }
         catch (const std::exception& ex)
         {
             UT_LOG_ERROR("Exception in runSequentialSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
-            return false;
         }
         catch (...)
         {
             UT_LOG_ERROR("Unknown exception in runSequentialSink");
             UT_ASSERT_TRUE(false);
-            return false;
         }
     }
 
-    bool runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    void runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
     {
         try
         {
@@ -394,18 +384,21 @@ public:
 
             if (availableDecoderCount == 0)
             {
+                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No usable decoder found for the given test configuration, skipping concurrent test.");
-                return false;
+                return;
             }
             if (availableSinkCount == 0)
             {
+                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No usable sink found for the given test configuration, skipping concurrent test.");
-                return false;
+                return;
             }
             if (availableClockCount == 0)
             {
+                UT_ASSERT_TRUE(false);
                 UT_LOG_WARNING("No available clock found for the given test configuration, skipping concurrent test.");
-                return false;
+                return;
             }
 
             // Launch sink threads, pairing with decoder control listeners
@@ -462,50 +455,54 @@ public:
         {
             UT_LOG_ERROR("Exception in runConcurrentSink: %s", ex.what());
             UT_ASSERT_TRUE(false);
-            return false;
         }
         catch (...)
         {
             UT_LOG_ERROR("Unknown exception in runConcurrentSink");
             UT_ASSERT_TRUE(false);
-            return false;
         }
-        return true;
     }
 
     void runSingleProcessTest(const char *testName, bool isSecureMode, bool isTunnel, bool isConcurrentMode)
     {
-        if (isTunnel && !isTunnelModeSupported())
+        if (isSecureMode)
         {
-            UT_LOG_INFO("Skipping test '%s': Tunnel mode is not supported by this system", testName);
-            GTEST_SKIP() << "Tunnel mode is not supported by this system";
-            return;
+            bool isSecureSupported = false;
+            for (const auto& entry : mAudioSinkList)
+            {
+                audiosink::Capabilities capabilities;
+                AUDIODSINK_GETCAPABILITIES(std::get<1>(entry), capabilities);
+                if (capabilities.supportsSecure)
+                {
+                    isSecureSupported = true;
+                    break;
+                }
+            }
+            if (!isSecureSupported)
+            {
+                UT_LOG_INFO("Skipping test '%s': Secure mode is not supported", testName);
+                GTEST_SKIP() << "Secure mode is not supported";
+                return;
+            }
         }
 
         vector<testConfiguration_t> testConfiguration;
 
         vts_audiodecoder_parse_testconfig(gAudioSinkTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
 
-        bool executedAnyConfig = false;
-
         if(isConcurrentMode)
         {
             for(auto& test: testConfiguration)
             {
-                executedAnyConfig = runConcurrentSink(test, isSecureMode, isTunnel) || executedAnyConfig;
+                runConcurrentSink(test, isSecureMode, isTunnel);
             }
         }
         else
         {
             for(auto& test: testConfiguration)
             {
-                executedAnyConfig = runSequentialSink(test, isSecureMode, isTunnel) || executedAnyConfig;
+                runSequentialSink(test, isSecureMode, isTunnel);
             }
-        }
-
-        if (!executedAnyConfig)
-        {
-            GTEST_SKIP() << "No usable decoder/sink combination for this test configuration (capability filtered)";
         }
     }
 
