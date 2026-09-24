@@ -465,6 +465,27 @@ public:
 
     void runSingleProcessTest(const char *testName, bool isSecureMode, bool isTunnel, bool isConcurrentMode)
     {
+        if (isSecureMode)
+        {
+            bool isSecureSupported = false;
+            for (const auto& entry : mAudioSinkList)
+            {
+                audiosink::Capabilities capabilities;
+                AUDIODSINK_GETCAPABILITIES(std::get<1>(entry), capabilities);
+                if (capabilities.supportsSecure)
+                {
+                    isSecureSupported = true;
+                    break;
+                }
+            }
+            if (!isSecureSupported)
+            {
+                UT_LOG_INFO("Skipping test '%s': Secure mode is not supported", testName);
+                GTEST_SKIP() << "Secure mode is not supported";
+                return;
+            }
+        }
+
         vector<testConfiguration_t> testConfiguration;
 
         vts_audiodecoder_parse_testconfig(gAudioSinkTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
@@ -515,7 +536,7 @@ public:
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_NonSecure)
 {
     const char *testName = "Decode";
     bool isSecureMode = false;
@@ -536,7 +557,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_NonSecure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = false;
@@ -557,7 +578,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_NonSecure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = false;
@@ -578,7 +599,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_NonSecure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = false;
@@ -588,7 +609,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
 /*Tunnel and secure cases*/
-#ifdef ENABLE_SECURE_TUNNEL_TESTS
 /**
 * @brief Test the audio sink functionality (sequential, non-tunnel, secure)
 *
@@ -600,7 +620,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_NonSecure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_Secure)
 {
     const char *testName = "Decode";
     bool isSecureMode = true;
@@ -621,7 +641,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_Secure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = true;
@@ -642,7 +662,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_Secure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = true;
@@ -663,7 +683,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_NonTunnel_Secure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = true;
@@ -684,7 +704,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_NonTunnel_Secure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_NonSecure)
 {
     const char *testName = "Decode";
     bool isSecureMode = false;
@@ -705,7 +725,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_NonSecure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = false;
@@ -726,7 +746,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_NonSecure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = false;
@@ -747,7 +767,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_NonSecure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = false;
@@ -768,7 +788,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_NonSecure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_Secure)
 {
     const char *testName = "Decode";
     bool isSecureMode = true;
@@ -789,7 +809,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_Secure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = true;
@@ -810,7 +830,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_Secure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = true;
@@ -831,7 +851,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Sequential_Tunnel_Secure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = true;
@@ -840,7 +860,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-#endif
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, non-secure)
 *
@@ -852,7 +871,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Sequential_Tunnel_Secure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_NonSecure)
 {
     const char *testName = "Decode";
     bool isSecureMode = false;
@@ -873,7 +892,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_NonSecure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = false;
@@ -894,7 +913,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_NonSecure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = false;
@@ -915,7 +934,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_NonSecure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = false;
@@ -926,7 +945,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Underflow)
 }
 
 /*Tunnel and secure cases*/
-#ifdef ENABLE_SECURE_TUNNEL_TESTS
 /**
 * @brief Test the audio sink functionality (concurrent, non-tunnel, secure)
 *
@@ -938,7 +956,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_NonSecure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_Secure)
 {
     const char *testName = "Decode";
     bool isSecureMode = true;
@@ -959,7 +977,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_Secure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = true;
@@ -980,7 +998,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_Secure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = true;
@@ -1001,7 +1019,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_NonTunnel_Secure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = true;
@@ -1022,7 +1040,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_NonTunnel_Secure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_NonSecure)
 {
     const char *testName = "Decode";
     bool isSecureMode = false;
@@ -1043,7 +1061,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_NonSecure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = false;
@@ -1064,7 +1082,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_NonSecure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = false;
@@ -1085,7 +1103,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_NonSecure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = false;
@@ -1106,7 +1124,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_NonSecure_Underflow)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_Secure)
 {
     const char *testName = "Decode";
     bool isSecureMode = true;
@@ -1127,7 +1145,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Flush)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_Secure_Flush)
 {
     const char *testName = "Decode_Flush";
     bool isSecureMode = true;
@@ -1148,7 +1166,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Flush)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_EOS)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_Secure_EOS)
 {
     const char *testName = "Decode_EOS";
     bool isSecureMode = true;
@@ -1169,7 +1187,7 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_EOS)
 * **Test Procedure:**
 * Refer to UT specification documentation [audioSink_High-Level_TestSpecification.md](../../docs/pages/audioSink_High-Level_TestSpecification.md)
 */
-UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Underflow)
+UT_ADD_TEST(VTS_L3_AudioSink, ASink_Concurrent_Tunnel_Secure_Underflow)
 {
     const char *testName = "Decode_Underflow";
     bool isSecureMode = true;
@@ -1178,7 +1196,6 @@ UT_ADD_TEST(VTS_L3_AudioSink, Sink_Concurrent_Tunnel_Secure_Underflow)
 
     runSingleProcessTest(testName, isSecureMode, isTunnel, isConcurrentMode);
 }
-#endif
 
 /** @} */ // End of AUDIO_SINK_HALTEST L3 File
 /** @} */ // End of AUDIO_SINK_HALTEST
