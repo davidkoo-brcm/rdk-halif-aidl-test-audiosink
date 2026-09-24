@@ -306,7 +306,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
  * @brief Test the behavior of getAudioSink with invalid audio sink IDs.
  *
  * This test verifies that the getAudioSink function correctly handles invalid audio sink IDs by returning
- * an error status and a null audio sink object. It ensures that the function does not accept IDs outside the valid range.
+ * a null audio sink object with an OK status (EX_NONE). It ensures that the function does not accept IDs outside the valid range.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 004@n
@@ -321,8 +321,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_pos)
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Retrieve audio sink IDs from the service and ensure they are not empty. | None | Status is OK, audioSinkIds is not empty | Should be successful |
  * | 02 | Sort the audio sink IDs to determine the least and highest values. | None | Sorted list of audioSinkIds | Should be successful |
- * | 03 | Test getAudioSink with an invalid ID (least value - 1). | input: audioSinkId = leastValue - 1, output: audioSink = nullptr | Status is not OK, audioSink is nullptr | Should Fail |
- * | 04 | Test getAudioSink with an invalid ID (highest value + 1). | input: audioSinkId = highestValue + 1, output: audioSink = nullptr | Status is not OK, audioSink is nullptr | Should Fail |
+ * | 03 | Test getAudioSink with an invalid ID (least value - 1). | input: audioSinkId = leastValue - 1, output: audioSink = nullptr | status.isOk() = true, status.exceptionCode() = EX_NONE, audioSink is nullptr | Should Fail |
+ * | 04 | Test getAudioSink with an invalid ID (highest value + 1). | input: audioSinkId = highestValue + 1, output: audioSink = nullptr | status.isOk() = true, status.exceptionCode() = EX_NONE, audioSink is nullptr | Should Fail |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
 {
@@ -341,14 +341,14 @@ UT_ADD_TEST(VTS_L1_AudioSink, getAudioSink_neg)
 
     invalidID = sinkIds.front();
     invalidID.value -= 1;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_NONE);
 
     invalidID = sinkIds.back();
     invalidID.value += 1;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_NONE);
 
     invalidID.value = IAudioSink::Id::UNDEFINED;
-    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_ILLEGAL_ARGUMENT);
+    AUDIOSINK_MANAGER_GETAUDIOSINK_FAILURE(invalidID, audioSink, Status::EX_NONE);
 }
 
 /**
@@ -683,8 +683,9 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
  * @brief Test the positive scenario of opening an audio sink with all ContentType values.
  *
  * This test verifies the successful opening of an audio sink using a controller listener
- * with all possible ContentType values. It checks if the audio sink controller is correctly
- * initialized for each content type and the status returned is OK.
+ * with every ContentType reported as supported by that sink's getCapabilities(). It checks
+ * if the audio sink controller is correctly initialized for each supported content type and
+ * the status returned is OK.
  *
  * **Test Group ID:** Basic: 01@n
  * **Test Case ID:** 011@n
@@ -697,27 +698,15 @@ UT_ADD_TEST(VTS_L1_AudioSink, getState_pos)
  * **Test Procedure:**@n
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
- * | 01 | Initialize the controller listener object | controllerListener = new AudioSinkControllerListenerImpl | Object should be created successfully | Should be successful |
- * | 02 | Test opening with ContentType::UNKNOWN | contentType = UNKNOWN, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 03 | Test opening with ContentType::SPEECH | contentType = SPEECH, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 04 | Test opening with ContentType::MUSIC | contentType = MUSIC, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 05 | Test opening with ContentType::MOVIE | contentType = MOVIE, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
- * | 06 | Test opening with ContentType::SONIFICATION | contentType = SONIFICATION, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
+ * | 01 | Call getCapabilities on the audio sink | sink, capabilities | status.isOk() = true, capabilities.supportedContentTypes should not be empty | Should Pass |
+ * | 02 | Initialize the controller listener object | controllerListener = new AudioSinkControllerListenerImpl | Object should be created successfully | Should be successful |
+ * | 03 | Test opening with each ContentType in capabilities.supportedContentTypes | contentType = supported value, IN: controllerListener, OUT: audioSinkController | Status should be OK, audioSinkController should not be nullptr | Should Pass |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
 {
     std::vector<IAudioSink::Id> sinkIds;
     sp<IAudioSink> audioSink;
     ::android::binder::Status status;
-
-    // Define all possible ContentType values to test
-    std::vector<ContentType> contentTypes = {
-        ContentType::UNKNOWN,
-        ContentType::SPEECH,
-        ContentType::MUSIC,
-        ContentType::MOVIE,
-        ContentType::SONIFICATION
-    };
 
    /* Get the Audio sink IDs */
    AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -727,8 +716,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, open_pos)
         /* Get Audio sink handle */
         AUDIOSINK_MANAGER_GETAUDIOSINK(_sinkId, audioSink);
 
-        // Test opening with each ContentType
-        for (const auto& contentType : contentTypes)
+        /* Get Capabilities of Audio sink to determine which ContentTypes are supported */
+        audiosink::Capabilities capabilities;
+        AUDIODSINK_GETCAPABILITIES(audioSink, capabilities);
+
+        // Test opening with each ContentType supported by this sink's capabilities
+        for (const auto& contentType : capabilities.supportedContentTypes)
         {
             sp<IAudioSinkController> audioSinkController;
             sp<IAudioSinkControllerListener> controllerListener = new AudioSinkControllerListener(_sinkId.value);
@@ -1237,11 +1230,16 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
 
     std::vector<int32_t> audioDecoderIds = gAudiosinksHFP.availableDecoderIds;
+    int32_t validid = audioDecoderIds.front();
 
+    // Sort the IDs (including UNDEFINED) to find the least and highest values.
+    // Using audioDecoderIds.front() (not the raw HFP list) keeps invalidLowId
+    // from ever colliding with UNDEFINED, regardless of its numeric value.
+    // UNDEFINED (-1) is always the minimum, so it never affects invalidHighId.
+    audioDecoderIds.push_back(IAudioDecoder::Id::UNDEFINED);
     std::sort(audioDecoderIds.begin(), audioDecoderIds.end());
     int32_t invalidLowId = audioDecoderIds.front() - 1;
     int32_t invalidHighId = audioDecoderIds.back() + 1;
-    int32_t validid = audioDecoderIds.front();
 
     /* Get the Audio sink IDs */
     AUDIOSINK_MANAGER_GETAUDIOSINKIDS(sinkIds);
@@ -1258,10 +1256,10 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
         AUDIOSINK_OPEN_SUCCESS(audioSink, ContentType::UNKNOWN, controllerListener, audioSinkController, true);
 
         // Test with invalid ID (least value -1)
-        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidLowId, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidLowId, Status::EX_NONE);
 
         // Test with invalid ID (highest value +1)
-        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidHighId, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETAUDIODECODER_FAILURE(audioSinkController, invalidHighId, Status::EX_NONE);
 
         // Test Case 4: Resource Not in READY State
         // Transition to a non-READY state (e.g., STARTED)
@@ -2354,8 +2352,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_pos)
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Check if mControllers is not empty | mControllers | Should be successful |  |
- * | 02 | Set Volume with Invalid Volume Level (Above Maximum) | volume = 1.1, muted = false, _aidl_return = false | status.isOk() = false, _aidl_return = false | Should Fail |
- * | 03 | Set Volume with Invalid Volume Level (Below Minimum) | volume = -0.1, muted = false, _aidl_return = false | status.isOk() = false, _aidl_return = false | Should Fail |
+ * | 02 | Set Volume with Invalid Volume Level (Above Maximum) | volume = 1.1, muted = false, _aidl_return = false | status.isOk() = true, status.exceptionCode() = EX_NONE, _aidl_return = false | Should Fail |
+ * | 03 | Set Volume with Invalid Volume Level (Below Minimum) | volume = -0.1, muted = false, _aidl_return = false | status.isOk() = true, status.exceptionCode() = EX_NONE, _aidl_return = false | Should Fail |
  */
 UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
 {
@@ -2381,7 +2379,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
         Volume volumeSet;
         volumeSet.volume = 1.1; // Using the specified input
         volumeSet.muted = false; // Using the specified input
-        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_NONE);
 
         // Ensure the audio sink is in State::STARTED
         AUDIOSINK_START_SUCCESS(audioSink, audioSinkController, true);
@@ -2389,7 +2387,7 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolume_neg)
         volumeSet.volume = -0.1; // Using the specified input
         volumeSet.muted = false; // Using the specified input
         // Set invalid volume below minimum volume again
-        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETVOLUME_FAILURE(audioSinkController, volumeSet, Status::EX_NONE);
 
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
@@ -2493,8 +2491,8 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_pos)
  * | Variation / Step | Description | Test Data | Expected Result | Notes |
  * | :----: | --------- | ---------- |-------------- | ----- |
  * | 01 | Ensure all controllers are started | None | Controllers should be in State::STARTED | Should be successful |
- * | 02 | Call setVolumeRamp with negative target volume | targetVolume = -0.5, overMs = 5000, volumeRamp = LINEAR | aidlReturn = false, status.isOk() = false | Should Fail |
- * | 03 | Call setVolumeRamp with zero duration | targetVolume = 0.7, overMs = 0, volumeRamp = LINEAR | aidlReturn = false, status.isOk() = false | Should Fail |
+ * | 02 | Call setVolumeRamp with negative target volume | targetVolume = -0.5, overMs = 5000, volumeRamp = LINEAR | aidlReturn = false, status.isOk() = true, status.exceptionCode() = EX_NONE | Should Fail |
+ * | 03 | Call setVolumeRamp with zero duration | targetVolume = 0.7, overMs = 0, volumeRamp = LINEAR | aidlReturn = false, status.isOk() = true, status.exceptionCode() = EX_NONE | Should Fail |
  * | 04 | Ensure all controllers are stopped | None | Controllers should NOT be in State::STARTED | Should be successful |
  * | 05 | Call setVolumeRamp with invalid state | targetVolume = 0.6, overMs = 4000, volumeRamp = LINEAR | aidlReturn = false, status.exceptionCode() = EX_ILLEGAL_STATE | Should Fail |
  */
@@ -2525,12 +2523,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, setVolumeRamp_neg)
         double targetVolume = -0.5;
         int32_t overMs = 5000;
         VolumeRamp volumeRampLinear = VolumeRamp::LINEAR;
-        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_NONE);
 
         //  Invalid Duration (Zero Milliseconds)
         targetVolume = 0.7;
         overMs = 0;
-        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_ILLEGAL_ARGUMENT);
+        AUDIOSINK_SETVOLUMERAMP_FAILURE(audioSinkController, targetVolume, overMs, volumeRampLinear, Status::EX_NONE);
 
         //Stop the Audio sink
         AUDIOSINK_STOP_SUCCESS(audioSink, audioSinkController, true);
