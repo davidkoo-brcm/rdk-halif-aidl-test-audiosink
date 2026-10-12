@@ -318,6 +318,7 @@ public:
                                                 decoderControlListener, mAVBufferManager, decoderId, clockId,
                                                 secureDecode, isTunnel, testConfig, isClockInUse);
                     audiosinkTest.run();
+                    tunnelModeMismatch = tunnelModeMismatch || audiosinkTest.hasFrameOutputModeMismatch();
 
                     if (decodeThread.joinable())
                         decodeThread.join();
@@ -454,6 +455,7 @@ public:
             for (int i = 0; i < numInstances; ++i)
             {
                 const auto& decoderControlListener = std::get<2>(usableDecoders[i]);
+                tunnelModeMismatch = tunnelModeMismatch || sinkTests[i]->hasFrameOutputModeMismatch();
                 const auto outputMode = decoderControlListener->getFrameOutputMode();
                 if (outputMode != FrameOutputMode::UNKNOWN &&
                     ((outputMode == FrameOutputMode::TUNNEL) != isTunnel))

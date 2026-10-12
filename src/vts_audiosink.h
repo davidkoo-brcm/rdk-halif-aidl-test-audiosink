@@ -975,6 +975,7 @@ public:
     }
 
     void run();
+    bool hasFrameOutputModeMismatch() const { return mFrameOutputModeMismatch; }
 
 private:
     IAudioSink::Id mSinkId;
@@ -988,6 +989,7 @@ private:
     bool mSecureBuffer;
     bool mIsTunnel;
     bool mClockInUse;
+    bool mFrameOutputModeMismatch = false;
     testConfiguration_t mTestConfiguration;
     sp<IAudioSinkController> mAudioSinkController;
     sp<IAVClock> mClock;
