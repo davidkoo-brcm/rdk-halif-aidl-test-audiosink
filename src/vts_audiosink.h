@@ -1003,6 +1003,9 @@ private:
     void tearDownAudioSink();
     void validateCallbacks(int64_t expectedFirstFramePTS, bool expectUnderflow, bool expectResume);
     void copyMetaData(const audiodecoder::FrameMetadata& source, audiodecoder::FrameMetadata& destination);
+    void queueDecodedFrameIfNonTunnel(const DecodedAudioFrame_t& decodedFrame,
+                                      audiodecoder::FrameMetadata& metadata,
+                                      bool& flushDone);
     void validateMetric();
 };
 

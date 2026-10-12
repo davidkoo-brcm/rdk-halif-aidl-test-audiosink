@@ -245,7 +245,8 @@ public:
         return true;
     }
 
-    void runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    void runSequentialSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel,
+                           bool& tunnelModeMismatch)
     {
         try
         {
@@ -303,6 +304,7 @@ public:
                 }
 
                 isSinkAvailable = true;
+                resetDecodeSession(decoderEventListener, decoderControlListener);
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, beforeHeapMetrics);
 
                 {
@@ -319,6 +321,13 @@ public:
 
                     if (decodeThread.joinable())
                         decodeThread.join();
+                }
+
+                const auto outputMode = decoderControlListener->getFrameOutputMode();
+                if (outputMode != FrameOutputMode::UNKNOWN &&
+                    ((outputMode == FrameOutputMode::TUNNEL) != isTunnel))
+                {
+                    tunnelModeMismatch = true;
                 }
 
                 AVBUFFER_GETMETRICS(mAVBufferManager, secureDecode, afterHeapMetrics);
@@ -342,7 +351,8 @@ public:
         }
     }
 
-    void runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel)
+    void runConcurrentSink(testConfiguration_t& testConfig, bool secureDecode, bool isTunnel,
+                           bool& tunnelModeMismatch)
     {
         try
         {
@@ -411,6 +421,7 @@ public:
                 const auto& [_decoderId, _, decoderControlListener, __, ___] = usableDecoders[i];
 
                 clockId.value = gAudiosinksHFP.availableClockIds[i];
+                resetDecodeSession(std::get<3>(usableDecoders[i]), decoderControlListener);
 
                 auto sinkTest = std::make_unique<AudioSinkTest>(sinkId, sinkHandle,
                                                                 controlListener, eventListener,
@@ -439,6 +450,17 @@ public:
                 if (t.joinable()) t.join();
             for (auto& t : sinkThreads)
                 if (t.joinable()) t.join();
+
+            for (int i = 0; i < numInstances; ++i)
+            {
+                const auto& decoderControlListener = std::get<2>(usableDecoders[i]);
+                const auto outputMode = decoderControlListener->getFrameOutputMode();
+                if (outputMode != FrameOutputMode::UNKNOWN &&
+                    ((outputMode == FrameOutputMode::TUNNEL) != isTunnel))
+                {
+                    tunnelModeMismatch = true;
+                }
+            }
 
             // Destroy decoder tests now so their pool destructors fire before the metrics check
             decoderTests.clear();
@@ -489,20 +511,29 @@ public:
         vector<testConfiguration_t> testConfiguration;
 
         vts_audiodecoder_parse_testconfig(gAudioSinkTestConfiguration, gAudioModuleName, gTestGroup, testName, testConfiguration);
+        bool tunnelModeMismatch = false;
 
         if(isConcurrentMode)
         {
             for(auto& test: testConfiguration)
             {
-                runConcurrentSink(test, isSecureMode, isTunnel);
+                runConcurrentSink(test, isSecureMode, isTunnel, tunnelModeMismatch);
             }
         }
         else
         {
             for(auto& test: testConfiguration)
             {
-                runSequentialSink(test, isSecureMode, isTunnel);
+                runSequentialSink(test, isSecureMode, isTunnel, tunnelModeMismatch);
             }
+        }
+
+        if (tunnelModeMismatch)
+        {
+            const char* requestedMode = isTunnel ? "tunnelled" : "non-tunnelled";
+            UT_LOG_INFO("Skipping test '%s': decoder onFrameOutput did not match requested %s mode",
+                        testName, requestedMode);
+            GTEST_SKIP() << "Requested audio decoder onFrameOutput mode is not supported";
         }
     }
 
