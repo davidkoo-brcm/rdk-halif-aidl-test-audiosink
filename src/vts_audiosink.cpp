@@ -862,8 +862,17 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
         setupAudioSink();
 
-        while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+        while (true)
         {
+            if (!mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+            {
+                if (mdecoderControlListener->waitForEndOfStream(0))
+                {
+                    break;
+                }
+                continue;
+            }
+
             bool result = false;
             frameCount++;
 
@@ -912,7 +921,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
             UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
         }
 
-        /* Signal EOS to the sink after all frames have been queued */
+        /* Signal EOS to the sink after the decoder has completed and all frames were queued. */
         AUDIOSINK_SIGNAL_ENDOFSTREAM_SUCCESS(mAudioSinkController);
 
         /* Validate the callback */
@@ -952,8 +961,17 @@ void AudioSinkTest::audioSinkTunnelTest()
 
         setupAudioSink();
 
-        while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+        while (true)
         {
+            if (!mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
+            {
+                if (mdecoderControlListener->waitForEndOfStream(0))
+                {
+                    break;
+                }
+                continue;
+            }
+
             frameCount++;
 
             if (frameCount == 1)
