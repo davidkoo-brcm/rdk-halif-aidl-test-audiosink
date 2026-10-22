@@ -1230,6 +1230,12 @@ UT_ADD_TEST(VTS_L1_AudioSink, setAudioDecoder_neg)
     sp<IAudioSink> audioSink;
 
     std::vector<int32_t> audioDecoderIds = gAudiosinksHFP.availableDecoderIds;
+    UT_ASSERT_FALSE(audioDecoderIds.empty());
+    if (audioDecoderIds.empty())
+    {
+        UT_LOG_ERROR("No available audio decoder IDs in HFP - cannot run setAudioDecoder_neg test");
+        return;
+    }
     int32_t validid = audioDecoderIds.front();
 
     // Sort the IDs (including UNDEFINED) to find the least and highest values.
