@@ -940,7 +940,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
             std::optional<PropertyValue> latencyValue;
             AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
-            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
+            UT_LOG_INFO("[SinkID: %d] Render Latency: %d ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::intValue>());
         }
 
         /* Signal EOS to the sink after all frames have been queued */
@@ -1026,7 +1026,7 @@ void AudioSinkTest::audioSinkTunnelTest()
 
             std::optional<PropertyValue> latencyValue;
             AUDIOSINK_GET_PROPERTY_SUCCESS(mSinkHandle, audiosink::Property::RENDER_LATENCY_NS, latencyValue);
-            UT_LOG_INFO("[SinkID: %d] Render Latency: %lld ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::longValue>());
+            UT_LOG_INFO("[SinkID: %d] Render Latency: %d ns", mSinkId.value, latencyValue->value->get<PropertyValue::Value::Tag::intValue>());
         }
 
         /* Signal EOS to the sink (0.21.0 requirement — identical behaviour in tunnel and non-tunnel modes) */
