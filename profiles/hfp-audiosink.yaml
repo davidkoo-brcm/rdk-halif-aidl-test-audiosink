@@ -46,29 +46,3 @@ audiosink:
     supportsSoCProprietary: false
     maxNumChannels: 2
     supportsDolbyAtmos: false
-
-# Audio decoder section (copied from hfp-audiodecoder.yaml): the audio sink tests read
-# the available decoder IDs from here (setAudioDecoder_*, L3 decoder attach).
-# Only IDs 0-1: the Broadcom audio decoder HAL exposes two decoders (MAX_DECODERS == 2).
-audiodecoder:           # Component object begins
-    interfaceVersion: current
-    IAudioDecoder:              # Resource list
-      - 0:                   # Resource object begins
-         supportedCodecs:
-           - AAC_LC
-           - DOLBY_AC3
-         supportsSecure: false
-      - 1:
-         supportedCodecs:
-           - AAC_LC
-           - DOLBY_AC3
-         supportsSecure: false
-
-# AV clock section (copied from hfp-avclock.yaml): the audio sink tests read the
-# available clock IDs from here (attachClock_*, L2/L3 clock tests).
-avclock:                # Component object begins
-  interfaceVersion: current
-  IAVClock:                     # Resource list
-    - 0
-    - 1
-    - 2
