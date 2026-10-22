@@ -49,6 +49,7 @@ audiosink:
 
 # Audio decoder section (copied from hfp-audiodecoder.yaml): the audio sink tests read
 # the available decoder IDs from here (setAudioDecoder_*, L3 decoder attach).
+# Only IDs 0-1: the Broadcom audio decoder HAL exposes two decoders (MAX_DECODERS == 2).
 audiodecoder:           # Component object begins
     interfaceVersion: current
     IAudioDecoder:              # Resource list
@@ -58,11 +59,6 @@ audiodecoder:           # Component object begins
            - DOLBY_AC3
          supportsSecure: false
       - 1:
-         supportedCodecs:
-           - AAC_LC
-           - DOLBY_AC3
-         supportsSecure: false
-      - 2:
          supportedCodecs:
            - AAC_LC
            - DOLBY_AC3
