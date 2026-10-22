@@ -894,6 +894,12 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
         setupAudioSink();
 
+        if (mAudioSinkController == nullptr)
+        {
+            UT_LOG_ERROR("[SinkID: %d] Audio sink open failed - aborting test", mSinkId.value);
+            return;
+        }
+
         while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
         {
             if (decodedFrame.isTunnel != mIsTunnel)
@@ -979,6 +985,12 @@ void AudioSinkTest::audioSinkTunnelTest()
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
         setupAudioSink();
+
+        if (mAudioSinkController == nullptr)
+        {
+            UT_LOG_ERROR("[SinkID: %d] Audio sink open failed - aborting test", mSinkId.value);
+            return;
+        }
 
         while(mdecoderControlListener->getNextFrame(decodedFrame, 500, true))
         {
