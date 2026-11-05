@@ -25,7 +25,7 @@ audiosink:
 
   IAudioSink:
     - id: 0
-      supportsSecure: true
+      supportsSecure: false
       supportedContentTypes:
         - UNKNOWN
         - SPEECH
