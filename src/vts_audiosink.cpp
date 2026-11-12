@@ -647,6 +647,23 @@ bool AudioSinkEventListener::checkStateTransistion(::com::rdk::hal::audiosink::S
     return foundClosedToOpening;
 }
 
+AudioSinkTest::~AudioSinkTest()
+{
+    close();
+}
+
+void AudioSinkTest::close()
+{
+    if (mAudioSinkController != nullptr) tearDownAudioSink();
+}
+
+bool AudioSinkTest::prepare()
+{
+    if (mAudioSinkController != nullptr) return true;
+    setupAudioSink();
+    return mAudioSinkController != nullptr;
+}
+
 void AudioSinkTest::run()
 {
     if(mIsTunnel)
@@ -713,6 +730,7 @@ void AudioSinkTest::tearDownAudioSink()
 
     /* Close the Audio sink */
     AUDIOSINK_CLOSE_SUCCESS(mSinkHandle, mAudioSinkController, true);
+    mAudioSinkController = nullptr;
 
     if(!mClockInUse)
     {
@@ -892,7 +910,7 @@ void AudioSinkTest::audioSinkNonTunnelTest()
 
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
-        setupAudioSink();
+        if (!prepare()) return;
 
         if (mAudioSinkController == nullptr)
         {
@@ -955,8 +973,8 @@ void AudioSinkTest::audioSinkNonTunnelTest()
         /* Validate the metrics */
         validateMetric();
 
-        /* Stop the Audio sink */
-        tearDownAudioSink();
+        // AVClock tests keep the route until their measurement has finished.
+        if (!mKeepSessionOpen) close();
     }
     catch (const std::exception& ex)
     {
@@ -984,7 +1002,7 @@ void AudioSinkTest::audioSinkTunnelTest()
 
         UT_LOG_INFO("[SinkID: %d] Start of Testing Stream: %s", mSinkId.value, mTestConfiguration.input.c_str());
 
-        setupAudioSink();
+        if (!prepare()) return;
 
         if (mAudioSinkController == nullptr)
         {
@@ -1041,8 +1059,8 @@ void AudioSinkTest::audioSinkTunnelTest()
         /* Validate the metrics */
         validateMetric();
 
-        /* Stop the Audio sink */
-        tearDownAudioSink();
+        // AVClock tests keep the route until their measurement has finished.
+        if (!mKeepSessionOpen) close();
     }
     catch (const std::exception& ex)
     {

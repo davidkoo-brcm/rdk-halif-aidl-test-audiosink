@@ -974,7 +974,13 @@ public:
         mClockCtrlListener = new AudioSinkAVClockControllerListener();
     }
 
+    // Connects and starts the sink before the decoder submits its first PTS.
+    bool prepare();
+    ~AudioSinkTest();
     void run();
+    // Keep the route alive until an external clock measurement completes.
+    void runKeepingSession() { mKeepSessionOpen = true; run(); }
+    void close();
     bool hasFrameOutputModeMismatch() const { return mFrameOutputModeMismatch; }
 
 private:
@@ -990,6 +996,7 @@ private:
     bool mIsTunnel;
     bool mClockInUse;
     bool mFrameOutputModeMismatch = false;
+    bool mKeepSessionOpen = false;
     testConfiguration_t mTestConfiguration;
     sp<IAudioSinkController> mAudioSinkController;
     sp<IAVClock> mClock;
