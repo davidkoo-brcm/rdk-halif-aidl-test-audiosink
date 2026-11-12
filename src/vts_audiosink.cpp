@@ -711,13 +711,14 @@ void AudioSinkTest::setupAudioSink()
     // Set the decoder to the audio sink
     AUDIOSINK_SETAUDIODECODER_SUCCESS(mAudioSinkController, mDecoderId.value);
 
-    /* Start the decoder */
-    AUDIOSINK_START_SUCCESS(mSinkHandle, mAudioSinkController, true);
-
+    // The clock must exist when sink start binds the decoder's STC channel.
     if(!mClockInUse)
     {
         setupClock();
     }
+
+    /* Start the audio sink before the decoder starts playback. */
+    AUDIOSINK_START_SUCCESS(mSinkHandle, mAudioSinkController, true);
 }
 
 void AudioSinkTest::tearDownAudioSink()

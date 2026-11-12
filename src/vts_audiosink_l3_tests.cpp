@@ -312,11 +312,14 @@ public:
                                                 decoderEventListener, mAVBufferManager, mAVbufferHelper,
                                                 secureDecode, testConfig, isSinkAttached);
 
-                    std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
+                    if (!decodeTest.prepare()) return;
 
                     AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
                                                 decoderControlListener, mAVBufferManager, decoderId, clockId,
                                                 secureDecode, isTunnel, testConfig, isClockInUse);
+                    if (!audiosinkTest.prepare()) return;
+
+                    std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
                     audiosinkTest.run();
                     tunnelModeMismatch = tunnelModeMismatch || audiosinkTest.hasFrameOutputModeMismatch();
 
@@ -412,7 +415,20 @@ public:
                 return;
             }
 
-            // Launch sink threads, pairing with decoder control listeners
+            // Open all decoders before their sinks bind clocks and STC channels.
+            for (int i = 0; i < numInstances; ++i)
+            {
+                const auto& [_decoderId, decoderHandle, controlListener, eventListener, capabilities] = usableDecoders[i];
+                resetDecodeSession(eventListener, controlListener);
+                auto decoderTest = std::make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
+                                                                     controlListener, eventListener,
+                                                                     mAVBufferManager, mAVbufferHelper,
+                                                                     secureDecode, testConfig, isSinkAttached);
+                if (!decoderTest->prepare()) return;
+                decoderTests.push_back(std::move(decoderTest));
+            }
+
+            // Prepare every sink and its clock before starting any decoder.
             for (int i = 0; i < numInstances; ++i)
             {
                 IAVClock::Id clockId;
@@ -422,7 +438,6 @@ public:
                 const auto& [_decoderId, _, decoderControlListener, __, ___] = usableDecoders[i];
 
                 clockId.value = gAudiosinksHFP.availableClockIds[i];
-                resetDecodeSession(std::get<3>(usableDecoders[i]), decoderControlListener);
 
                 auto sinkTest = std::make_unique<AudioSinkTest>(sinkId, sinkHandle,
                                                                 controlListener, eventListener,
@@ -430,21 +445,14 @@ public:
                                                                 mAVBufferManager, _decoderId, clockId,
                                                                 secureDecode, isTunnel,
                                                                 testConfig, isClockInUse);
-                sinkThreads.emplace_back(&AudioSinkTest::run, sinkTest.get());
+                if (!sinkTest->prepare()) return;
                 sinkTests.push_back(std::move(sinkTest));
             }
 
-            // Launch decoder threads
             for (int i = 0; i < numInstances; ++i)
-            {
-                const auto& [_decoderId, decoderHandle, controlListener, eventListener, capabilities] = usableDecoders[i];
-                auto decoderTest = std::make_unique<AudioDecoderTest>(_decoderId, decoderHandle,
-                                                                     controlListener, eventListener,
-                                                                     mAVBufferManager, mAVbufferHelper,
-                                                                     secureDecode, testConfig, isSinkAttached);
-                decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTest.get(), false);
-                decoderTests.push_back(std::move(decoderTest));
-            }
+                sinkThreads.emplace_back(&AudioSinkTest::run, sinkTests[i].get());
+            for (int i = 0; i < numInstances; ++i)
+                decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTests[i].get(), false);
 
             // Join all threads
             for (auto& t : decoderThreads)
@@ -464,7 +472,8 @@ public:
                 }
             }
 
-            // Destroy decoder tests now so their pool destructors fire before the metrics check
+            // Release sinks before decoder pools and the heap metrics check.
+            sinkTests.clear();
             decoderTests.clear();
 
             // Get heap metrics

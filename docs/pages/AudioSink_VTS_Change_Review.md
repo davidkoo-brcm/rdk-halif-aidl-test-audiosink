@@ -6,10 +6,13 @@ Platform: Broadcom Xione. Profile: `profiles/hfp-unified_xione.yaml`.
 
 | Check | Latest result |
 | --- | --- |
-| AVClock regression with DSOLA off | PASS — confirmed by the user |
-| `seq_tun_nonsec_AutoAudioBeforeVideo` (2026-11-12) | PASS — 81.119 s |
+| AudioSink L3 (2026-11-12) | 32 tests: 7 PASS / 1 FAIL / 24 SKIP, 266.946 s |
+| Sequential Tunnel NonSecure: basic, Flush, EOS, Underflow | All PASS |
+| Concurrent Tunnel NonSecure: basic, Flush, EOS | All PASS |
+| `ASink_Concurrent_Tunnel_NonSecure_Underflow` | HW limitation — raw VTS result remains FAIL |
+| Secure and NonTunnel | 24 SKIP |
 
-An AVClock PASS verifies priming and clock progression, not simultaneous audible output or pitch-corrected trick playback.
+Xione does not support simultaneous audio playback. When the second decoder takes the audio resource, the first waits for it. Per the platform owner's decision, the concurrent Underflow failure is classified as a hardware limitation. The test expects underflow and resumed callbacks from each sink; some callbacks were absent in this run. Assertions and the raw FAIL result remain unchanged. Decoder-specific `dummyFrames` values are not present in the logs, so the internal path causing the missing callbacks has not been confirmed.
 
 ## Prepare the sink before decoder start
 
@@ -53,4 +56,48 @@ void AudioSinkTest::close()
 {
     if (mAudioSinkController != nullptr) tearDownAudioSink();
 }
+```
+
+## AudioSink L3 startup ordering
+
+Both sequential and concurrent paths prepare the decoder, prepare the clock, connect the sink/STC, then start the decoder. Prepare the owned clock before sink start so the HAL can bind the NEXUS STC channel. Paths using an external AVClock reuse that prepared clock.
+
+[`src/vts_audiosink.cpp:714`](../../src/vts_audiosink.cpp#L714)
+
+```cpp
+    // The clock must exist when sink start binds the decoder's STC channel.
+    if(!mClockInUse)
+    {
+        setupClock();
+    }
+
+    /* Start the audio sink before the decoder starts playback. */
+    AUDIOSINK_START_SUCCESS(mSinkHandle, mAudioSinkController, true);
+```
+
+The sequential path starts the decoder thread only after both helpers prepare successfully.
+
+[`src/vts_audiosink_l3_tests.cpp:315`](../../src/vts_audiosink_l3_tests.cpp#L315)
+
+```cpp
+                    if (!decodeTest.prepare()) return;
+
+                    AudioSinkTest audiosinkTest(_sinkId, std::get<1>(sinkTuple), std::get<2>(sinkTuple), std::get<3>(sinkTuple),
+                                                decoderControlListener, mAVBufferManager, decoderId, clockId,
+                                                secureDecode, isTunnel, testConfig, isClockInUse);
+                    if (!audiosinkTest.prepare()) return;
+
+                    std::thread decodeThread(&AudioDecoderTest::run, &decodeTest, false);
+                    audiosinkTest.run();
+```
+
+The concurrent path prepares all decoders, then all sinks, before launching threads. Preparation failures return before any threads start. After completion, sink helpers are released before decoder helpers and the heap metrics check.
+
+[`src/vts_audiosink_l3_tests.cpp:418`](../../src/vts_audiosink_l3_tests.cpp#L418)
+
+```cpp
+            for (int i = 0; i < numInstances; ++i)
+                sinkThreads.emplace_back(&AudioSinkTest::run, sinkTests[i].get());
+            for (int i = 0; i < numInstances; ++i)
+                decoderThreads.emplace_back(&AudioDecoderTest::run, decoderTests[i].get(), false);
 ```
